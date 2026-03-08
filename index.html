@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JCOSASI — Program Kerja 2026–2027</title>
+  <meta name="description" content="Program Kerja JCOSASI (Japanese Community of Satu Bekasi) Periode 2026–2027" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Serif+JP:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="content.js"></script>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">
+        <div class="logo-wrap" id="navLogoWrap"></div>
+      </a>
+      <ul class="nav-links" id="navLinks"></ul>
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <ul id="mobileLinks"></ul>
+  </div>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-bg">
+      <div class="sakura-layer"></div>
+      <div class="hero-grid-overlay"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge fade-up" id="heroBadge"></div>
+      <h1 class="hero-title fade-up delay-1">
+        <span class="jp-accent"     id="heroJp"></span>
+        <span class="hero-big"      id="heroHeadline"></span>
+        <span class="hero-sub-title"id="heroSubtitle"></span>
+      </h1>
+      <p class="hero-desc fade-up delay-2" id="heroDesc"></p>
+      <div class="hero-highlights fade-up delay-3" id="heroHighlights"></div>
+      <a class="hero-cta fade-up delay-4" id="heroCta"></a>
+    </div>
+    <div class="hero-deco">
+      <div class="circle-deco c1"></div>
+      <div class="circle-deco c2"></div>
+      <div class="hero-logo-placeholder" id="heroLogoDeco"></div>
+    </div>
+  </section>
+
+  <!-- TENTANG -->
+  <section id="tentang">
+    <div class="container">
+      <div class="tentang-grid">
+        <div class="tentang-text fade-left">
+          <div class="section-label" id="tentangLabel"></div>
+          <h2 id="tentangHeading"></h2>
+          <p id="tentangPara1"></p>
+          <p id="tentangPara2"></p>
+          <div class="tentang-stats" id="tentangStats"></div>
+        </div>
+        <div class="tentang-visual fade-right">
+          <div class="visual-card">
+            <div class="vc-top">
+              <div class="vc-badge" id="vcBadge"></div>
+              <div class="vc-year"  id="vcYear"></div>
+            </div>
+            <div class="vc-logo-area">
+              <div class="vc-logo-box" id="vcLogoBox"></div>
+            </div>
+            <div class="vc-tags"  id="vcTags"></div>
+            <p class="vc-motto"   id="vcMotto"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISI MISI -->
+  <section id="visi-misi">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label" id="vmLabel"></div>
+        <h2 id="vmHeading"></h2>
+      </div>
+      <div class="vm-grid">
+        <div class="vm-card visi fade-up">
+          <div class="vm-icon">🎯</div>
+          <h3 id="visiJudul"></h3>
+          <p  id="visiTeks"></p>
+        </div>
+        <div class="vm-misi fade-up delay-1">
+          <h3 class="misi-title" id="misiLabel"></h3>
+          <ul class="misi-list"  id="misiList"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROGRAM KERJA -->
+  <section id="proker">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label" id="prokerLabel"></div>
+        <h2 id="prokerHeading"></h2>
+        <p class="section-desc" id="prokerDesc"></p>
+      </div>
+      <div class="proker-filter">
+        <button class="filter-btn active" data-filter="all">Semua</button>
+        <button class="filter-btn" data-filter="rutin">Rutin</button>
+        <button class="filter-btn" data-filter="akademik">Akademik</button>
+        <button class="filter-btn" data-filter="event">Event</button>
+        <button class="filter-btn" data-filter="organisasi">Organisasi</button>
+        <button class="filter-btn" data-filter="lainlain">Lain-lain</button>
+      </div>
+      <div class="proker-grid" id="prokerGrid"></div>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section id="timeline">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label" id="tlLabel"></div>
+        <h2 id="tlHeading"></h2>
+      </div>
+      <div class="timeline-wrapper" id="tlWrapper"></div>
+    </div>
+  </section>
+
+  <!-- PENGURUS -->
+  <section id="pengurus">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-label" id="pengurusLabel"></div>
+        <h2 id="pengurusHeading"></h2>
+        <p class="section-desc" id="pengurusDesc"></p>
+      </div>
+      <div class="pengurus-note" id="pengurusNote"></div>
+
+      <div class="org-chart">
+        <!-- Level 1 — Ketua -->
+        <div class="org-level org-level-1">
+          <div class="org-card org-card-ketua fade-up" id="orgKetua"></div>
+        </div>
+        <div class="org-v-line"></div>
+
+        <!-- Level 2 — Inti -->
+        <div class="org-level org-level-2">
+          <div class="org-card org-card-inti fade-up delay-1" id="orgWakil"></div>
+          <div class="org-card org-card-inti fade-up delay-2" id="orgSekretaris"></div>
+          <div class="org-card org-card-inti fade-up delay-3" id="orgBendahara"></div>
+        </div>
+        <div class="org-v-line"></div>
+
+        <!-- Level 3 — Bidang -->
+        <div class="org-level org-level-3" id="orgBidang"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KONTAK -->
+  <section id="kontak">
+    <div class="container">
+      <div class="kontak-inner">
+        <div class="kontak-text fade-left">
+          <div class="section-label" id="kontakLabel"></div>
+          <h2 id="kontakHeading"></h2>
+          <p  id="kontakDesc"></p>
+          <div class="kontak-info">
+            <div class="ki-item">
+              <span class="ki-icon">🏫</span>
+              <div>
+                <strong id="kontakSekolah"></strong>
+                <span   id="kontakAlamat"></span>
+              </div>
+            </div>
+            <div class="ki-item">
+              <span class="ki-icon">📧</span>
+              <div>
+                <strong>Email</strong>
+                <span id="kontakEmail"></span>
+              </div>
+            </div>
+          </div>
+          <div class="sosmed-links" id="sosmedLinks"></div>
+        </div>
+        <div class="kontak-card fade-right">
+          <div class="kc-top">
+            <div class="kc-badge" id="kcBadge"></div>
+            <div class="kc-year"  id="kcYear"></div>
+          </div>
+          <div class="kc-body"  id="kcBody"></div>
+          <div class="kc-quote">
+            <span class="jp"    id="kcJpQuote"></span>
+            <span class="trans" id="kcIdQuote"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <span class="logo-kanji">J-COSASI</span>
+          <span class="footer-full"   id="footerFull"></span>
+          <span class="footer-school" id="footerSchool"></span>
+        </div>
+        <div class="footer-links">
+          <a href="#tentang">Tentang</a>
+          <a href="#visi-misi">Visi Misi</a>
+          <a href="#proker">Program Kerja</a>
+          <a href="#timeline">Timeline</a>
+          <a href="#pengurus">Pengurus</a>
+          <a href="#kontak">Kontak</a>
+        </div>
+        <div class="footer-copy">
+          <p id="footerCopy"></p>
+          <p class="jp-footer" id="footerJp"></p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
