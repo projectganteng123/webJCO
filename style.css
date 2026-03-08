@@ -1097,7 +1097,6 @@ footer {
 
 /* ============ RESPONSIVE ============ */
 @media (max-width: 960px) {
-  .tentang-grid { grid-template-columns: 1fr; gap: 48px; }
   .vm-grid { grid-template-columns: 1fr; }
   .kontak-inner { grid-template-columns: 1fr; gap: 48px; }
   .timeline-wrapper::before { left: 24px; }
@@ -1150,7 +1149,28 @@ footer {
 @media (max-width: 1100px) {
   .hero-content { max-width: 600px; padding-left: 40px; }
   .hero-logo-placeholder { right: 40px; }
-  .tentang-grid { grid-template-columns: 1fr 360px; gap: 48px; }
+  /* Tentang: mulai menyempit tapi masih 2 kolom */
+  .tentang-grid { grid-template-columns: 1fr 320px; gap: 40px; }
+}
+
+/* Di bawah 860px, visual card sudah mulai terpotong — pindah ke bawah */
+@media (max-width: 860px) {
+  .tentang-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  /* Visual card tampil penuh di bawah teks */
+  .tentang-visual {
+    width: 100%;
+    order: 2; /* pastikan di bawah teks */
+  }
+  .tentang-text {
+    order: 1;
+  }
+  .visual-card {
+    max-width: 480px;
+    margin: 0 auto; /* center di mobile */
+  }
 }
 
 @media (max-width: 768px) {
@@ -1163,6 +1183,8 @@ footer {
   .sosmed-links { flex-wrap: wrap; gap: 8px; }
   .sm-btn { flex: 1; min-width: 120px; justify-content: center; }
   .stat-num { font-size: 2rem; }
+  /* Visual card full width di mobile */
+  .visual-card { max-width: 100%; }
 }
 
 @media (max-width: 600px) {
@@ -1189,6 +1211,10 @@ footer {
   .filter-btn { flex-shrink: 0; }
   .vm-card, .vm-misi { padding: 28px 20px; }
   .kc-stat span { font-size: 1.8rem; }
+  /* Visual card padding lebih kecil di hp */
+  .visual-card { padding: 28px 20px; }
+  .vc-top { margin-bottom: 24px; }
+  .vc-logo-area { margin-bottom: 20px; }
 }
 
 @media (max-width: 400px) {
