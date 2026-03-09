@@ -276,7 +276,7 @@ function buildActivityGraph(containerId, activityDates) {
 
   container.innerHTML = '';
 
-  // Legend
+  // Legend (di luar scroll area)
   const legend = document.createElement('div');
   legend.className = 'activity-header';
   legend.innerHTML = `
@@ -292,9 +292,14 @@ function buildActivityGraph(containerId, activityDates) {
       Lebih banyak
     </div>`;
 
+  // FIX: bulan + kotak dalam 1 wrapper scroll tunggal — tidak ada 2 scrollbar
+  const scrollWrapper = document.createElement('div');
+  scrollWrapper.className = 'activity-scroll-wrapper';
+  scrollWrapper.appendChild(monthRow);
+  scrollWrapper.appendChild(graphWrap);
+
   container.appendChild(legend);
-  container.appendChild(monthRow);
-  container.appendChild(graphWrap);
+  container.appendChild(scrollWrapper);
   container.appendChild(stats);
 }
 
@@ -405,28 +410,231 @@ function renderPage(proker, sheetsData) {
     return html;
   }
 
-  /* ── Dokumentasi ── */
+  /* ── Dokumentasi multi-sesi ── */
   function renderDok() {
-    let html = '';
-    if (dok && dok.length > 0) {
-      html += `<div class="dok-grid">${dok.map(d => `
-        <div class="dok-item">
-          <img class="dok-img" src="${d.foto || ''}" alt="${d.caption || 'Dokumentasi'}" loading="lazy"
-               onerror="this.style.background='#EDE0F8';this.style.minHeight='120px'"/>
-          <div class="dok-caption">${d.caption || ''}</div>
-        </div>`).join('')}</div>`;
-    }
-    if (catDok) {
-      html += `<div class="dok-catatan"><strong>Catatan Pelaksanaan:</strong><br/>${catDok}</div>`;
-    }
-    if (!dok.length && !catDok) {
-      html = `<div class="dok-empty">
+    if (!dok || dok.length === 0) {
+      return `<div class="dok-empty">
         <div class="de-icon">📷</div>
         <p>Dokumentasi belum tersedia.</p>
         <p style="font-size:.8rem;margin-top:6px">Akan diperbarui setelah kegiatan berlangsung.</p>
       </div>`;
     }
-    return html;
+
+    // Kelompokkan dokumentasi berdasarkan tanggal_sesi
+    const sesiMap = {};
+    dok.forEach(d => {
+      const key = d.tanggal_sesi || d.tanggal || 'Tanggal tidak diketahui';
+      if (!sesiMap[key]) sesiMap[key] = [];
+      sesiMap[key].push(d);
+    });
+    const sesiKeys = Object.keys(sesiMap).sort();
+    const jumlahSesi = sesiKeys.length;
+
+    // Hitung total biaya aktual dari semua sesi
+    let totalBiayaAktual = 0;
+    dok.forEach(d => {
+      if (d.biaya_aktual) {
+        const num = parseInt((d.biaya_aktual + '').replace(/\D/g,''));
+        if (!isNaN(num)) totalBiayaAktual += num;
+      }
+    });
+
+    // ── Header ringkasan otomatis ──
+    let summaryHtml = '';
+    if (jumlahSesi === 1) {
+      // Hanya 1 sesi: tampilkan tanggal
+      const tglFormatted = formatTglLong(sesiKeys[0]);
+      summaryHtml = `
+        <div class="dok-summary single">
+          <div class="dsum-stat">
+            <span class="dsum-icon">📅</span>
+            <div><span class="dsum-val">${tglFormatted}</span><span class="dsum-label">Tanggal Kegiatan</span></div>
+          </div>
+          ${totalBiayaAktual > 0 ? `
+          <div class="dsum-stat">
+            <span class="dsum-icon">💸</span>
+            <div><span class="dsum-val">Rp ${totalBiayaAktual.toLocaleString('id-ID')}</span><span class="dsum-label">Total Biaya Dikeluarkan</span></div>
+          </div>` : ''}
+        </div>`;
+    } else {
+      // Lebih dari 1 sesi: tampilkan jumlah + total biaya
+      summaryHtml = `
+        <div class="dok-summary multi">
+          <div class="dsum-stat">
+            <span class="dsum-icon">🔄</span>
+            <div><span class="dsum-val">${jumlahSesi}×</span><span class="dsum-label">Kegiatan Telah Dilaksanakan</span></div>
+          </div>
+          ${totalBiayaAktual > 0 ? `
+          <div class="dsum-stat">
+            <span class="dsum-icon">💸</span>
+            <div><span class="dsum-val">Rp ${totalBiayaAktual.toLocaleString('id-ID')}</span><span class="dsum-label">Total Biaya Dikeluarkan</span></div>
+          </div>` : ''}
+          <div class="dsum-stat">
+            <span class="dsum-icon">📅</span>
+            <div>
+              <span class="dsum-val" style="font-size:.9rem">${formatTglShort(sesiKeys[0])} – ${formatTglShort(sesiKeys[sesiKeys.length-1])}</span>
+              <span class="dsum-label">Rentang Pelaksanaan</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── Render tiap sesi ──
+    const sesiHtml = sesiKeys.map((key, idx) => {
+      const items = sesiMap[key];
+      // Ambil data utama dari item pertama sesi ini
+      const d = items[0];
+
+      // Foto-foto dari semua item sesi ini
+      const fotoHtml = items
+        .filter(item => item.foto_url)
+        .map(item => {
+          // Convert Google Drive link ke direct image link jika perlu
+          const src = convertGDriveUrl(item.foto_url);
+          return `<a href="${item.foto_url}" target="_blank" rel="noopener" class="dok-foto-wrap">
+            <img class="dok-foto" src="${src}" alt="${item.keterangan||'Foto kegiatan'}" loading="lazy"
+                 onerror="this.closest('.dok-foto-wrap').innerHTML='<div class=\\'dok-foto-err\\'>🖼️ Foto tidak dapat dimuat</div>'"/>
+          </a>`;
+        }).join('');
+
+      // Daftar hadir
+      const hadirHtml = buildHadirSection(d);
+
+      // Biaya sesi ini
+      let biayaSesi = 0;
+      items.forEach(item => {
+        if (item.biaya_aktual) {
+          const num = parseInt((item.biaya_aktual+'').replace(/\D/g,''));
+          if (!isNaN(num)) biayaSesi += num;
+        }
+      });
+
+      return `
+        <div class="dok-sesi" id="sesi-${idx+1}">
+          <div class="dok-sesi-header" onclick="toggleSesi(${idx})">
+            <div class="dsh-left">
+              <span class="dsh-num">Sesi ${idx+1}</span>
+              <span class="dsh-tanggal">${formatTglLong(key)}</span>
+              ${d.waktu_mulai && d.waktu_selesai
+                ? `<span class="dsh-jam">${d.waktu_mulai} – ${d.waktu_selesai}</span>`
+                : ''}
+            </div>
+            <div class="dsh-right">
+              ${biayaSesi > 0 ? `<span class="dsh-biaya">Rp ${biayaSesi.toLocaleString('id-ID')}</span>` : ''}
+              <span class="dsh-toggle" id="toggle-icon-${idx}">▾</span>
+            </div>
+          </div>
+
+          <div class="dok-sesi-body" id="sesi-body-${idx}">
+
+            ${fotoHtml ? `<div class="dsb-section">
+              <div class="dsb-label">📷 Foto Kegiatan</div>
+              <div class="dok-foto-grid">${fotoHtml}</div>
+            </div>` : ''}
+
+            ${hadirHtml}
+
+            ${d.materi || d.progress ? `<div class="dsb-section">
+              <div class="dsb-label">📖 Materi & Progress</div>
+              <div class="dsb-content">${d.materi || d.progress || ''}</div>
+            </div>` : ''}
+
+            ${d.waktu_mulai || d.waktu_selesai ? `<div class="dsb-section dsb-row">
+              ${d.waktu_mulai ? `<div class="dsb-chip">🕐 Mulai: <strong>${d.waktu_mulai}</strong></div>` : ''}
+              ${d.waktu_selesai ? `<div class="dsb-chip">🕔 Selesai: <strong>${d.waktu_selesai}</strong></div>` : ''}
+              ${d.waktu_mulai && d.waktu_selesai ? `<div class="dsb-chip">⏱️ Durasi: <strong>${hitungDurasi(d.waktu_mulai, d.waktu_selesai)}</strong></div>` : ''}
+            </div>` : ''}
+
+            ${biayaSesi > 0 ? `<div class="dsb-section">
+              <div class="dsb-label">💰 Biaya Kegiatan</div>
+              <div class="dsb-biaya-box">
+                ${items.filter(i=>i.item_biaya).map(i=>`
+                  <div class="dsb-biaya-row">
+                    <span>${i.item_biaya}</span>
+                    <span>Rp ${parseInt((i.biaya_aktual+'').replace(/\D/g,'')).toLocaleString('id-ID')}</span>
+                  </div>`).join('')}
+                <div class="dsb-biaya-total">
+                  <span>Total Sesi Ini</span>
+                  <span>Rp ${biayaSesi.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+            </div>` : ''}
+
+            ${d.kendala || d.evaluasi ? `<div class="dsb-section">
+              <div class="dsb-label">⚠️ Kendala & Evaluasi</div>
+              <div class="dsb-content dsb-evaluasi">${d.kendala || d.evaluasi || ''}</div>
+            </div>` : ''}
+
+          </div>
+        </div>`;
+    }).join('');
+
+    return summaryHtml + `<div class="dok-sesi-list">${sesiHtml}</div>`;
+  }
+
+  /* Helper: konversi Google Drive share link ke embeddable URL */
+  function convertGDriveUrl(url) {
+    if (!url) return '';
+    // Format: https://drive.google.com/file/d/FILE_ID/view?...
+    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400`;
+    return url;
+  }
+
+  /* Helper: render daftar hadir */
+  function buildHadirSection(d) {
+    const groups = [
+      { key: 'hadir_peserta',    label: 'Peserta',    icon: '👥' },
+      { key: 'hadir_panitia',    label: 'Panitia',    icon: '🤝' },
+      { key: 'hadir_narasumber', label: 'Narasumber', icon: '🎤' },
+    ];
+    const parts = groups.filter(g => d[g.key]);
+    if (parts.length === 0) return '';
+
+    return `<div class="dsb-section">
+      <div class="dsb-label">✅ Daftar Hadir</div>
+      <div class="dsb-hadir-grid">
+        ${parts.map(g => `
+          <div class="dsb-hadir-block">
+            <div class="dsb-hadir-title">${g.icon} ${g.label}</div>
+            <div class="dsb-hadir-names">
+              ${(d[g.key]+'').split(',').map(n => `<span class="dsb-hadir-chip">${n.trim()}</span>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  /* Helper: format tanggal panjang "12 Januari 2026" */
+  function formatTglLong(str) {
+    if (!str || str === 'Tanggal tidak diketahui') return str;
+    const bulan = ['Januari','Februari','Maret','April','Mei','Juni',
+                   'Juli','Agustus','September','Oktober','November','Desember'];
+    const parts = str.split('-');
+    if (parts.length === 3) return `${parseInt(parts[2])} ${bulan[parseInt(parts[1])-1]} ${parts[0]}`;
+    return str;
+  }
+
+  /* Helper: format tanggal pendek "12 Jan" */
+  function formatTglShort(str) {
+    if (!str) return '';
+    const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+    const parts = str.split('-');
+    if (parts.length === 3) return `${parseInt(parts[2])} ${bulan[parseInt(parts[1])-1]}`;
+    return str;
+  }
+
+  /* Helper: hitung durasi dari waktu mulai–selesai "08:00" */
+  function hitungDurasi(mulai, selesai) {
+    try {
+      const [h1,m1] = mulai.split(':').map(Number);
+      const [h2,m2] = selesai.split(':').map(Number);
+      let totalMenit = (h2*60+m2) - (h1*60+m1);
+      if (totalMenit < 0) totalMenit += 1440;
+      const jam  = Math.floor(totalMenit/60);
+      const mnt  = totalMenit % 60;
+      return jam > 0 ? `${jam} jam ${mnt > 0 ? mnt+' menit' : ''}`.trim() : `${mnt} menit`;
+    } catch { return '–'; }
   }
 
   /* ── Render full HTML ── */
@@ -548,6 +756,20 @@ function renderPage(proker, sheetsData) {
 
   // Build activity graph
   buildActivityGraph('activityGraph', activity);
+
+  // Auto-buka sesi dokumentasi pertama
+  const firstBody = document.getElementById('sesi-body-0');
+  const firstIcon = document.getElementById('toggle-icon-0');
+  if (firstBody) { firstBody.classList.add('open'); if (firstIcon) firstIcon.textContent = '▴'; }
+}
+
+/* ── Toggle accordion sesi dokumentasi ── */
+function toggleSesi(idx) {
+  const body = document.getElementById(`sesi-body-${idx}`);
+  const icon = document.getElementById(`toggle-icon-${idx}`);
+  if (!body) return;
+  const isOpen = body.classList.toggle('open');
+  if (icon) icon.textContent = isOpen ? '▴' : '▾';
 }
 
 /* ══════════════════════════════════════════════
