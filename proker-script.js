@@ -111,10 +111,23 @@ function getStatusProker(proker, detail, jadwal) {
      3. null */
   function nearestJadwal() {
     if (!jadwal || !jadwal.length) return null;
+    const nowFull = new Date(); // waktu penuh agar countdown akurat sampai menit
     const future = jadwal
-      .map(r => parseDateLocal(r.tanggal))
-      .filter(d => d && d >= now)
-      .sort((a,b) => a-b);
+      .map(r => {
+        const tgl = parseDateLocal(r.tanggal); // parseDateLocal hanya baca kolom tanggal
+        if (!tgl) return null;
+        // Gabungkan dengan kolom jam jika ada, format "HH:MM"
+        const jamStr = (r.jam || '').trim();
+        const jamMatch = jamStr.match(/^(\d{1,2}):(\d{2})$/);
+        if (jamMatch) {
+          tgl.setHours(parseInt(jamMatch[1]), parseInt(jamMatch[2]), 0, 0);
+        } else {
+          tgl.setHours(7, 0, 0, 0); // default 07:00 jika kolom jam kosong
+        }
+        return tgl;
+      })
+      .filter(d => d && d > nowFull)
+      .sort((a, b) => a - b);
     return future.length ? future[0] : null;
   }
 
@@ -149,8 +162,9 @@ function startCountdown(targetDate, containerId) {
     const h = Math.floor((diff%86400000)/3600000);
     const m = Math.floor((diff%3600000)/60000);
     const s = Math.floor((diff%60000)/1000);
+    const tglTarget = targetDate.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     box.innerHTML = `
-      <div class="cd-label">Menuju hari pelaksanaan</div>
+      <div class="cd-label">Menuju kegiatan · <span class="cd-tgl">${tglTarget}</span></div>
       <div class="countdown-boxes">
         <div class="cd-box"><span class="cd-num">${String(d).padStart(2,'0')}</span><span class="cd-unit">Hari</span></div>
         <div class="cd-box"><span class="cd-num">${String(h).padStart(2,'0')}</span><span class="cd-unit">Jam</span></div>
@@ -168,9 +182,10 @@ function renderNotifs(notifs, status, estDate, cfg) {
   cfg = cfg || {};
   let html = '';
 
-  /* 1. Countdown — dari sheet config, bisa on/off */
+  /* 1. Countdown — tampil otomatis jika ada jadwal terdekat (estDate)
+        Bisa dinonaktifkan dari sheet config dengan countdown_aktif = false */
   const cdAktif = !cfg.countdown_aktif || cfg.countdown_aktif.toLowerCase() !== 'false';
-  if (cdAktif && (status === 'upcoming' || status === 'ongoing') && estDate) {
+  if (cdAktif && estDate) {
     html += `<div class="notif-blok notif-countdown">
       <div class="nb-eyebrow">⏳ Hitung Mundur</div>
       <div id="countdownBox" class="countdown-wrap"></div>
@@ -681,7 +696,7 @@ function renderPage(proker, sheetsData) {
       </a>
     </div>`;
 
-  if(estDate&&status==='upcoming') startCountdown(estDate,'countdownBox');
+  if(estDate) startCountdown(estDate,'countdownBox');
   buildActivityGraph('activityGraph',activity,jadwal,dok);
 
   const fb=$('sesi-body-0'), fi=$('toggle-icon-0');
