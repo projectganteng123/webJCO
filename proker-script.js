@@ -374,14 +374,17 @@ function buildActivityGraph(containerId, activityRows, jadwalRows, dok) {
     // sudah dihitung per sesi saja, tambah dari baris biaya
   }});
 
-  /* Month row */
+  /* Month row — 1 div per week, lebar identik dengan .activity-week (13px)
+     Label hanya muncul di minggu pertama bulan, teks meluap ke kanan */
   const monthRow = document.createElement('div');
   monthRow.className = 'activity-months';
   weeks.forEach((_,wi)=>{
     const lbl = monthLabels.find(ml=>ml.weekIdx===wi);
     const sp  = document.createElement('div');
-    sp.className  = 'activity-month-label';
+    sp.className   = 'activity-month-label';
     sp.textContent = lbl ? BULAN_PENDEK[lbl.month] : '';
+    // Tandai kolom yang punya label agar bisa diberi warna berbeda jika perlu
+    if (lbl) sp.setAttribute('data-has-label','1');
     monthRow.appendChild(sp);
   });
 

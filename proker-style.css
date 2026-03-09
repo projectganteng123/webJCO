@@ -327,17 +327,21 @@ img { max-width: 100%; display: block; }
 .activity-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--purple-light); border-radius: 3px; }
 
 .activity-months {
-  display: flex; gap: 2px; margin-bottom: 6px;
-  /* HAPUS overflow-x: auto dari sini — sudah dihandle wrapper */
+  display: flex;
+  gap: 3px; /* harus sama dengan gap antar week di .activity-graph */
+  margin-bottom: 4px;
   min-width: max-content;
 }
 .activity-month-label {
   font-size: .68rem; color: var(--grey-mid);
-  white-space: nowrap; min-width: 28px; text-align: center;
+  white-space: nowrap;
+  /* lebar = lebar kotak (13px) + 0 extra — sama persis dengan .activity-week */
+  width: 13px;
+  text-align: left;
+  overflow: visible; /* teks boleh meluap ke kanan */
 }
 
 .activity-graph-wrap {
-  /* HAPUS overflow-x: auto dari sini — sudah dihandle wrapper */
   min-width: max-content;
 }
 .activity-graph {
