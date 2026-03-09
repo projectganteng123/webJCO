@@ -283,8 +283,8 @@ function sheetsToStruktur(rows) {
 }
 
 /**
- * Fetch data pengurus dari Google Sheets via Apps Script,
- * lalu render org chart. Fallback ke data content.js jika gagal.
+ * Fetch data pengurus dari Google Sheets via JSONP
+ * (menghindari CORS error yang terjadi dengan fetch() biasa)
  */
 async function loadPengurusFromSheets() {
   const C   = CONTENT;
@@ -299,20 +299,57 @@ async function loadPengurusFromSheets() {
   }
 
   try {
-    const res  = await fetch(`${api}?sheet=pengurus`);
-    const json = await res.json();
+    const data = await fetchJSONP(api + '?sheet=pengurus');
 
-    if (json.status !== 'ok' || !json.data || json.data.length === 0) {
-      throw new Error('Data kosong atau status bukan ok');
+    if (!data || data.status !== 'ok' || !data.data || data.data.length === 0) {
+      throw new Error('Data kosong atau status error');
     }
 
-    const { struktur, bidang } = sheetsToStruktur(json.data);
+    const { struktur, bidang } = sheetsToStruktur(data.data);
     renderPengurus(struktur, bidang, 'sheets');
 
   } catch (err) {
     console.error('[JCOSASI] Gagal fetch dari Sheets:', err.message);
     renderPengurus(P.struktur, P.bidang, 'fallback');
   }
+}
+
+/**
+ * JSONP helper — menghindari CORS dengan inject <script> tag
+ * Google Apps Script mendukung callback parameter secara native
+ */
+function fetchJSONP(url) {
+  return new Promise(function(resolve, reject) {
+    // Nama callback unik agar tidak tabrakan jika dipanggil berkali-kali
+    const callbackName = '_jcosasi_cb_' + Date.now();
+    const timeout = setTimeout(function() {
+      cleanup();
+      reject(new Error('Request timeout setelah 10 detik'));
+    }, 10000);
+
+    // Google Apps Script akan memanggil fungsi ini dengan data JSON
+    window[callbackName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      const el = document.getElementById('jsonp-pengurus');
+      if (el) el.remove();
+    }
+
+    // Inject script tag — ini yang bypass CORS
+    const script = document.createElement('script');
+    script.id  = 'jsonp-pengurus';
+    script.src = url + '&callback=' + callbackName;
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('Script gagal dimuat — cek URL Apps Script'));
+    };
+    document.head.appendChild(script);
+  });
 }
 
 /**
