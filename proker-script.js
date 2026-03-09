@@ -111,24 +111,25 @@ function getStatusProker(proker, detail, jadwal) {
      3. null */
   function nearestJadwal() {
     if (!jadwal || !jadwal.length) return null;
-    const nowFull = new Date(); // waktu penuh agar countdown akurat sampai menit
-    const future = jadwal
-      .map(r => {
-        const tgl = parseDateLocal(r.tanggal); // parseDateLocal hanya baca kolom tanggal
-        if (!tgl) return null;
-        // Gabungkan dengan kolom jam jika ada, format "HH:MM"
-        const jamStr = (r.jam || '').trim();
-        const jamMatch = jamStr.match(/^(\d{1,2}):(\d{2})$/);
-        if (jamMatch) {
-          tgl.setHours(parseInt(jamMatch[1]), parseInt(jamMatch[2]), 0, 0);
-        } else {
-          tgl.setHours(7, 0, 0, 0); // default 07:00 jika kolom jam kosong
-        }
-        return tgl;
-      })
-      .filter(d => d && d > nowFull)
-      .sort((a, b) => a - b);
-    return future.length ? future[0] : null;
+    const nowMs = Date.now();
+    const candidates = [];
+    for (let i = 0; i < jadwal.length; i++) {
+      const r = jadwal[i];
+      if (!r.tanggal) continue;
+      // Bangun datetime string langsung — hindari mutasi objek Date
+      const jamStr   = (r.jam || '').trim();
+      const jamMatch = jamStr.match(/^(\d{1,2}):(\d{2})$/);
+      const hh = jamMatch ? jamMatch[1].padStart(2,'0') : '07';
+      const mm = jamMatch ? jamMatch[2]                 : '00';
+      // "YYYY-MM-DDTHH:MM:00" → Date lokal (bukan UTC)
+      const dt = new Date(r.tanggal + 'T' + hh + ':' + mm + ':00');
+      if (!isNaN(dt.getTime()) && dt.getTime() > nowMs) {
+        candidates.push(dt);
+      }
+    }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => a - b);
+    return candidates[0];
   }
 
   const cdDate = nearestJadwal() || parseDateLocal(detail?.estimasi_tanggal || '');
