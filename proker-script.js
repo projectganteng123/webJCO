@@ -1,861 +1,713 @@
 /**
  * ============================================================
- *  JCOSASI — proker-script.js
- *  Logic halaman detail program kerja
- *  - Routing via ?id=01
- *  - Countdown otomatis
- *  - Activity graph (Jan 2026 – Jan 2027)
- *  - Fetch data dari Google Sheets (pemberitahuan, deskripsi detail, dokumentasi)
+ *  JCOSASI — proker-script.js  (v3)
+ *  Halaman detail program kerja
  * ============================================================
  */
 
-/* ── Helpers ── */
+/* ══════════════════════════════════════════════
+   HELPERS UMUM
+══════════════════════════════════════════════ */
 const $  = id => document.getElementById(id);
-const qs = sel => document.querySelector(sel);
 
-/* ── Ambil ID proker dari URL ── */
+const HARI        = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const BULAN       = ['Januari','Februari','Maret','April','Mei','Juni',
+                     'Juli','Agustus','September','Oktober','November','Desember'];
+const BULAN_PENDEK= ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+
+/** Parse "YYYY-MM-DD" → Date lokal (tidak ada konversi UTC/timezone) */
+function parseDateLocal(str) {
+  if (!str || typeof str !== 'string') return null;
+  const parts = str.trim().split('-');
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts.map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+/** "YYYY-MM-DD" → "Jumat, 7 Agustus 2026" */
+function formatTglPanjang(str) {
+  const d = parseDateLocal(str);
+  if (!d) return str || '–';
+  return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "YYYY-MM-DD" → "7 Ags" */
+function formatTglPendek(str) {
+  const d = parseDateLocal(str);
+  if (!d) return str || '';
+  return `${d.getDate()} ${BULAN_PENDEK[d.getMonth()]}`;
+}
+
+/** "HH:MM" & "HH:MM" → "2 jam 30 menit" (dalam satu hari, tidak lintas hari) */
+function hitungDurasi(mulai, selesai) {
+  if (!mulai || !selesai) return null;
+  const [h1, m1] = mulai.split(':').map(Number);
+  const [h2, m2] = selesai.split(':').map(Number);
+  if (isNaN(h1)||isNaN(h2)) return null;
+  const totalMenit = (h2 * 60 + m2) - (h1 * 60 + m1);
+  if (totalMenit <= 0) return null;
+  const jam = Math.floor(totalMenit / 60);
+  const mnt = totalMenit % 60;
+  if (jam > 0 && mnt > 0) return `${jam} jam ${mnt} mnt`;
+  if (jam > 0) return `${jam} jam`;
+  return `${mnt} menit`;
+}
+
+/** Angka → "Rp 150.000" */
+function rupiah(val) {
+  const n = parseInt((val + '').replace(/\D/g,''));
+  if (isNaN(n) || n === 0) return null;
+  return 'Rp ' + n.toLocaleString('id-ID');
+}
+function rupiahNum(val) {
+  const n = parseInt((val + '').replace(/\D/g,''));
+  return isNaN(n) ? 0 : n;
+}
+
 function getProkerIdFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('id') || '01';
+  return new URLSearchParams(window.location.search).get('id') || '01';
 }
-
-/* ── Cari data proker dari CONTENT ── */
 function getProkerData(id) {
-  if (!CONTENT || !CONTENT.proker || !CONTENT.proker.items) return null;
-  return CONTENT.proker.items.find(p => p.num === id) || null;
-}
-
-/* ── Format tanggal Indonesia ── */
-function formatTanggal(date) {
-  const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
-  return `${date.getDate()} ${bulan[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-/* ── Hitung status proker ── */
-function getStatus(proker) {
-  const now = new Date();
-  // Cari tanggal estimasi dari detail proker
-  const detailWaktu = proker.detail ? proker.detail.find(d =>
-    d.label.includes('Estimasi') || d.label.includes('Waktu')
-  ) : null;
-
-  // Proker rutin = ongoing jika periode aktif
-  if (proker.cat && proker.cat.includes('rutin')) {
-    const start = new Date('2026-01-01');
-    const end   = new Date('2027-01-31');
-    if (now >= start && now <= end) return 'ongoing';
-    if (now < start) return 'upcoming';
-    return 'done';
-  }
-
-  // Coba parse tanggal dari detail
-  if (detailWaktu && detailWaktu.val) {
-    const val = detailWaktu.val;
-    // Format: "25 Juli 2026", "22 Agustus 2026", dll
-    const monthMap = {
-      'januari':1,'februari':2,'maret':3,'april':4,'mei':5,'juni':6,
-      'juli':7,'agustus':8,'september':9,'oktober':10,'november':11,'desember':12
-    };
-    const parts = val.toLowerCase().replace('est. ','').split(' ');
-    if (parts.length >= 3) {
-      const d = parseInt(parts[0]);
-      const m = monthMap[parts[1]];
-      const y = parseInt(parts[2]);
-      if (d && m && y) {
-        const eventDate = new Date(y, m-1, d);
-        const diff = eventDate - now;
-        if (diff > 86400000) return 'upcoming';   // > 1 hari ke depan
-        if (diff > -604800000) return 'ongoing';  // dalam 7 hari terakhir
-        return 'done';
-      }
-    }
-  }
-
-  return 'upcoming';
-}
-
-/* ── Parse tanggal estimasi untuk countdown ── */
-function parseEstimasiDate(proker) {
-  const detailEst = proker.detail ? proker.detail.find(d =>
-    d.label.includes('Estimasi')
-  ) : null;
-  if (!detailEst) return null;
-
-  const val = detailEst.val;
-  const monthMap = {
-    'januari':1,'februari':2,'maret':3,'april':4,'mei':5,'juni':6,
-    'juli':7,'agustus':8,'september':9,'oktober':10,'november':11,'desember':12
-  };
-  const parts = val.toLowerCase().replace('est. ','').split(' ');
-  if (parts.length >= 3) {
-    const d = parseInt(parts[0]);
-    const m = monthMap[parts[1]];
-    const y = parseInt(parts[2]);
-    if (d && m && y) return new Date(y, m-1, d, 8, 0, 0);
-  }
-  return null;
-}
-
-/* ── Render countdown ── */
-function startCountdown(targetDate, containerId) {
-  const container = $(containerId);
-  if (!container || !targetDate) return;
-
-  function update() {
-    const now  = new Date();
-    const diff = targetDate - now;
-
-    if (diff <= 0) {
-      container.innerHTML = `<div class="countdown-label">Kegiatan telah berlangsung 🎉</div>`;
-      return;
-    }
-
-    const days  = Math.floor(diff / 86400000);
-    const hours = Math.floor((diff % 86400000) / 3600000);
-    const mins  = Math.floor((diff % 3600000) / 60000);
-    const secs  = Math.floor((diff % 60000) / 1000);
-
-    container.innerHTML = `
-      <div class="countdown-label">Menuju hari pelaksanaan</div>
-      <div class="countdown-boxes">
-        <div class="cd-box"><span class="cd-num">${String(days).padStart(2,'0')}</span><span class="cd-unit">Hari</span></div>
-        <div class="cd-box"><span class="cd-num">${String(hours).padStart(2,'0')}</span><span class="cd-unit">Jam</span></div>
-        <div class="cd-box"><span class="cd-num">${String(mins).padStart(2,'0')}</span><span class="cd-unit">Menit</span></div>
-        <div class="cd-box"><span class="cd-num">${String(secs).padStart(2,'0')}</span><span class="cd-unit">Detik</span></div>
-      </div>`;
-  }
-
-  update();
-  setInterval(update, 1000);
+  return (CONTENT?.proker?.items || []).find(p => p.num === id) || null;
 }
 
 /* ══════════════════════════════════════════════
-   ACTIVITY GRAPH
-   Januari 2026 – Januari 2027 (53 minggu)
+   STATUS PROKER
 ══════════════════════════════════════════════ */
-function buildActivityGraph(containerId, activityDates) {
+function getStatusProker(proker, detail) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const estStr = detail?.estimasi_tanggal || null;
+
+  if (proker.cat?.includes('rutin')) {
+    const s = new Date(2026,0,1), e = new Date(2027,1,0);
+    if (now < s) return { status:'upcoming', estDate: s };
+    if (now > e) return { status:'done',     estDate: null };
+    return { status:'ongoing', estDate: null };
+  }
+  if (estStr) {
+    const est = parseDateLocal(estStr);
+    if (est) {
+      const diff = est - now;
+      if (diff > 86400000)   return { status:'upcoming', estDate: est };
+      if (diff > -604800000) return { status:'ongoing',  estDate: null };
+      return { status:'done', estDate: null };
+    }
+  }
+  return { status:'upcoming', estDate: null };
+}
+
+/* ══════════════════════════════════════════════
+   COUNTDOWN
+══════════════════════════════════════════════ */
+function startCountdown(targetDate, containerId) {
+  const box = $(containerId);
+  if (!box || !targetDate) return;
+  function tick() {
+    const diff = targetDate - Date.now();
+    if (diff <= 0) { box.innerHTML = `<p class="cd-done">🎉 Hari pelaksanaan telah tiba!</p>`; return; }
+    const d = Math.floor(diff/86400000);
+    const h = Math.floor((diff%86400000)/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    box.innerHTML = `
+      <div class="cd-label">Menuju hari pelaksanaan</div>
+      <div class="countdown-boxes">
+        <div class="cd-box"><span class="cd-num">${String(d).padStart(2,'0')}</span><span class="cd-unit">Hari</span></div>
+        <div class="cd-box"><span class="cd-num">${String(h).padStart(2,'0')}</span><span class="cd-unit">Jam</span></div>
+        <div class="cd-box"><span class="cd-num">${String(m).padStart(2,'0')}</span><span class="cd-unit">Menit</span></div>
+        <div class="cd-box"><span class="cd-num">${String(s).padStart(2,'0')}</span><span class="cd-unit">Detik</span></div>
+      </div>`;
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+/* ══════════════════════════════════════════════
+   PEMBERITAHUAN
+══════════════════════════════════════════════ */
+function renderNotifs(notifs, status, estDate, cfg) {
+  cfg = cfg || {};
+  let html = '';
+
+  /* 1. Countdown — dari sheet config, bisa on/off */
+  if (cfg.countdown_aktif !== 'false' && status === 'upcoming' && estDate) {
+    html += `<div class="notif-blok notif-countdown">
+      <div class="nb-eyebrow">⏳ Hitung Mundur</div>
+      <div id="countdownBox" class="countdown-wrap"></div>
+    </div>`;
+  }
+
+  /* 2. Ajakan / himbauan utama — font besar & menarik */
+  if (cfg.ajakan === 'true' && cfg.ajakan_teks) {
+    html += `<div class="notif-blok notif-ajakan">
+      <div class="ajakan-teks">${cfg.ajakan_teks}</div>
+      ${cfg.ajakan_sub ? `<div class="ajakan-sub">${cfg.ajakan_sub}</div>` : ''}
+    </div>`;
+  }
+
+  /* 3. Wajib hadir + sanksi */
+  if (cfg.wajib_hadir === 'true') {
+    html += `<div class="notif-blok notif-wajib">
+      <div class="nb-wajib-icon">⚠️</div>
+      <div class="nb-wajib-body">
+        <div class="nb-wajib-title">${cfg.wajib_hadir_teks || 'Kehadiran Wajib!'}</div>
+        ${cfg.wajib_hadir_sanksi ? `<div class="nb-wajib-sanksi">Sanksi: <strong>${cfg.wajib_hadir_sanksi}</strong></div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  /* 4. Notif bebas dari sheet proker_notif */
+  if (notifs && notifs.length > 0) {
+    const icons = { info:'ℹ️', warning:'⚠️', success:'✅', penting:'🔴' };
+    const cls   = { info:'notif-info', warning:'notif-warning', success:'notif-success', penting:'notif-penting' };
+    html += `<div class="notif-list">${notifs.map(n => `
+      <div class="notif-item ${cls[n.tipe]||'notif-info'}">
+        <div class="ni-icon">${icons[n.tipe]||'ℹ️'}</div>
+        <div class="ni-body">
+          <div class="ni-title">${n.judul||''}</div>
+          <div class="ni-text">${n.isi||''}</div>
+          ${n.tanggal ? `<div class="ni-date">${formatTglPanjang(n.tanggal)}</div>` : ''}
+        </div>
+      </div>`).join('')}</div>`;
+  }
+
+  if (!html) html = `<div class="notif-empty"><div class="ne-icon">📭</div><p>Belum ada pemberitahuan.</p></div>`;
+  return html;
+}
+
+/* ══════════════════════════════════════════════
+   DESKRIPSI KEGIATAN (semua dari Sheets)
+══════════════════════════════════════════════ */
+function renderDeskripsi(proker, detail) {
+  const D       = detail || {};
+  const waktu   = D.waktu    || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–';
+  const lokasi  = D.lokasi   || '–';
+  const sasaran = D.sasaran  || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
+  const tujuan  = D.tujuan   || '';
+  const pemateri= D.pemateri || '';
+  const panitia = D.panitia  || '';
+
+  let rabItems = [];
+  if (D.rab) { try { rabItems = JSON.parse(D.rab); } catch(e) {} }
+
+  function listAccordion(str, satuanLabel) {
+    if (!str) return `<span class="val-empty">Belum diisi</span>`;
+    const names = str.split(',').map(n=>n.trim()).filter(Boolean);
+    if (names.length === 1) return `<span>${names[0]}</span>`;
+    return `<div class="daftar-accordion" onclick="toggleAccordion(this)">
+      <div class="da-header"><span>${names.length} ${satuanLabel}</span><span class="da-arrow">▾</span></div>
+      <div class="da-body">${names.map(n=>`<div class="da-row">${n}</div>`).join('')}</div>
+    </div>`;
+  }
+
+  function renderRAB() {
+    if (!rabItems.length) return `<p class="rab-empty">RAB belum diisi di Google Sheets.</p>`;
+    let totEst = 0, totAkt = 0;
+    const rows = rabItems.map(r => {
+      const est = rupiahNum(r.estimasi); const akt = rupiahNum(r.aktual);
+      totEst += est; totAkt += akt;
+      return `<tr>
+        <td>${r.item||''}</td>
+        <td class="rab-num">${est?rupiah(est):'<span class="rab-nil">–</span>'}</td>
+        <td class="rab-num ${akt>est&&est?'rab-over':akt?'rab-ok':''}">${akt?rupiah(akt):'<span class="rab-nil">–</span>'}</td>
+      </tr>`;
+    }).join('');
+    return `<table class="rab-table">
+      <thead><tr><th>Item</th><th>Estimasi</th><th>Aktual</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="rab-total">
+        <td>Total</td>
+        <td>${rupiah(totEst)||'–'}</td>
+        <td class="${totAkt>totEst&&totEst?'rab-over':totAkt?'rab-ok':''}">${rupiah(totAkt)||'–'}</td>
+      </tr></tfoot>
+    </table>`;
+  }
+
+  return `<div class="desc-grid">
+    <div class="desc-item full-width">
+      <div class="di-label">🎯 Tujuan &amp; Manfaat</div>
+      <div class="di-value">${tujuan||'<span class="val-empty">Belum diisi di Google Sheets</span>'}</div>
+    </div>
+    <div class="desc-item">
+      <div class="di-label">🕐 Waktu Kegiatan</div>
+      <div class="di-value">${waktu}</div>
+    </div>
+    <div class="desc-item">
+      <div class="di-label">📍 Lokasi</div>
+      <div class="di-value">${lokasi!=='–'?lokasi:'<span class="val-empty">Menyesuaikan</span>'}</div>
+    </div>
+    <div class="desc-item">
+      <div class="di-label">👥 Target Peserta</div>
+      <div class="di-value">${sasaran||'<span class="val-empty">–</span>'}</div>
+    </div>
+    <div class="desc-item">
+      <div class="di-label">🎤 Pemateri / Narasumber</div>
+      <div class="di-value">${pemateri?listAccordion(pemateri,'pemateri'):'<span class="val-empty">Belum ditentukan</span>'}</div>
+    </div>
+    <div class="desc-item full-width">
+      <div class="di-label">🤝 Panitia / Penanggung Jawab</div>
+      <div class="di-value">${listAccordion(panitia,'anggota panitia')}</div>
+    </div>
+    <div class="desc-item full-width">
+      <div class="di-label">💰 Rencana Anggaran Biaya (RAB)</div>
+      ${renderRAB()}
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════
+   ACTIVITY GRAPH — 6 STATE WARNA
+══════════════════════════════════════════════ */
+function buildActivityGraph(containerId, activityRows, jadwalRows, dok) {
   const container = $(containerId);
   if (!container) return;
 
-  const START = new Date(2026, 0, 1);   // 1 Jan 2026
-  const END   = new Date(2027, 0, 31);  // 31 Jan 2027
-  const today = new Date();
-  today.setHours(0,0,0,0);
+  const START = new Date(2026,0,1);
+  const END   = new Date(2027,0,31);
+  const today = new Date(); today.setHours(0,0,0,0);
 
-  // Map tanggal → level (0=none, 1=low, 2=med, 3=high)
-  const dateMap = {};
-  (activityDates || []).forEach(entry => {
-    if (entry.tanggal) {
-      const key = entry.tanggal; // format: "YYYY-MM-DD"
-      dateMap[key] = parseInt(entry.level) || 1;
-    }
+  /* Build sets */
+  const rencanaSet = new Set();
+  (jadwalRows||[]).forEach(r => { if(r.tanggal) rencanaSet.add(r.tanggal); });
+
+  const aktualSet = new Set(), batalSet = new Set();
+  (activityRows||[]).forEach(r => {
+    if (!r.tanggal) return;
+    if (r.status === 'batal') batalSet.add(r.tanggal);
+    else aktualSet.add(r.tanggal);
   });
+  (dok||[]).forEach(d => { if(d.tanggal_sesi) aktualSet.add(d.tanggal_sesi); });
 
-  // Mulai dari Minggu pertama sebelum/pada 1 Jan 2026
+  /* Bangun weeks */
   const graphStart = new Date(START);
-  graphStart.setDate(graphStart.getDate() - graphStart.getDay()); // mundur ke Minggu
-
-  const weeks = [];
-  const monthLabels = [];
-  let cur = new Date(graphStart);
-  let lastMonth = -1;
-
+  graphStart.setDate(graphStart.getDate() - graphStart.getDay());
+  const weeks=[], monthLabels=[];
+  let cur = new Date(graphStart), lastMonth=-1;
   while (cur <= END) {
-    const week = [];
-    for (let d = 0; d < 7; d++) {
-      week.push(new Date(cur));
-      cur.setDate(cur.getDate() + 1);
-    }
-    // Label bulan (tampilkan di minggu pertama bulan itu)
-    const firstInRange = week.find(d => d >= START && d <= END);
-    if (firstInRange && firstInRange.getMonth() !== lastMonth) {
-      lastMonth = firstInRange.getMonth();
-      monthLabels.push({ weekIdx: weeks.length, month: firstInRange.getMonth() });
+    const week=[];
+    for(let d=0;d<7;d++){week.push(new Date(cur));cur.setDate(cur.getDate()+1);}
+    const fir = week.find(d=>d>=START&&d<=END);
+    if(fir && fir.getMonth()!==lastMonth){
+      lastMonth=fir.getMonth();
+      monthLabels.push({weekIdx:weeks.length,month:fir.getMonth()});
     }
     weeks.push(week);
   }
 
-  const namaHari  = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
-  const namaBulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
-
-  // Hitung stats
-  let totalAktif   = 0;
-  let streakSekarang = 0;
-  let streakTerbanyak = 0;
-  let tmpStreak    = 0;
-
-  weeks.forEach(week => {
-    week.forEach(day => {
-      if (day < START || day > END) return;
-      const key = day.toISOString().split('T')[0];
-      if (dateMap[key] && day <= today) {
-        totalAktif++;
-        tmpStreak++;
-        if (tmpStreak > streakTerbanyak) streakTerbanyak = tmpStreak;
-      } else {
-        if (day <= today) tmpStreak = 0;
-      }
-    });
+  /* Hitung stats */
+  let totAktual=0, totDurasiMenit=0, totBiaya=0;
+  aktualSet.forEach(()=>totAktual++);
+  const dokSesiSeen = new Set();
+  (dok||[]).forEach(d=>{
+    if(!d.tanggal_sesi||dokSesiSeen.has(d.tanggal_sesi)) return;
+    dokSesiSeen.add(d.tanggal_sesi);
+    if(d.waktu_mulai&&d.waktu_selesai){
+      const [h1,m1]=d.waktu_mulai.split(':').map(Number);
+      const [h2,m2]=d.waktu_selesai.split(':').map(Number);
+      totDurasiMenit += Math.max(0,(h2*60+m2)-(h1*60+m1));
+    }
+    if(d.biaya_aktual) totBiaya += rupiahNum(d.biaya_aktual);
   });
-  // Streak sekarang (mundur dari hari ini)
-  let checkDay = new Date(today);
-  while (true) {
-    const key = checkDay.toISOString().split('T')[0];
-    if (dateMap[key]) { streakSekarang++; checkDay.setDate(checkDay.getDate()-1); }
-    else break;
-  }
+  // juga biaya dari baris lain sesi yang sama
+  (dok||[]).forEach(d=>{ if(d.biaya_aktual && !dokSesiSeen.has(d.tanggal_sesi+'_biaya')){
+    // sudah dihitung per sesi saja, tambah dari baris biaya
+  }});
 
-  // Render month labels
+  /* Month row */
   const monthRow = document.createElement('div');
   monthRow.className = 'activity-months';
-  weeks.forEach((_, wi) => {
-    const label = monthLabels.find(ml => ml.weekIdx === wi);
-    const span = document.createElement('div');
-    span.className = 'activity-month-label';
-    span.style.minWidth = '14px';
-    span.textContent = label ? namaBulan[label.month] : '';
-    monthRow.appendChild(span);
+  weeks.forEach((_,wi)=>{
+    const lbl = monthLabels.find(ml=>ml.weekIdx===wi);
+    const sp  = document.createElement('div');
+    sp.className  = 'activity-month-label';
+    sp.textContent = lbl ? BULAN_PENDEK[lbl.month] : '';
+    monthRow.appendChild(sp);
   });
 
-  // Render graph
+  /* Graph cells */
   const graphWrap = document.createElement('div');
   graphWrap.className = 'activity-graph-wrap';
   const graph = document.createElement('div');
   graph.className = 'activity-graph';
 
-  weeks.forEach(week => {
-    const weekCol = document.createElement('div');
-    weekCol.className = 'activity-week';
-
-    week.forEach(day => {
+  weeks.forEach(week=>{
+    const col = document.createElement('div');
+    col.className = 'activity-week';
+    week.forEach(day=>{
       const cell = document.createElement('div');
       cell.className = 'activity-day';
+      const key   = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+      const inRng = day>=START && day<=END;
+      const isFut = day>today;
+      const isTdy = day.getTime()===today.getTime();
 
-      const isFuture  = day > today;
-      const inRange   = day >= START && day <= END;
-      const key       = day.toISOString().split('T')[0];
-      const level     = inRange && !isFuture ? (dateMap[key] || 0) : 0;
+      if(!inRng){ cell.style.visibility='hidden'; col.appendChild(cell); return; }
 
-      if (!inRange) {
-        cell.style.visibility = 'hidden';
-      } else if (isFuture) {
-        cell.setAttribute('data-future', '1');
-        cell.setAttribute('data-level', '0');
-      } else {
-        cell.setAttribute('data-level', level);
+      let state, tip;
+      if      (aktualSet.has(key))  { state='actual';        tip='Kegiatan berlangsung'; }
+      else if (batalSet.has(key))   { state='cancelled';     tip='Kegiatan dibatalkan'; }
+      else if (rencanaSet.has(key)) {
+        if(isTdy)  { state='today-planned'; tip='Hari ini — ada rencana kegiatan'; }
+        else       { state='planned';       tip=isFut?'Rencana kegiatan':'Rencana (terlewat)'; }
       }
+      else if (isTdy) { state='today';  tip='Hari ini'; }
+      else if (isFut) { state='future'; tip='Belum ada kegiatan'; }
+      else            { state='past';   tip='Tidak ada kegiatan'; }
 
-      // Tooltip
-      if (inRange) {
-        const tgl = formatTanggal(day);
-        const statusText = isFuture ? 'Belum tiba' :
-          level === 0 ? 'Tidak ada kegiatan' :
-          level === 1 ? 'Ada kegiatan' :
-          level === 2 ? 'Kegiatan aktif' : 'Kegiatan intensif';
-        cell.title = `${tgl} — ${statusText}`;
-
-        cell.addEventListener('mouseenter', e => showTooltip(e, `${tgl} — ${statusText}`));
-        cell.addEventListener('mouseleave', hideTooltip);
-        cell.addEventListener('mousemove', moveTooltip);
-      }
-
-      weekCol.appendChild(cell);
+      cell.setAttribute('data-state', state);
+      const tipFull = `${formatTglPanjang(key)} — ${tip}`;
+      cell.addEventListener('mouseenter', e=>showTooltip(e, tipFull));
+      cell.addEventListener('mouseleave', hideTooltip);
+      cell.addEventListener('mousemove',  moveTooltip);
+      col.appendChild(cell);
     });
-    graph.appendChild(weekCol);
+    graph.appendChild(col);
   });
-
   graphWrap.appendChild(graph);
 
-  // Stats
+  /* Legend */
+  const legend = document.createElement('div');
+  legend.className = 'activity-legend-wrap';
+  legend.innerHTML = `<div class="al-legend-grid">
+    <div class="al-item"><div class="al-dot" data-state="actual"></div><span>Terlaksana</span></div>
+    <div class="al-item"><div class="al-dot" data-state="planned"></div><span>Rencana</span></div>
+    <div class="al-item"><div class="al-dot" data-state="today-planned"></div><span>Hari ini (rencana)</span></div>
+    <div class="al-item"><div class="al-dot" data-state="cancelled"></div><span>Dibatalkan</span></div>
+    <div class="al-item"><div class="al-dot" data-state="past"></div><span>Hari lewat</span></div>
+    <div class="al-item"><div class="al-dot" data-state="future"></div><span>Akan datang</span></div>
+  </div>`;
+
+  /* Stats */
+  const totDurasiJam = totDurasiMenit >= 60
+    ? `${Math.floor(totDurasiMenit/60)} jam ${totDurasiMenit%60>0?totDurasiMenit%60+' mnt':''}`
+    : totDurasiMenit > 0 ? `${totDurasiMenit} menit` : '–';
+
   const stats = document.createElement('div');
   stats.className = 'activity-stats';
   stats.innerHTML = `
-    <div class="astat"><span class="astat-num">${totalAktif}</span><span class="astat-label">Hari aktif</span></div>
-    <div class="astat"><span class="astat-num">${streakSekarang}</span><span class="astat-label">Streak saat ini</span></div>
-    <div class="astat"><span class="astat-num">${streakTerbanyak}</span><span class="astat-label">Streak terpanjang</span></div>`;
+    <div class="astat"><span class="astat-num">${totAktual}</span><span class="astat-label">Kegiatan terlaksana</span></div>
+    <div class="astat"><span class="astat-num">${totDurasiJam}</span><span class="astat-label">Total durasi</span></div>
+    <div class="astat"><span class="astat-num">${totBiaya>0?rupiah(totBiaya):'–'}</span><span class="astat-label">Total biaya aktual</span></div>`;
+
+  /* Single scroll wrapper */
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'activity-scroll-wrapper';
+  scrollWrap.appendChild(monthRow);
+  scrollWrap.appendChild(graphWrap);
 
   container.innerHTML = '';
-
-  // Legend (di luar scroll area)
-  const legend = document.createElement('div');
-  legend.className = 'activity-header';
-  legend.innerHTML = `
-    <span style="font-size:.8rem;color:var(--grey-mid)">Jan 2026 — Jan 2027</span>
-    <div class="activity-legend">
-      Lebih sedikit
-      <div class="al-boxes">
-        <div class="al-box al-0"></div>
-        <div class="al-box al-1"></div>
-        <div class="al-box al-2"></div>
-        <div class="al-box al-3"></div>
-      </div>
-      Lebih banyak
-    </div>`;
-
-  // FIX: bulan + kotak dalam 1 wrapper scroll tunggal — tidak ada 2 scrollbar
-  const scrollWrapper = document.createElement('div');
-  scrollWrapper.className = 'activity-scroll-wrapper';
-  scrollWrapper.appendChild(monthRow);
-  scrollWrapper.appendChild(graphWrap);
-
   container.appendChild(legend);
-  container.appendChild(scrollWrapper);
+  container.appendChild(scrollWrap);
   container.appendChild(stats);
 }
 
-/* ── Tooltip handlers ── */
-let _tooltipEl;
-function showTooltip(e, text) {
-  _tooltipEl = $('dayTooltip');
-  if (!_tooltipEl) return;
-  _tooltipEl.textContent = text;
-  _tooltipEl.style.opacity = '1';
-  moveTooltip(e);
+/* Tooltip */
+let _tip;
+function showTooltip(e, html) {
+  _tip=$('dayTooltip'); if(!_tip)return;
+  _tip.innerHTML=html; _tip.style.opacity='1'; moveTooltip(e);
 }
-function hideTooltip() {
-  if (_tooltipEl) _tooltipEl.style.opacity = '0';
+function hideTooltip()  { if(_tip) _tip.style.opacity='0'; }
+function moveTooltip(e) { if(!_tip)return; _tip.style.left=(e.clientX+14)+'px'; _tip.style.top=(e.clientY-50)+'px'; }
+
+/* ══════════════════════════════════════════════
+   DOKUMENTASI MULTI-SESI
+══════════════════════════════════════════════ */
+function renderDok(dok) {
+  if(!dok||!dok.length) return `<div class="dok-empty">
+    <div class="de-icon">📷</div>
+    <p>Dokumentasi belum tersedia.</p>
+    <p class="de-sub">Akan diperbarui setelah kegiatan berlangsung.</p>
+  </div>`;
+
+  /* Grup per tanggal_sesi, terbaru dulu */
+  const sesiMap={};
+  dok.forEach(d=>{ const k=d.tanggal_sesi||'unknown'; if(!sesiMap[k])sesiMap[k]=[]; sesiMap[k].push(d); });
+  const sesiKeys = Object.keys(sesiMap).filter(k=>k!=='unknown').sort().reverse();
+  if(sesiMap['unknown']) sesiKeys.push('unknown');
+
+  return `<div class="dok-sesi-list">${sesiKeys.map((key,idx)=>{
+    const items = sesiMap[key];
+    const d     = items[0];
+
+    const tglStr = key!=='unknown' ? formatTglPanjang(key) : 'Tanggal tidak diketahui';
+    const jamStr = (d.waktu_mulai&&d.waktu_selesai) ? `${d.waktu_mulai} – ${d.waktu_selesai}` : d.waktu_mulai||'';
+    const dur    = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
+    const ket    = d.keterangan||'';
+
+    /* Foto */
+    const fotos = items.filter(i=>i.foto_url);
+    const fotoHtml = fotos.length ? `<div class="dsb-section">
+      <div class="dsb-label">📷 Foto Kegiatan</div>
+      <div class="dok-foto-grid">${fotos.map(item=>{
+        const src = convertGDriveUrl(item.foto_url);
+        const alt = item.keterangan||'Foto kegiatan';
+        return `<a href="${item.foto_url}" target="_blank" rel="noopener" class="dok-foto-wrap" title="${alt}">
+          <img class="dok-foto" src="${src}" alt="${alt}" loading="lazy"
+               onerror="this.closest('.dok-foto-wrap').innerHTML='<div class=\\'dok-foto-err\\'>🖼️</div>'"/>
+          ${item.keterangan?`<div class="dok-foto-cap">${item.keterangan}</div>`:''}
+        </a>`;
+      }).join('')}</div></div>` : '';
+
+    /* Daftar hadir — accordion jika >1 */
+    function hadirBlok(kolom, label, ikon) {
+      const raw = d[kolom]; if(!raw) return '';
+      const names = raw.split(',').map(n=>n.trim()).filter(Boolean);
+      const listHtml = names.length===1
+        ? `<span class="hadir-single">${names[0]}</span>`
+        : `<div class="daftar-accordion" onclick="toggleAccordion(this)">
+            <div class="da-header"><span>${names.length} ${label}</span><span class="da-arrow">▾</span></div>
+            <div class="da-body">${names.map(n=>`<div class="da-row">${n}</div>`).join('')}</div>
+          </div>`;
+      return `<div class="hadir-blok">
+        <div class="hadir-blok-label">${ikon} ${label}</div>
+        ${listHtml}
+      </div>`;
+    }
+    const hadirParts = [
+      hadirBlok('hadir_peserta',   'peserta',    '👥'),
+      hadirBlok('hadir_panitia',   'panitia',    '🤝'),
+      hadirBlok('hadir_narasumber','narasumber', '🎤'),
+    ].filter(Boolean);
+    const hadirHtml = hadirParts.length ? `<div class="dsb-section">
+      <div class="dsb-label">✅ Daftar Hadir</div>
+      <div class="hadir-grid">${hadirParts.join('')}</div>
+    </div>` : '';
+
+    /* Biaya */
+    let totBiayaSesi=0;
+    const biayaRows = items.filter(i=>i.item_biaya||i.biaya_aktual);
+    biayaRows.forEach(i=>{ totBiayaSesi+=rupiahNum(i.biaya_aktual); });
+    const biayaHtml = biayaRows.length ? `<div class="dsb-section">
+      <div class="dsb-label">💰 Biaya Kegiatan</div>
+      <table class="rab-table sesi-rab">
+        <thead><tr><th>Item</th><th>Estimasi</th><th>Aktual</th></tr></thead>
+        <tbody>${biayaRows.map(i=>{
+          const est=rupiahNum(i.estimasi_biaya_item), akt=rupiahNum(i.biaya_aktual);
+          return `<tr>
+            <td>${i.item_biaya||'–'}</td>
+            <td class="rab-num">${est?rupiah(est):'<span class="rab-nil">–</span>'}</td>
+            <td class="rab-num ${akt>est&&est?'rab-over':akt?'rab-ok':''}">${akt?rupiah(akt):'<span class="rab-nil">–</span>'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+        <tfoot><tr class="rab-total"><td>Total Sesi</td><td>–</td><td>${rupiah(totBiayaSesi)||'–'}</td></tr></tfoot>
+      </table>
+    </div>` : '';
+
+    const materiHtml = (d.materi||d.progress) ? `<div class="dsb-section">
+      <div class="dsb-label">📖 Materi &amp; Progress</div>
+      <div class="dsb-content">${d.materi||d.progress}</div>
+    </div>` : '';
+
+    const kendalaHtml = d.kendala ? `<div class="dsb-section">
+      <div class="dsb-label">⚠️ Kendala &amp; Evaluasi</div>
+      <div class="dsb-content dsb-evaluasi">${d.kendala}</div>
+    </div>` : '';
+
+    return `<div class="dok-sesi">
+      <div class="dok-sesi-header" onclick="toggleSesi(${idx})">
+        <div class="dsh-left">
+          <span class="dsh-num">Sesi ${sesiKeys.length-idx}</span>
+          <div class="dsh-info">
+            <span class="dsh-tanggal">${tglStr}</span>
+            ${jamStr ? `<span class="dsh-jam">${jamStr}${dur?` · ${dur}`:''}</span>` : ''}
+            ${ket ? `<span class="dsh-ket">${ket}</span>` : ''}
+          </div>
+        </div>
+        <div class="dsh-right">
+          ${totBiayaSesi>0?`<span class="dsh-biaya">${rupiah(totBiayaSesi)}</span>`:''}
+          <span class="dsh-toggle" id="toggle-icon-${idx}">▾</span>
+        </div>
+      </div>
+      <div class="dok-sesi-body" id="sesi-body-${idx}">
+        ${fotoHtml}${hadirHtml}${materiHtml}${biayaHtml}${kendalaHtml}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
 }
-function moveTooltip(e) {
-  if (!_tooltipEl) return;
-  _tooltipEl.style.left = (e.clientX + 12) + 'px';
-  _tooltipEl.style.top  = (e.clientY - 30) + 'px';
+
+function convertGDriveUrl(url) {
+  if(!url) return '';
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`;
+  return url;
+}
+
+function toggleSesi(idx) {
+  const body=$(`sesi-body-${idx}`), icon=$(`toggle-icon-${idx}`);
+  if(!body)return;
+  const open=body.classList.toggle('open');
+  if(icon)icon.textContent=open?'▴':'▾';
+}
+function toggleAccordion(el) {
+  const body=el.querySelector('.da-body'), arr=el.querySelector('.da-arrow');
+  if(!body)return;
+  const open=body.classList.toggle('open');
+  if(arr)arr.textContent=open?'▴':'▾';
 }
 
 /* ══════════════════════════════════════════════
-   RENDER HALAMAN
+   RENDER HALAMAN PENUH
 ══════════════════════════════════════════════ */
-
 function renderPage(proker, sheetsData) {
   const main  = $('mainContent');
   const id    = proker.num;
   const items = CONTENT.proker.items;
-  const idx   = items.findIndex(p => p.num === id);
-  const prev  = idx > 0         ? items[idx-1] : null;
-  const next  = idx < items.length-1 ? items[idx+1] : null;
+  const idx   = items.findIndex(p=>p.num===id);
+  const prev  = idx>0              ? items[idx-1] : null;
+  const next  = idx<items.length-1 ? items[idx+1] : null;
 
-  const status   = getStatus(proker);
-  const estDate  = parseEstimasiDate(proker);
-  const detail   = sheetsData ? sheetsData.detail   : null;
-  const notifs   = sheetsData ? sheetsData.notifs   : [];
-  const activity = sheetsData ? sheetsData.activity : [];
-  const dok      = sheetsData ? sheetsData.dok      : [];
+  const detail      = sheetsData?.detail      || null;
+  const notifs      = sheetsData?.notifs      || [];
+  const notifConfig = sheetsData?.notifConfig || null;
+  const activity    = sheetsData?.activity    || [];
+  const jadwal      = sheetsData?.jadwal      || [];
+  const dok         = sheetsData?.dok         || [];
 
-  // Update nav
+  const {status, estDate} = getStatusProker(proker, detail);
+
   $('navTitle').textContent = proker.judul.replace(/&amp;/g,'&');
   $('navNum').textContent   = `#${id}`;
   document.title            = `${proker.judul.replace(/&amp;/g,'&')} — JCOSASI`;
 
-  // Status label
-  const statusLabel = { upcoming:'Akan Datang', ongoing:'Sedang Berjalan', done:'Selesai' }[status];
-  const statusClass = { upcoming:'status-upcoming', ongoing:'status-ongoing', done:'status-done' }[status];
+  const statusLabel = {upcoming:'Akan Datang', ongoing:'Sedang Berjalan', done:'Selesai'}[status];
+  const statusClass = {upcoming:'status-upcoming', ongoing:'status-ongoing', done:'status-done'}[status];
 
-  /* ── Detail dari Sheets atau fallback dari content.js ── */
-  const D = detail || {};
-  const waktu    = D.waktu    || (proker.detail ? (proker.detail.find(d=>d.label.includes('Waktu')||d.label.includes('Estimasi'))||{val:'–'}).val : '–');
-  const lokasi   = D.lokasi   || '–';
-  const sasaran  = D.sasaran  || (proker.detail ? (proker.detail.find(d=>d.label.includes('Sasaran'))||{val:'–'}).val : '–');
-  const tujuan   = D.tujuan   || '–';
-  const pemateri = D.pemateri || '–';
-  const panitia  = D.panitia  || '';
-  const catDok   = D.catatan_dokumentasi || '';
-  const rabItems = D.rab ? JSON.parse(D.rab) : [];
+  const heroWaktu  = detail?.waktu   || proker.detail?.find(d=>d.label.includes('Waktu'))?.val  || '–';
+  const heroLokasi = detail?.lokasi  || '–';
+  const heroSasaran= detail?.sasaran || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
 
-  /* ── RAB ── */
-  function renderRAB(items) {
-    if (!items || items.length === 0) return `<div class="rab-empty">RAB belum diisi</div>`;
-    const rows = items.map(r =>
-      `<tr><td>${r.nama||''}</td><td>${r.qty||''}</td><td>${r.satuan||''}</td><td>${r.harga_satuan||''}</td><td><strong>${r.total||''}</strong></td></tr>`
-    ).join('');
-    const total = items.reduce((s,r) => {
-      const t = parseInt((r.total||'0').replace(/\D/g,''));
-      return s + (isNaN(t)?0:t);
-    }, 0);
-    return `
-      <table class="rab-table">
-        <thead><tr><th>Item</th><th>Qty</th><th>Satuan</th><th>Harga/sat</th><th>Total</th></tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot><tr class="rab-total"><td colspan="4">Total Estimasi</td><td>Rp ${total.toLocaleString('id-ID')}</td></tr></tfoot>
-      </table>`;
-  }
-
-  /* ── Panitia chips ── */
-  function renderPanitia(str) {
-    if (!str || str === '–') return '<div class="di-value" style="color:var(--grey-mid);font-style:italic">Belum diisi</div>';
-    return `<div class="panitia-list">${str.split(',').map(p => `<span class="panitia-chip">${p.trim()}</span>`).join('')}</div>`;
-  }
-
-  /* ── Pemberitahuan ── */
-  function renderNotifs() {
-    const typeIcon = { info:'ℹ️', warning:'⚠️', success:'✅' };
-    const typeClass = { info:'notif-info', warning:'notif-warning', success:'notif-success' };
-    if (!notifs || notifs.length === 0) {
-      if (status === 'upcoming' && estDate) {
-        return `<div id="countdownBox" class="countdown-wrap"></div>`;
-      }
-      return `<div class="notif-empty"><div class="ne-icon">📭</div><p>Belum ada pemberitahuan untuk proker ini.</p></div>`;
-    }
-    let html = '';
-    if (status === 'upcoming' && estDate) {
-      html += `<div id="countdownBox" class="countdown-wrap" style="margin-bottom:20px"></div>`;
-    }
-    html += `<div class="notif-list">${notifs.map(n => `
-      <div class="notif-item ${typeClass[n.tipe] || 'notif-info'}">
-        <div class="ni-icon">${typeIcon[n.tipe] || 'ℹ️'}</div>
-        <div class="ni-body">
-          <div class="ni-title">${n.judul || ''}</div>
-          <div class="ni-text">${n.isi || ''}</div>
-          ${n.tanggal ? `<div class="ni-date">${n.tanggal}</div>` : ''}
-        </div>
-      </div>`).join('')}</div>`;
-    return html;
-  }
-
-  /* ── Dokumentasi multi-sesi ── */
-  function renderDok() {
-    if (!dok || dok.length === 0) {
-      return `<div class="dok-empty">
-        <div class="de-icon">📷</div>
-        <p>Dokumentasi belum tersedia.</p>
-        <p style="font-size:.8rem;margin-top:6px">Akan diperbarui setelah kegiatan berlangsung.</p>
-      </div>`;
-    }
-
-    // Kelompokkan dokumentasi berdasarkan tanggal_sesi
-    const sesiMap = {};
-    dok.forEach(d => {
-      const key = d.tanggal_sesi || d.tanggal || 'Tanggal tidak diketahui';
-      if (!sesiMap[key]) sesiMap[key] = [];
-      sesiMap[key].push(d);
-    });
-    const sesiKeys = Object.keys(sesiMap).sort();
-    const jumlahSesi = sesiKeys.length;
-
-    // Hitung total biaya aktual dari semua sesi
-    let totalBiayaAktual = 0;
-    dok.forEach(d => {
-      if (d.biaya_aktual) {
-        const num = parseInt((d.biaya_aktual + '').replace(/\D/g,''));
-        if (!isNaN(num)) totalBiayaAktual += num;
-      }
-    });
-
-    // ── Header ringkasan otomatis ──
-    let summaryHtml = '';
-    if (jumlahSesi === 1) {
-      // Hanya 1 sesi: tampilkan tanggal
-      const tglFormatted = formatTglLong(sesiKeys[0]);
-      summaryHtml = `
-        <div class="dok-summary single">
-          <div class="dsum-stat">
-            <span class="dsum-icon">📅</span>
-            <div><span class="dsum-val">${tglFormatted}</span><span class="dsum-label">Tanggal Kegiatan</span></div>
-          </div>
-          ${totalBiayaAktual > 0 ? `
-          <div class="dsum-stat">
-            <span class="dsum-icon">💸</span>
-            <div><span class="dsum-val">Rp ${totalBiayaAktual.toLocaleString('id-ID')}</span><span class="dsum-label">Total Biaya Dikeluarkan</span></div>
-          </div>` : ''}
-        </div>`;
-    } else {
-      // Lebih dari 1 sesi: tampilkan jumlah + total biaya
-      summaryHtml = `
-        <div class="dok-summary multi">
-          <div class="dsum-stat">
-            <span class="dsum-icon">🔄</span>
-            <div><span class="dsum-val">${jumlahSesi}×</span><span class="dsum-label">Kegiatan Telah Dilaksanakan</span></div>
-          </div>
-          ${totalBiayaAktual > 0 ? `
-          <div class="dsum-stat">
-            <span class="dsum-icon">💸</span>
-            <div><span class="dsum-val">Rp ${totalBiayaAktual.toLocaleString('id-ID')}</span><span class="dsum-label">Total Biaya Dikeluarkan</span></div>
-          </div>` : ''}
-          <div class="dsum-stat">
-            <span class="dsum-icon">📅</span>
-            <div>
-              <span class="dsum-val" style="font-size:.9rem">${formatTglShort(sesiKeys[0])} – ${formatTglShort(sesiKeys[sesiKeys.length-1])}</span>
-              <span class="dsum-label">Rentang Pelaksanaan</span>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // ── Render tiap sesi ──
-    const sesiHtml = sesiKeys.map((key, idx) => {
-      const items = sesiMap[key];
-      // Ambil data utama dari item pertama sesi ini
-      const d = items[0];
-
-      // Foto-foto dari semua item sesi ini
-      const fotoHtml = items
-        .filter(item => item.foto_url)
-        .map(item => {
-          // Convert Google Drive link ke direct image link jika perlu
-          const src = convertGDriveUrl(item.foto_url);
-          return `<a href="${item.foto_url}" target="_blank" rel="noopener" class="dok-foto-wrap">
-            <img class="dok-foto" src="${src}" alt="${item.keterangan||'Foto kegiatan'}" loading="lazy"
-                 onerror="this.closest('.dok-foto-wrap').innerHTML='<div class=\\'dok-foto-err\\'>🖼️ Foto tidak dapat dimuat</div>'"/>
-          </a>`;
-        }).join('');
-
-      // Daftar hadir
-      const hadirHtml = buildHadirSection(d);
-
-      // Biaya sesi ini
-      let biayaSesi = 0;
-      items.forEach(item => {
-        if (item.biaya_aktual) {
-          const num = parseInt((item.biaya_aktual+'').replace(/\D/g,''));
-          if (!isNaN(num)) biayaSesi += num;
-        }
-      });
-
-      return `
-        <div class="dok-sesi" id="sesi-${idx+1}">
-          <div class="dok-sesi-header" onclick="toggleSesi(${idx})">
-            <div class="dsh-left">
-              <span class="dsh-num">Sesi ${idx+1}</span>
-              <span class="dsh-tanggal">${formatTglLong(key)}</span>
-              ${d.waktu_mulai && d.waktu_selesai
-                ? `<span class="dsh-jam">${d.waktu_mulai} – ${d.waktu_selesai}</span>`
-                : ''}
-            </div>
-            <div class="dsh-right">
-              ${biayaSesi > 0 ? `<span class="dsh-biaya">Rp ${biayaSesi.toLocaleString('id-ID')}</span>` : ''}
-              <span class="dsh-toggle" id="toggle-icon-${idx}">▾</span>
-            </div>
-          </div>
-
-          <div class="dok-sesi-body" id="sesi-body-${idx}">
-
-            ${fotoHtml ? `<div class="dsb-section">
-              <div class="dsb-label">📷 Foto Kegiatan</div>
-              <div class="dok-foto-grid">${fotoHtml}</div>
-            </div>` : ''}
-
-            ${hadirHtml}
-
-            ${d.materi || d.progress ? `<div class="dsb-section">
-              <div class="dsb-label">📖 Materi & Progress</div>
-              <div class="dsb-content">${d.materi || d.progress || ''}</div>
-            </div>` : ''}
-
-            ${d.waktu_mulai || d.waktu_selesai ? `<div class="dsb-section dsb-row">
-              ${d.waktu_mulai ? `<div class="dsb-chip">🕐 Mulai: <strong>${d.waktu_mulai}</strong></div>` : ''}
-              ${d.waktu_selesai ? `<div class="dsb-chip">🕔 Selesai: <strong>${d.waktu_selesai}</strong></div>` : ''}
-              ${d.waktu_mulai && d.waktu_selesai ? `<div class="dsb-chip">⏱️ Durasi: <strong>${hitungDurasi(d.waktu_mulai, d.waktu_selesai)}</strong></div>` : ''}
-            </div>` : ''}
-
-            ${biayaSesi > 0 ? `<div class="dsb-section">
-              <div class="dsb-label">💰 Biaya Kegiatan</div>
-              <div class="dsb-biaya-box">
-                ${items.filter(i=>i.item_biaya).map(i=>`
-                  <div class="dsb-biaya-row">
-                    <span>${i.item_biaya}</span>
-                    <span>Rp ${parseInt((i.biaya_aktual+'').replace(/\D/g,'')).toLocaleString('id-ID')}</span>
-                  </div>`).join('')}
-                <div class="dsb-biaya-total">
-                  <span>Total Sesi Ini</span>
-                  <span>Rp ${biayaSesi.toLocaleString('id-ID')}</span>
-                </div>
-              </div>
-            </div>` : ''}
-
-            ${d.kendala || d.evaluasi ? `<div class="dsb-section">
-              <div class="dsb-label">⚠️ Kendala & Evaluasi</div>
-              <div class="dsb-content dsb-evaluasi">${d.kendala || d.evaluasi || ''}</div>
-            </div>` : ''}
-
-          </div>
-        </div>`;
-    }).join('');
-
-    return summaryHtml + `<div class="dok-sesi-list">${sesiHtml}</div>`;
-  }
-
-  /* Helper: konversi Google Drive share link ke embeddable URL */
-  function convertGDriveUrl(url) {
-    if (!url) return '';
-    // Format: https://drive.google.com/file/d/FILE_ID/view?...
-    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400`;
-    return url;
-  }
-
-  /* Helper: render daftar hadir */
-  function buildHadirSection(d) {
-    const groups = [
-      { key: 'hadir_peserta',    label: 'Peserta',    icon: '👥' },
-      { key: 'hadir_panitia',    label: 'Panitia',    icon: '🤝' },
-      { key: 'hadir_narasumber', label: 'Narasumber', icon: '🎤' },
-    ];
-    const parts = groups.filter(g => d[g.key]);
-    if (parts.length === 0) return '';
-
-    return `<div class="dsb-section">
-      <div class="dsb-label">✅ Daftar Hadir</div>
-      <div class="dsb-hadir-grid">
-        ${parts.map(g => `
-          <div class="dsb-hadir-block">
-            <div class="dsb-hadir-title">${g.icon} ${g.label}</div>
-            <div class="dsb-hadir-names">
-              ${(d[g.key]+'').split(',').map(n => `<span class="dsb-hadir-chip">${n.trim()}</span>`).join('')}
-            </div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-  }
-
-  /* Helper: format tanggal panjang "12 Januari 2026" */
-  function formatTglLong(str) {
-    if (!str || str === 'Tanggal tidak diketahui') return str;
-    const bulan = ['Januari','Februari','Maret','April','Mei','Juni',
-                   'Juli','Agustus','September','Oktober','November','Desember'];
-    const parts = str.split('-');
-    if (parts.length === 3) return `${parseInt(parts[2])} ${bulan[parseInt(parts[1])-1]} ${parts[0]}`;
-    return str;
-  }
-
-  /* Helper: format tanggal pendek "12 Jan" */
-  function formatTglShort(str) {
-    if (!str) return '';
-    const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
-    const parts = str.split('-');
-    if (parts.length === 3) return `${parseInt(parts[2])} ${bulan[parseInt(parts[1])-1]}`;
-    return str;
-  }
-
-  /* Helper: hitung durasi dari waktu mulai–selesai "08:00" */
-  function hitungDurasi(mulai, selesai) {
-    try {
-      const [h1,m1] = mulai.split(':').map(Number);
-      const [h2,m2] = selesai.split(':').map(Number);
-      let totalMenit = (h2*60+m2) - (h1*60+m1);
-      if (totalMenit < 0) totalMenit += 1440;
-      const jam  = Math.floor(totalMenit/60);
-      const mnt  = totalMenit % 60;
-      return jam > 0 ? `${jam} jam ${mnt > 0 ? mnt+' menit' : ''}`.trim() : `${mnt} menit`;
-    } catch { return '–'; }
-  }
-
-  /* ── Render full HTML ── */
   main.innerHTML = `
-    <div class="status-badge ${statusClass}">
-      <div class="status-dot"></div>
-      ${statusLabel}
-    </div>
+    <div class="status-badge ${statusClass}"><div class="status-dot"></div>${statusLabel}</div>
 
-    <!-- HERO -->
     <div class="proker-hero">
       <div class="ph-top">
         <div class="ph-num">${id}</div>
         <div class="ph-badges">
           <span class="ph-tag">${proker.tag}</span>
-          ${proker.cat.includes('rutin') ? '<span class="ph-tag">Kegiatan Rutin</span>' : ''}
+          ${proker.cat?.includes('rutin')?'<span class="ph-tag">Kegiatan Rutin</span>':''}
         </div>
         <div class="ph-icon">${proker.icon}</div>
       </div>
       <h1 class="ph-title">${proker.judul.replace(/&amp;/g,'&')}</h1>
       <p class="ph-desc">${proker.desc.replace(/<[^>]*>/g,'')}</p>
       <div class="ph-meta">
-        <div class="ph-meta-item">🕐 ${waktu}</div>
-        <div class="ph-meta-item">👥 ${sasaran.replace(/&amp;/g,'&')}</div>
-        ${lokasi !== '–' ? `<div class="ph-meta-item">📍 ${lokasi}</div>` : ''}
+        <div class="ph-meta-item">🕐 ${heroWaktu}</div>
+        <div class="ph-meta-item">👥 ${heroSasaran}</div>
+        ${heroLokasi!=='–'?`<div class="ph-meta-item">📍 ${heroLokasi}</div>`:''}
       </div>
     </div>
 
-    <!-- PEMBERITAHUAN -->
     <div class="pcard">
       <div class="pcard-header">
-        <span class="pcard-header-icon">🔔</span>
-        <h2>Pemberitahuan</h2>
+        <span class="pcard-header-icon">🔔</span><h2>Pemberitahuan</h2>
         <span class="pcard-header-label">お知らせ</span>
       </div>
-      <div class="pcard-body" id="notifBody">${renderNotifs()}</div>
+      <div class="pcard-body">${renderNotifs(notifs,status,estDate,notifConfig)}</div>
     </div>
 
-    <!-- DESKRIPSI -->
     <div class="pcard">
       <div class="pcard-header">
-        <span class="pcard-header-icon">📋</span>
-        <h2>Deskripsi Kegiatan</h2>
+        <span class="pcard-header-icon">📋</span><h2>Deskripsi Kegiatan</h2>
         <span class="pcard-header-label">詳細</span>
       </div>
-      <div class="pcard-body">
-        <div class="desc-grid">
-          <div class="desc-item full-width">
-            <div class="di-label">Tujuan & Manfaat</div>
-            <div class="di-value">${tujuan !== '–' ? tujuan : '<span style="color:var(--grey-mid);font-style:italic">Belum diisi di Google Sheets</span>'}</div>
-          </div>
-          <div class="desc-item">
-            <div class="di-label">Waktu Kegiatan</div>
-            <div class="di-value">${waktu}</div>
-          </div>
-          <div class="desc-item">
-            <div class="di-label">Lokasi</div>
-            <div class="di-value">${lokasi !== '–' ? lokasi : '<span style="color:var(--grey-mid);font-style:italic">Menyesuaikan</span>'}</div>
-          </div>
-          <div class="desc-item">
-            <div class="di-label">Target Peserta</div>
-            <div class="di-value">${sasaran.replace(/&amp;/g,'&')}</div>
-          </div>
-          <div class="desc-item">
-            <div class="di-label">Pemateri / Narasumber</div>
-            <div class="di-value">${pemateri !== '–' ? pemateri : '<span style="color:var(--grey-mid);font-style:italic">Belum ditentukan</span>'}</div>
-          </div>
-          <div class="desc-item full-width">
-            <div class="di-label">Panitia / Penanggung Jawab</div>
-            ${renderPanitia(panitia)}
-          </div>
-          <div class="desc-item full-width">
-            <div class="di-label">Rencana Anggaran Biaya (RAB)</div>
-            ${renderRAB(rabItems)}
-          </div>
-        </div>
-      </div>
+      <div class="pcard-body">${renderDeskripsi(proker,detail)}</div>
     </div>
 
-    <!-- ACTIVITY LOG -->
     <div class="pcard">
       <div class="pcard-header">
-        <span class="pcard-header-icon">📅</span>
-        <h2>Activity Log</h2>
+        <span class="pcard-header-icon">📅</span><h2>Activity Log</h2>
         <span class="pcard-header-label">活動記録</span>
       </div>
-      <div class="pcard-body">
-        <div id="activityGraph"></div>
-      </div>
+      <div class="pcard-body"><div id="activityGraph"></div></div>
     </div>
 
-    <!-- DOKUMENTASI -->
     <div class="pcard">
       <div class="pcard-header">
-        <span class="pcard-header-icon">📸</span>
-        <h2>Dokumentasi</h2>
+        <span class="pcard-header-icon">📸</span><h2>Dokumentasi</h2>
         <span class="pcard-header-label">ドキュメント</span>
       </div>
-      <div class="pcard-body">${renderDok()}</div>
+      <div class="pcard-body">${renderDok(dok)}</div>
     </div>
 
-    <!-- PREV / NEXT -->
     <div class="proker-nav">
       <a class="pnav-card ${prev?'':'disabled'}" href="${prev?'proker.html?id='+prev.num:'#'}">
         <div class="pnav-dir">← Sebelumnya</div>
-        <div class="pnav-name">${prev ? prev.icon+' '+prev.judul.replace(/&amp;/g,'&') : '–'}</div>
+        <div class="pnav-name">${prev?prev.icon+' '+prev.judul.replace(/&amp;/g,'&'):'–'}</div>
       </a>
       <a class="pnav-card next ${next?'':'disabled'}" href="${next?'proker.html?id='+next.num:'#'}">
         <div class="pnav-dir">Berikutnya →</div>
-        <div class="pnav-name">${next ? next.judul.replace(/&amp;/g,'&')+' '+next.icon : '–'}</div>
+        <div class="pnav-name">${next?next.judul.replace(/&amp;/g,'&')+' '+next.icon:'–'}</div>
       </a>
-    </div>
-  `;
+    </div>`;
 
-  // Jalankan countdown jika ada
-  if (estDate && status === 'upcoming') {
-    startCountdown(estDate, 'countdownBox');
-  }
+  if(estDate&&status==='upcoming') startCountdown(estDate,'countdownBox');
+  buildActivityGraph('activityGraph',activity,jadwal,dok);
 
-  // Build activity graph
-  buildActivityGraph('activityGraph', activity);
-
-  // Auto-buka sesi dokumentasi pertama
-  const firstBody = document.getElementById('sesi-body-0');
-  const firstIcon = document.getElementById('toggle-icon-0');
-  if (firstBody) { firstBody.classList.add('open'); if (firstIcon) firstIcon.textContent = '▴'; }
-}
-
-/* ── Toggle accordion sesi dokumentasi ── */
-function toggleSesi(idx) {
-  const body = document.getElementById(`sesi-body-${idx}`);
-  const icon = document.getElementById(`toggle-icon-${idx}`);
-  if (!body) return;
-  const isOpen = body.classList.toggle('open');
-  if (icon) icon.textContent = isOpen ? '▴' : '▾';
+  const fb=$('sesi-body-0'), fi=$('toggle-icon-0');
+  if(fb){fb.classList.add('open');if(fi)fi.textContent='▴';}
 }
 
 /* ══════════════════════════════════════════════
    GOOGLE SHEETS FETCH
-   Sheet: proker_detail, proker_notif,
-          proker_activity, proker_dokumentasi
-   Semua difilter berdasarkan kolom proker_id
+   Sheets: proker_detail, proker_notif,
+           proker_notif_config, proker_activity,
+           proker_jadwal, proker_dokumentasi
 ══════════════════════════════════════════════ */
-
 function fetchJSONP(url) {
-  return new Promise((resolve, reject) => {
-    const cbName  = '_jcosasi_pcb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const timeout = setTimeout(() => {
-      cleanup(); reject(new Error('Timeout'));
-    }, 12000);
-
-    window[cbName] = data => { cleanup(); resolve(data); };
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[cbName];
-      const el = document.getElementById('jsonp-proker-tmp');
-      if (el) el.remove();
+  return new Promise((resolve,reject)=>{
+    const cb='_jcb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const t =setTimeout(()=>{cleanup();reject(new Error('Timeout'));},12000);
+    window[cb]=data=>{cleanup();resolve(data);};
+    function cleanup(){
+      clearTimeout(t);delete window[cb];
+      document.getElementById('_jcosasi_jsonp')?.remove();
     }
-
-    const s = document.createElement('script');
-    s.id    = 'jsonp-proker-tmp';
-    s.src   = url + '&callback=' + cbName;
-    s.onerror = () => { cleanup(); reject(new Error('Script load failed')); };
+    const s=document.createElement('script');
+    s.id='_jcosasi_jsonp';
+    s.src=url+'&callback='+cb;
+    s.onerror=()=>{cleanup();reject(new Error('Load failed'));};
     document.head.appendChild(s);
   });
 }
 
-async function fetchProkerSheets(prokerId) {
-  const api = CONTENT.api && CONTENT.api.url;
-  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
+async function fetchAllSheets(prokerId) {
+  const api = CONTENT?.api?.url;
+  if(!api||api==='PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
 
-  try {
-    // Fetch semua sheet proker sekaligus (4 permintaan paralel)
-    const [detailRes, notifRes, activityRes, dokRes] = await Promise.allSettled([
-      fetchJSONP(`${api}?sheet=proker_detail&id=${prokerId}`),
-      fetchJSONP(`${api}?sheet=proker_notif&id=${prokerId}`),
-      fetchJSONP(`${api}?sheet=proker_activity&id=${prokerId}`),
-      fetchJSONP(`${api}?sheet=proker_dokumentasi&id=${prokerId}`),
-    ]);
+  const sheetNames = ['proker_detail','proker_notif','proker_notif_config',
+                      'proker_activity','proker_jadwal','proker_dokumentasi'];
+  const results = await Promise.allSettled(
+    sheetNames.map(s=>fetchJSONP(`${api}?sheet=${s}`))
+  );
+  const safe = res => res.status==='fulfilled'&&res.value?.status==='ok' ? res.value.data : [];
+  const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
 
-    const safeData = (res, defaultVal) =>
-      res.status === 'fulfilled' && res.value && res.value.status === 'ok'
-        ? res.value.data : defaultVal;
-
-    const detailArr = safeData(detailRes, []);
-    const detail    = detailArr.find(r => r.proker_id === prokerId) || null;
-
-    return {
-      detail:   detail,
-      notifs:   safeData(notifRes, []),
-      activity: safeData(activityRes, []),
-      dok:      safeData(dokRes, []),
-    };
-  } catch (e) {
-    console.warn('[JCOSASI] Sheets fetch error:', e.message);
-    return null;
-  }
+  return {
+    detail:      detArr.find(r=>r.proker_id===prokerId)||null,
+    notifs:      notArr.filter(r=>r.proker_id===prokerId||r.proker_id==='all'),
+    notifConfig: cfgArr.find(r=>r.proker_id===prokerId)||null,
+    activity:    actArr.filter(r=>r.proker_id===prokerId),
+    jadwal:      jadArr.filter(r=>r.proker_id===prokerId),
+    dok:         dokArr.filter(r=>r.proker_id===prokerId),
+  };
 }
 
 /* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async ()=>{
   const id     = getProkerIdFromURL();
   const proker = getProkerData(id);
-
-  if (!proker) {
-    $('mainContent').innerHTML = `
-      <div class="page-error">
-        <div class="pe-icon">🔍</div>
-        <h2>Proker tidak ditemukan</h2>
-        <p>ID proker "<strong>${id}</strong>" tidak ada dalam daftar.</p>
-        <a href="index.html" class="btn-back">← Kembali ke Landing Page</a>
-      </div>`;
+  if(!proker){
+    $('mainContent').innerHTML=`<div class="page-error">
+      <div class="pe-icon">🔍</div>
+      <h2>Proker tidak ditemukan</h2>
+      <p>ID "<strong>${id}</strong>" tidak ada dalam daftar.</p>
+      <a href="index.html" class="btn-back">← Kembali</a>
+    </div>`;
     return;
   }
-
-  // Fetch data sheets secara async (tidak memblokir render awal)
-  const sheetsData = await fetchProkerSheets(id);
-
-  // Render halaman dengan data yang tersedia
+  const sheetsData = await fetchAllSheets(id);
   renderPage(proker, sheetsData);
 });
