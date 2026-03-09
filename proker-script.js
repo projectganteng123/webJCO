@@ -65,6 +65,33 @@ function rupiahNum(val) {
   return isNaN(n) ? 0 : n;
 }
 
+
+/** Sanitize kolom "waktu" — bisa berisi YYYY-MM-DD atau string GMT panjang */
+function sanitizeWaktu(str) {
+  if (!str || str === '–') return str;
+  // Sudah bersih: "Setiap Jumat", "Menyesuaikan", "2026-07-25", jam "14:00", dll
+  // Cek apakah mengandung "GMT" atau "Waktu Indonesia" — artinya Date string
+  if (str.includes('GMT') || str.includes('Waktu Indonesia')) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      // Cek apakah ini waktu (jam saja) atau tanggal penuh
+      // Date dengan jam != 00:00 dan tahun < 1901 → ini kolom jam
+      if (d.getFullYear() <= 1900) {
+        const h = String(d.getHours()).padStart(2,'0');
+        const m = String(d.getMinutes()).padStart(2,'0');
+        return h + ':' + m;
+      }
+      // Tanggal penuh → format Indonesia
+      return formatTglPanjang(
+        d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+      );
+    }
+  }
+  // Jika YYYY-MM-DD → format Indonesia
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return formatTglPanjang(str);
+  return str;
+}
+
 function getProkerIdFromURL() {
   return new URLSearchParams(window.location.search).get('id') || '01';
 }
@@ -75,24 +102,36 @@ function getProkerData(id) {
 /* ══════════════════════════════════════════════
    STATUS PROKER
 ══════════════════════════════════════════════ */
-function getStatusProker(proker, detail) {
+function getStatusProker(proker, detail, jadwal) {
   const now = new Date(); now.setHours(0,0,0,0);
-  const estStr = detail?.estimasi_tanggal || null;
+
+  /* Cari tanggal countdown:
+     1. Jadwal terdekat di masa depan (dari proker_jadwal sheet)
+     2. estimasi_tanggal dari proker_detail sheet
+     3. null */
+  function nearestJadwal() {
+    if (!jadwal || !jadwal.length) return null;
+    const future = jadwal
+      .map(r => parseDateLocal(r.tanggal))
+      .filter(d => d && d >= now)
+      .sort((a,b) => a-b);
+    return future.length ? future[0] : null;
+  }
+
+  const cdDate = nearestJadwal() || parseDateLocal(detail?.estimasi_tanggal || '');
 
   if (proker.cat?.includes('rutin')) {
     const s = new Date(2026,0,1), e = new Date(2027,1,0);
-    if (now < s) return { status:'upcoming', estDate: s };
+    if (now < s) return { status:'upcoming', estDate: cdDate || s };
     if (now > e) return { status:'done',     estDate: null };
-    return { status:'ongoing', estDate: null };
+    // Untuk rutin: tampilkan countdown ke jadwal terdekat berikutnya
+    return { status:'ongoing', estDate: cdDate };
   }
-  if (estStr) {
-    const est = parseDateLocal(estStr);
-    if (est) {
-      const diff = est - now;
-      if (diff > 86400000)   return { status:'upcoming', estDate: est };
-      if (diff > -604800000) return { status:'ongoing',  estDate: null };
-      return { status:'done', estDate: null };
-    }
+  if (cdDate) {
+    const diff = cdDate - now;
+    if (diff > 86400000)   return { status:'upcoming', estDate: cdDate };
+    if (diff > -604800000) return { status:'ongoing',  estDate: null };
+    return { status:'done', estDate: null };
   }
   return { status:'upcoming', estDate: null };
 }
@@ -130,7 +169,8 @@ function renderNotifs(notifs, status, estDate, cfg) {
   let html = '';
 
   /* 1. Countdown — dari sheet config, bisa on/off */
-  if (cfg.countdown_aktif !== 'false' && status === 'upcoming' && estDate) {
+  const cdAktif = !cfg.countdown_aktif || cfg.countdown_aktif.toLowerCase() !== 'false';
+  if (cdAktif && (status === 'upcoming' || status === 'ongoing') && estDate) {
     html += `<div class="notif-blok notif-countdown">
       <div class="nb-eyebrow">⏳ Hitung Mundur</div>
       <div id="countdownBox" class="countdown-wrap"></div>
@@ -180,7 +220,7 @@ function renderNotifs(notifs, status, estDate, cfg) {
 ══════════════════════════════════════════════ */
 function renderDeskripsi(proker, detail) {
   const D       = detail || {};
-  const waktu   = D.waktu    || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–';
+  const waktu   = sanitizeWaktu(D.waktu    || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–');
   const lokasi  = D.lokasi   || '–';
   const sasaran = D.sasaran  || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
   const tujuan  = D.tujuan   || '';
@@ -564,7 +604,7 @@ function renderPage(proker, sheetsData) {
   const jadwal      = sheetsData?.jadwal      || [];
   const dok         = sheetsData?.dok         || [];
 
-  const {status, estDate} = getStatusProker(proker, detail);
+  const {status, estDate} = getStatusProker(proker, detail, jadwal);
 
   $('navTitle').textContent = proker.judul.replace(/&amp;/g,'&');
   $('navNum').textContent   = `#${id}`;
@@ -573,7 +613,7 @@ function renderPage(proker, sheetsData) {
   const statusLabel = {upcoming:'Akan Datang', ongoing:'Sedang Berjalan', done:'Selesai'}[status];
   const statusClass = {upcoming:'status-upcoming', ongoing:'status-ongoing', done:'status-done'}[status];
 
-  const heroWaktu  = detail?.waktu   || proker.detail?.find(d=>d.label.includes('Waktu'))?.val  || '–';
+  const heroWaktu  = sanitizeWaktu(detail?.waktu   || proker.detail?.find(d=>d.label.includes('Waktu'))?.val  || '–');
   const heroLokasi = detail?.lokasi  || '–';
   const heroSasaran= detail?.sasaran || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
 
