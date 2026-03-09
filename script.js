@@ -104,7 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="pc-header"><span class="pc-num">${p.num}</span><span class="pc-tag ${p.tag_class}">${p.tag}</span></div>
       <div class="pc-icon">${p.icon}</div><h3>${p.judul}</h3><p>${p.desc}</p>
       <div class="pc-detail">${p.detail.map(d=>`<div class="pc-detail-item"><span class="pd-label">${d.label}</span><span>${d.val}</span></div>`).join('')}</div>
-      ${extra}</div>`;
+      ${extra}
+      <a href="proker.html?id=${p.num}" class="pc-detail-btn">Lihat Detail <span>→</span></a>
+      </div>`;
   }).join(''));
 
   /* TIMELINE */
@@ -123,12 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
   set('pengurusLabel',   P.label);
   set('pengurusHeading', P.heading);
   set('pengurusDesc',    P.desc);
-  set('pengurusNote',   `<span class="pn-icon">⏳</span><p>Memuat data pengurus...</p>`);
+  // Sembunyikan catatan sementara, akan diisi setelah fetch
+  set('pengurusNote', '');
 
-  // Tampilkan skeleton loading dulu
   renderPengurusSkeleton();
-
-  // Fetch dari Google Sheets, lalu render
   loadPengurusFromSheets();
 
   /* KONTAK */
@@ -360,12 +360,16 @@ function renderPengurus(struktur, bidang, source) {
   const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   const P   = CONTENT.pengurus;
 
-  // Update catatan
-  const noteIcon = source === 'sheets' ? '✅' : '📋';
-  const noteText = source === 'sheets'
-    ? P.catatan
-    : 'Menampilkan data fallback. Pastikan URL Google Sheets API sudah diisi di <code>content.js</code>.';
-  set('pengurusNote', `<span class="pn-icon">${noteIcon}</span><p>${noteText}</p>`);
+  // Update catatan — sembunyikan jika dari Sheets berhasil
+  const noteEl = document.getElementById('pengurusNote');
+  if (noteEl) {
+    if (source === 'sheets') {
+      noteEl.style.display = 'none';
+    } else {
+      noteEl.style.display = '';
+      noteEl.innerHTML = `<span class="pn-icon">📋</span><p>${P.catatan}</p>`;
+    }
+  }
 
   // Render kartu — fallback jika jabatan tidak ada di data Sheets
   const getFallback = (key) => P.struktur[key] || { jabatan: key, nama: '–', kelas: '–', photo: '', icon: '👤', desc: '' };

@@ -1263,3 +1263,42 @@ footer {
   background-size: 800px 100%;
   animation: shimmer 1.4s infinite linear;
 }
+
+/* ── Proker Detail Button ── */
+.pc-detail-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 18px;
+  padding: 8px 18px;
+  background: var(--purple-deep);
+  color: var(--white);
+  border-radius: 99px;
+  font-size: .82rem; font-weight: 600;
+  text-decoration: none;
+  transition: all var(--trans);
+}
+.pc-detail-btn:hover {
+  background: var(--purple-mid);
+  transform: translateX(3px);
+}
+.pc-detail-btn span { font-size: 1rem; }
+
+/* ── Tombol Lihat Detail di Proker Card ── */
+.pc-detail-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 16px;
+  padding: 9px 18px; border-radius: 99px;
+  font-size: .82rem; font-weight: 600;
+  color: var(--purple-mid);
+  border: 1.5px solid var(--purple-light);
+  background: var(--purple-pale);
+  transition: all var(--trans);
+  text-decoration: none;
+}
+.pc-detail-btn:hover {
+  background: var(--purple-mid);
+  color: var(--white);
+  border-color: var(--purple-mid);
+  transform: translateX(2px);
+}
+.pc-detail-btn span { transition: transform var(--trans); }
+.pc-detail-btn:hover span { transform: translateX(3px); }

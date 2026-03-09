@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detail Proker — JCOSASI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Serif+JP:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="proker-style.css" />
+  <script src="content.js"></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="pnav">
+    <div class="pnav-inner">
+      <a href="index.html" class="pnav-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Kembali
+      </a>
+      <div class="pnav-title" id="navTitle">Program Kerja</div>
+      <div class="pnav-num" id="navNum">#00</div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="pcontainer" id="mainContent">
+    <div class="page-loading">
+      <div class="loader"></div>
+      <p>Memuat data proker...</p>
+    </div>
+  </main>
+
+  <!-- TOOLTIP -->
+  <div class="day-tooltip" id="dayTooltip" style="opacity:0;"></div>
+
+  <script src="proker-script.js"></script>
+</body>
+</html>
