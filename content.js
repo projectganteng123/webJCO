@@ -353,87 +353,45 @@ const CONTENT = {
     ],
   },
 
+  /* ── GOOGLE SHEETS API ────────────────────────────── */
+  /**
+   * Setelah deploy Google Apps Script sebagai Web App:
+   * 1. Salin URL deployment (bentuk: https://script.google.com/macros/s/.../exec)
+   * 2. Tempel di bawah menggantikan teks "PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI"
+   */
+  api: {
+    url: "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
+    //
+    // Contoh URL asli:
+    // url: "https://script.google.com/macros/s/AKfycbXXXXXXXXXXX/exec",
+  },
+
   /* ── PENGURUS ─────────────────────────────────────── */
+  /**
+   * Data pengurus sekarang diambil OTOMATIS dari Google Sheets.
+   * Bagian ini hanya dipakai sebagai FALLBACK jika Sheets tidak bisa diakses.
+   *
+   * Label dan heading masih dikontrol dari sini.
+   * Untuk mengubah nama/kelas pengurus → edit langsung di Google Sheets.
+   */
   pengurus: {
     label:   "メンバー — Tim Pengurus",
     heading: "Struktur Pengurus<br/><em>Angkatan 12</em>",
     desc:    "Periode kepengurusan 2026–2027 dijalankan oleh pengurus JCOSASI Angkatan 12.",
-    catatan: "Data nama pengurus akan diperbarui setelah pelantikan resmi. Untuk informasi lebih lanjut, lihat dokumen resmi Program Kerja JCOSASI.",
+    catatan: "Data pengurus diambil langsung dari database JCOSASI dan diperbarui secara otomatis.",
 
-    /**
-     * ISI NAMA PENGURUS DI SINI
-     * Ganti "[ Nama ]" dengan nama pengurus yang sebenarnya
-     * Ganti "[ Kelas ]" dengan kelas pengurus
-     * photo: path ke foto (opsional), contoh: "./foto/ketua.jpg"
-     *        biarkan "" jika belum ada foto
-     */
+    /* Fallback — dipakai jika Google Sheets gagal dimuat */
     struktur: {
-      ketua: {
-        jabatan:    "Ketua Umum",
-        nama:       "[ Nama Ketua ]",
-        kelas:      "[ Kelas ]",
-        photo:      "",
-        icon:       "👑",
-        desc:       "Memimpin dan mengkoordinasi seluruh program kerja organisasi",
-      },
-      wakil: {
-        jabatan:    "Wakil Ketua",
-        nama:       "[ Nama Wakil ]",
-        kelas:      "[ Kelas ]",
-        photo:      "",
-        icon:       "🌟",
-        desc:       "Mendampingi ketua dan mengoordinasikan bidang-bidang",
-      },
-      sekretaris: {
-        jabatan:    "Sekretaris",
-        nama:       "[ Nama Sekretaris ]",
-        kelas:      "[ Kelas ]",
-        photo:      "",
-        icon:       "📝",
-        desc:       "Mengelola administrasi dan dokumentasi organisasi",
-      },
-      bendahara: {
-        jabatan:    "Bendahara",
-        nama:       "[ Nama Bendahara ]",
-        kelas:      "[ Kelas ]",
-        photo:      "",
-        icon:       "💰",
-        desc:       "Mengatur keuangan dan anggaran kegiatan",
-      },
+      ketua:      { jabatan: "Ketua Umum",    nama: "–", kelas: "–", photo: "", icon: "👑", desc: "Memimpin dan mengkoordinasi seluruh program kerja organisasi" },
+      wakil:      { jabatan: "Wakil Ketua",   nama: "–", kelas: "–", photo: "", icon: "🌟", desc: "Mendampingi ketua dan mengoordinasikan bidang-bidang" },
+      sekretaris: { jabatan: "Sekretaris",    nama: "–", kelas: "–", photo: "", icon: "📝", desc: "Mengelola administrasi dan dokumentasi organisasi" },
+      bendahara:  { jabatan: "Bendahara",     nama: "–", kelas: "–", photo: "", icon: "💰", desc: "Mengatur keuangan dan anggaran kegiatan" },
     },
     bidang: [
-      {
-        icon:    "📚",
-        jabatan: "Bidang Akademik",
-        nama:    "[ Nama ]",
-        kelas:   "[ Kelas ]",
-        photo:   "",
-        desc:    "Mengelola program pembelajaran bahasa Jepang",
-      },
-      {
-        icon:    "🎨",
-        jabatan: "Bidang Minat Bakat",
-        nama:    "[ Nama ]",
-        kelas:   "[ Kelas ]",
-        photo:   "",
-        desc:    "Mengembangkan 6 divisi minat &amp; bakat anggota",
-      },
-      {
-        icon:    "🤝",
-        jabatan: "Bidang Organisasi",
-        nama:    "[ Nama ]",
-        kelas:   "[ Kelas ]",
-        photo:   "",
-        desc:    "Menjaga kekompakan dan dinamika internal",
-      },
-      {
-        icon:    "📣",
-        jabatan: "Bidang Humas",
-        nama:    "[ Nama ]",
-        kelas:   "[ Kelas ]",
-        photo:   "",
-        desc:    "Mengelola komunikasi dan kegiatan eksternal",
-      },
+      { jabatan: "Bidang Akademik",    nama: "–", kelas: "–", photo: "", icon: "📚", desc: "Mengelola program pembelajaran bahasa Jepang" },
+      { jabatan: "Bidang Minat Bakat", nama: "–", kelas: "–", photo: "", icon: "🎨", desc: "Mengembangkan 6 divisi minat & bakat anggota" },
+      { jabatan: "Bidang Organisasi",  nama: "–", kelas: "–", photo: "", icon: "🤝", desc: "Menjaga kekompakan dan dinamika internal" },
+      { jabatan: "Bidang Humas",       nama: "–", kelas: "–", photo: "", icon: "📣", desc: "Mengelola komunikasi dan kegiatan eksternal" },
     ],
   },
 

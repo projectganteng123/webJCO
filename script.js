@@ -118,20 +118,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="tl-month">${t.bulan}</div><h4>${t.judul}</h4><p>${t.desc}</p>
         <span class="tl-date">${t.tanggal}</span></div></div>`).join(''));
 
-  /* PENGURUS */
+  /* ── PENGURUS — label & heading dulu, data dari Sheets ── */
   const P = C.pengurus;
-  set('pengurusLabel', P.label);
+  set('pengurusLabel',   P.label);
   set('pengurusHeading', P.heading);
-  set('pengurusDesc', P.desc);
-  set('pengurusNote', `<span class="pn-icon">📋</span><p>${P.catatan}</p>`);
-  set('orgKetua',      buildOrgCard(P.struktur.ketua));
-  set('orgWakil',      buildOrgCard(P.struktur.wakil));
-  set('orgSekretaris', buildOrgCard(P.struktur.sekretaris));
-  set('orgBendahara',  buildOrgCard(P.struktur.bendahara));
-  set('orgBidang', P.bidang.map((b,i) => {
-    const delays = ['','delay-1','delay-2','delay-3'];
-    return `<div class="org-card org-card-bidang fade-up ${delays[i]||''}">${buildOrgCard(b)}</div>`;
-  }).join(''));
+  set('pengurusDesc',    P.desc);
+  set('pengurusNote',   `<span class="pn-icon">⏳</span><p>Memuat data pengurus...</p>`);
+
+  // Tampilkan skeleton loading dulu
+  renderPengurusSkeleton();
+
+  // Fetch dari Google Sheets, lalu render
+  loadPengurusFromSheets();
 
   /* KONTAK */
   const KS = C.kontakSection;
@@ -223,3 +221,134 @@ document.addEventListener('DOMContentLoaded', () => {
     hero.appendChild(p);p.addEventListener('animationend',()=>p.remove());
   },1000);
 });
+
+/* ═══════════════════════════════════════════════════════════
+   GOOGLE SHEETS — PENGURUS
+   Fungsi-fungsi di bawah berjalan di luar DOMContentLoaded
+   agar bisa dipanggil async setelah halaman siap
+═══════════════════════════════════════════════════════════ */
+
+/**
+ * Tampilkan skeleton loading card saat data belum masuk
+ */
+function renderPengurusSkeleton() {
+  const skeletonCard = `
+    <div class="org-photo"><div class="org-photo-ph skeleton-ph"></div></div>
+    <div class="skeleton-line sk-short"></div>
+    <div class="skeleton-line sk-medium"></div>
+    <div class="skeleton-line sk-long"></div>`;
+
+  const $=id=>document.getElementById(id);
+  $('orgKetua')      && ($('orgKetua').innerHTML      = skeletonCard);
+  $('orgWakil')      && ($('orgWakil').innerHTML      = skeletonCard);
+  $('orgSekretaris') && ($('orgSekretaris').innerHTML = skeletonCard);
+  $('orgBendahara')  && ($('orgBendahara').innerHTML  = skeletonCard);
+  const bidang = $('orgBidang');
+  if (bidang) {
+    bidang.innerHTML = ['','delay-1','delay-2','delay-3'].map(d =>
+      `<div class="org-card org-card-bidang fade-up ${d}">${skeletonCard}</div>`
+    ).join('');
+  }
+}
+
+/**
+ * Konversi array data dari Sheets → struktur yang dipakai buildOrgCard()
+ */
+function sheetsToStruktur(rows) {
+  const struktur = {};
+  const bidang   = [];
+
+  // Map jabatan_level → key di content.js
+  const levelMap = { ketua: 'ketua', wakil: 'wakil', sekretaris: 'sekretaris', bendahara: 'bendahara' };
+
+  rows.forEach(row => {
+    const level = (row.jabatan_level || '').toLowerCase().trim();
+    const data  = {
+      jabatan: row.jabatan || '',
+      nama:    row.nama    || '–',
+      kelas:   row.kelas   || '–',
+      photo:   row.photo   || '',
+      icon:    row.icon    || '👤',
+      desc:    row.desc    || '',
+    };
+
+    if (levelMap[level]) {
+      struktur[levelMap[level]] = data;
+    } else if (level === 'bidang') {
+      bidang.push(data);
+    }
+  });
+
+  return { struktur, bidang };
+}
+
+/**
+ * Fetch data pengurus dari Google Sheets via Apps Script,
+ * lalu render org chart. Fallback ke data content.js jika gagal.
+ */
+async function loadPengurusFromSheets() {
+  const C   = CONTENT;
+  const P   = C.pengurus;
+  const api = C.api && C.api.url;
+
+  // Jika URL belum diisi → langsung pakai fallback
+  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') {
+    console.warn('[JCOSASI] API URL belum diisi di content.js → pakai data fallback');
+    renderPengurus(P.struktur, P.bidang, 'fallback');
+    return;
+  }
+
+  try {
+    const res  = await fetch(`${api}?sheet=pengurus`);
+    const json = await res.json();
+
+    if (json.status !== 'ok' || !json.data || json.data.length === 0) {
+      throw new Error('Data kosong atau status bukan ok');
+    }
+
+    const { struktur, bidang } = sheetsToStruktur(json.data);
+    renderPengurus(struktur, bidang, 'sheets');
+
+  } catch (err) {
+    console.error('[JCOSASI] Gagal fetch dari Sheets:', err.message);
+    renderPengurus(P.struktur, P.bidang, 'fallback');
+  }
+}
+
+/**
+ * Render org chart dengan data yang sudah siap
+ * source: 'sheets' | 'fallback'
+ */
+function renderPengurus(struktur, bidang, source) {
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  const P   = CONTENT.pengurus;
+
+  // Update catatan
+  const noteIcon = source === 'sheets' ? '✅' : '📋';
+  const noteText = source === 'sheets'
+    ? P.catatan
+    : 'Menampilkan data fallback. Pastikan URL Google Sheets API sudah diisi di <code>content.js</code>.';
+  set('pengurusNote', `<span class="pn-icon">${noteIcon}</span><p>${noteText}</p>`);
+
+  // Render kartu — fallback jika jabatan tidak ada di data Sheets
+  const getFallback = (key) => P.struktur[key] || { jabatan: key, nama: '–', kelas: '–', photo: '', icon: '👤', desc: '' };
+
+  set('orgKetua',      buildOrgCard(struktur.ketua      || getFallback('ketua')));
+  set('orgWakil',      buildOrgCard(struktur.wakil      || getFallback('wakil')));
+  set('orgSekretaris', buildOrgCard(struktur.sekretaris || getFallback('sekretaris')));
+  set('orgBendahara',  buildOrgCard(struktur.bendahara  || getFallback('bendahara')));
+
+  const bidangData = (bidang && bidang.length > 0) ? bidang : P.bidang;
+  set('orgBidang', bidangData.map((b, i) => {
+    const delays = ['', 'delay-1', 'delay-2', 'delay-3'];
+    return `<div class="org-card org-card-bidang fade-up ${delays[i] || ''}">${buildOrgCard(b)}</div>`;
+  }).join(''));
+
+  // Trigger animasi scroll setelah render
+  const newCards = document.querySelectorAll('#pengurus .fade-up');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  newCards.forEach(el => { el.classList.remove('visible'); obs.observe(el); });
+}
+
