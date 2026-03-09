@@ -804,3 +804,41 @@ img { max-width: 100%; display: block; }
   .al-legend-grid { gap:6px 12px; }
   .notif-wajib { flex-direction:column; gap:8px; text-align:center; }
 }
+
+/* Countdown label tanggal target */
+.cd-tgl {
+  color: rgba(255,255,255,.85);
+  font-weight: 600;
+}
+
+/* ══════════════════════════════════════════
+   SKELETON LOADING
+══════════════════════════════════════════ */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.sk-line, .sk-badge, .sk-chip, .sk-title-bar {
+  background: linear-gradient(90deg, #ede9f5 25%, #f5f2fc 50%, #ede9f5 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+.sk-hero {
+  background: linear-gradient(135deg, var(--purple-deep), var(--purple-mid));
+  border-radius: var(--radius);
+  padding: 40px 32px 32px;
+  margin-bottom: 20px;
+  color: var(--white);
+}
+.sk-badge  { height:22px; width:110px; margin-bottom:20px; opacity:.4; }
+.sk-icon   { font-size:3rem; margin-bottom:12px; }
+.sk-title  { font-family:var(--font-display); font-size:1.6rem; font-weight:900; margin-bottom:8px; opacity:.9; }
+.sk-desc   { font-size:.9rem; opacity:.6; margin-bottom:16px; line-height:1.5; }
+.sk-meta   { display:flex; gap:10px; }
+.sk-chip   { height:26px; width:120px; opacity:.3; border-radius:20px; }
+.sk-card   { opacity:.6; }
+.sk-line   { height:12px; margin-bottom:10px; }
+.sk-line.w80 { width:80%; }
+.sk-line.w60 { width:60%; }
+.sk-line.w70 { width:70%; }

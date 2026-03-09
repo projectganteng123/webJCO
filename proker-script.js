@@ -66,29 +66,31 @@ function rupiahNum(val) {
 }
 
 
-/** Sanitize kolom "waktu" — bisa berisi YYYY-MM-DD atau string GMT panjang */
+/** Sanitize kolom "waktu" di proker_detail.
+ *  Kolom ini bisa berisi:
+ *  - Teks bebas  : "Setiap Jumat", "Menyesuaikan" → tampil apa adanya
+ *  - YYYY-MM-DD  : tanggal event → format Indonesia
+ *  - String GMT  : Date object yang lolos Apps Script → format ulang
+ *  Kolom waktu_teks (opsional) selalu ditampilkan apa adanya.
+ */
 function sanitizeWaktu(str) {
   if (!str || str === '–') return str;
-  // Sudah bersih: "Setiap Jumat", "Menyesuaikan", "2026-07-25", jam "14:00", dll
-  // Cek apakah mengandung "GMT" atau "Waktu Indonesia" — artinya Date string
+  // String GMT panjang — parse dan format ulang
   if (str.includes('GMT') || str.includes('Waktu Indonesia')) {
     const d = new Date(str);
     if (!isNaN(d.getTime())) {
-      // Cek apakah ini waktu (jam saja) atau tanggal penuh
-      // Date dengan jam != 00:00 dan tahun < 1901 → ini kolom jam
       if (d.getFullYear() <= 1900) {
-        const h = String(d.getHours()).padStart(2,'0');
-        const m = String(d.getMinutes()).padStart(2,'0');
-        return h + ':' + m;
+        // Kolom jam (Sheets simpan 14:00 sebagai 30 Des 1899)
+        return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
       }
-      // Tanggal penuh → format Indonesia
-      return formatTglPanjang(
-        d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
-      );
+      // Tanggal penuh
+      const ymd = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      return formatTglPanjang(ymd);
     }
   }
-  // Jika YYYY-MM-DD → format Indonesia
+  // YYYY-MM-DD → format Indonesia
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return formatTglPanjang(str);
+  // Teks bebas → tampil apa adanya
   return str;
 }
 
@@ -236,7 +238,10 @@ function renderNotifs(notifs, status, estDate, cfg) {
 ══════════════════════════════════════════════ */
 function renderDeskripsi(proker, detail) {
   const D       = detail || {};
-  const waktu   = sanitizeWaktu(D.waktu    || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–');
+  // waktu_teks = teks bebas ("Setiap Jumat"), waktu = tanggal event
+  // Prioritas: waktu_teks > waktu (di-sanitize) > fallback content.js
+  const waktuRaw = D.waktu_teks || D.waktu || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–';
+  const waktu    = D.waktu_teks ? waktuRaw : sanitizeWaktu(waktuRaw);
   const lokasi  = D.lokasi   || '–';
   const sasaran = D.sasaran  || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
   const tujuan  = D.tujuan   || '';
@@ -629,7 +634,8 @@ function renderPage(proker, sheetsData) {
   const statusLabel = {upcoming:'Akan Datang', ongoing:'Sedang Berjalan', done:'Selesai'}[status];
   const statusClass = {upcoming:'status-upcoming', ongoing:'status-ongoing', done:'status-done'}[status];
 
-  const heroWaktu  = sanitizeWaktu(detail?.waktu   || proker.detail?.find(d=>d.label.includes('Waktu'))?.val  || '–');
+  const heroWaktuRaw = detail?.waktu_teks || detail?.waktu || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–';
+  const heroWaktu    = detail?.waktu_teks ? heroWaktuRaw : sanitizeWaktu(heroWaktuRaw);
   const heroLokasi = detail?.lokasi  || '–';
   const heroSasaran= detail?.sasaran || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
 
@@ -712,18 +718,21 @@ function renderPage(proker, sheetsData) {
 ══════════════════════════════════════════════ */
 function fetchJSONP(url) {
   return new Promise((resolve,reject)=>{
-    const cb='_jcb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const t =setTimeout(()=>{cleanup();reject(new Error('Timeout'));},12000);
-    window[cb]=data=>{cleanup();resolve(data);};
-    function cleanup(){
-      clearTimeout(t);delete window[cb];
-      document.getElementById('_jcosasi_jsonp')?.remove();
+    // ID unik per request — fix bug parallel fetch saling hapus script tag
+    const uid = '_jcb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const sid = 'jsonp_'+uid;
+    const t   = setTimeout(()=>{cleanup();reject(new Error('Timeout'));},12000);
+    window[uid] = data => { cleanup(); resolve(data); };
+    function cleanup() {
+      clearTimeout(t);
+      delete window[uid];
+      document.getElementById(sid)?.remove();
     }
-    const s=document.createElement('script');
-    s.id='_jcosasi_jsonp';
-    s.src=url+'&callback='+cb;
-    s.onerror=()=>{cleanup();reject(new Error('Load failed'));};
-    document.head.appendChild(s);
+    const el  = document.createElement('script');
+    el.id     = sid;
+    el.src    = url + '&callback=' + uid;
+    el.onerror = () => { cleanup(); reject(new Error('Load failed')); };
+    document.head.appendChild(el);
   });
 }
 
@@ -755,6 +764,7 @@ async function fetchAllSheets(prokerId) {
 document.addEventListener('DOMContentLoaded', async ()=>{
   const id     = getProkerIdFromURL();
   const proker = getProkerData(id);
+
   if(!proker){
     $('mainContent').innerHTML=`<div class="page-error">
       <div class="pe-icon">🔍</div>
@@ -764,6 +774,39 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     </div>`;
     return;
   }
+
+  // Render skeleton loading dulu — agar halaman tidak blank
+  $('mainContent').innerHTML = renderSkeleton(proker);
+
+  // Fetch data Sheets
   const sheetsData = await fetchAllSheets(id);
+
+  // Render konten penuh
   renderPage(proker, sheetsData);
 });
+
+/* ── Skeleton loading ── */
+function renderSkeleton(proker) {
+  return `
+    <div class="sk-hero">
+      <div class="sk-badge"></div>
+      <div class="sk-icon">${proker.icon}</div>
+      <div class="sk-title">${proker.judul.replace(/&amp;/g,'&')}</div>
+      <div class="sk-desc">${proker.desc.replace(/<[^>]*>/g,'')}</div>
+      <div class="sk-meta">
+        <div class="sk-chip"></div>
+        <div class="sk-chip"></div>
+      </div>
+    </div>
+    ${['Pemberitahuan','Deskripsi Kegiatan','Activity Log','Dokumentasi'].map(label=>`
+    <div class="pcard sk-card">
+      <div class="pcard-header">
+        <h2 style="color:var(--grey-mid)">${label}</h2>
+      </div>
+      <div class="pcard-body">
+        <div class="sk-line w80"></div>
+        <div class="sk-line w60"></div>
+        <div class="sk-line w70"></div>
+      </div>
+    </div>`).join('')}`;
+}
