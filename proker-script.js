@@ -748,13 +748,18 @@ async function fetchAllSheets(prokerId) {
   const safe = res => res.status==='fulfilled'&&res.value?.status==='ok' ? res.value.data : [];
   const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
 
+  // Normalisasi proker_id: "01", "1", 1 → semuanya cocok
+  // matchId: bandingkan sebagai angka desimal (parseInt hapus leading zero)
+  const pid = parseInt(prokerId, 10);
+  const matchId = r => parseInt(r.proker_id, 10) === pid;
+
   return {
-    detail:      detArr.find(r=>r.proker_id===prokerId)||null,
-    notifs:      notArr.filter(r=>r.proker_id===prokerId||r.proker_id==='all'),
-    notifConfig: cfgArr.find(r=>r.proker_id===prokerId)||null,
-    activity:    actArr.filter(r=>r.proker_id===prokerId),
-    jadwal:      jadArr.filter(r=>r.proker_id===prokerId),
-    dok:         dokArr.filter(r=>r.proker_id===prokerId),
+    detail:      detArr.find(matchId)||null,
+    notifs:      notArr.filter(r=>matchId(r)||r.proker_id==='all'),
+    notifConfig: cfgArr.find(matchId)||null,
+    activity:    actArr.filter(matchId),
+    jadwal:      jadArr.filter(matchId),
+    dok:         dokArr.filter(matchId),
   };
 }
 
