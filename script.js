@@ -75,8 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* NAV */
   set('navLogoWrap', buildNavLogo(L, O));
-  set('navLinks', C.nav.links.map(l => `<li><a href="${l.href}">${l.label}</a></li>`).join(''));
-  set('mobileLinks', C.nav.links.map(l => `<li><a href="${l.href}" class="mm-link">${l.label}</a></li>`).join(''));
+  // Render nav — link eksternal (bukan #anchor) tidak ikut active-scroll logic
+  set('navLinks', C.nav.links.map(l => {
+    const isExt = !l.href.startsWith('#');
+    return `<li><a href="${l.href}"${isExt?' class="nav-ext"':''} ${isExt?'':''} >${l.label}</a></li>`;
+  }).join(''));
+  set('mobileLinks', C.nav.links.map(l =>
+    `<li><a href="${l.href}" class="mm-link">${l.label}</a></li>`
+  ).join(''));
 
   /* HERO */
   set('heroBadge', C.hero.badge);
@@ -118,7 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
   set('prokerGrid', C.proker.items.map((p, i) => {
     const delay = i % 2 === 1 ? ' delay-1' : '';
     let extra = '';
-    if (p.chips)   extra = `<div class="pc-sub-programs">${p.chips.map(c=>`<span class="sub-p">${c}</span>`).join('')}</div>`;
+    if (p.chips && Array.isArray(p.chips) && p.chips.length)
+      extra = `<div class="pc-sub-programs">${p.chips.map(c=>`<span class="sub-p">${c}</span>`).join('')}</div>`;
     else if (p.akademik) extra = `<div class="akademik-list">${p.akademik.map(a=>`<div class="ak-item"><strong>${a.judul}</strong><p>${a.desc}</p></div>`).join('')}</div>`;
     else if (p.mb) extra = `<div class="mb-grid">${p.mb.map(m=>`<div class="mb-item">${m}</div>`).join('')}</div>`;
     else if (p.org) extra = `<div class="org-list">${p.org.map(o=>`<div class="org-item"><span class="org-dot"></span><strong>${o.judul}</strong> — ${o.desc}</div>`).join('')}</div>`;
@@ -179,7 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const raw = sessionStorage.getItem(cacheKey);
       if (raw) {
         const entry = JSON.parse(raw);
-        if (entry && entry.ts && Date.now() - entry.ts < CACHE_TTL) return; // cache masih fresh
+        if (entry && entry.ts && Date.now() - entry.ts < CACHE_TTL) {
+          // Cache fresh — langsung terapkan badge
+          applyNotifBadges((entry.data && entry.data.jadArr) || []);
+          return;
+        }
       }
     } catch(e) {}
 
@@ -193,6 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr };
       if (Object.values(allData).some(a => a.length > 0)) {
         sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: allData }));
+        // Terapkan badge dari data jadwal yang baru di-cache
+        applyNotifBadges(allData.jadArr || []);
       }
     } catch(e) { /* preload gagal — tidak masalah, proker page akan fetch sendiri */ }
   })();
@@ -296,60 +309,83 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ── Notif badge: fetch proker_jadwal, tandai card yg ada jadwal ke depan ── */
-  (async () => {
-    const api = CONTENT && CONTENT.api && CONTENT.api.url;
-    if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return;
-    try {
-      const cb = '_jcb_badge_' + Date.now();
-      const data = await new Promise((res, rej) => {
-        const t = setTimeout(() => { delete window[cb]; rej(new Error('timeout')); }, 10000);
-        window[cb] = d => { clearTimeout(t); delete window[cb]; res(d); };
-        const el = document.createElement('script');
-        el.src = api + '?sheet=proker_jadwal&callback=' + cb;
-        el.onerror = rej;
-        document.head.appendChild(el);
-      });
-      if (!data || data.status !== 'ok' || !data.data) return;
-      const nowMs = Date.now();
-      const nearest = {};
-      const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-      data.data.forEach(function(r) {
-        if (!r.tanggal) return;
-        const pid = parseInt(r.proker_id, 10);
-        if (isNaN(pid)) return;
-        const jamStr = (r.jam || '').trim();
-        const jm = jamStr.match(/^(\d{1,2}):(\d{2})$/);
-        const hh = jm ? (jm[1].length < 2 ? '0'+jm[1] : jm[1]) : '07';
-        const mm = jm ? jm[2] : '00';
-        const dt = new Date(r.tanggal + 'T' + hh + ':' + mm + ':00');
-        if (isNaN(dt.getTime()) || dt.getTime() <= nowMs) return;
-        const key = pid < 10 ? '0' + pid : '' + pid;
-        if (!nearest[key] || dt < nearest[key]) nearest[key] = dt;
-      });
-      Object.keys(nearest).forEach(function(pid) {
-        const dt = nearest[pid];
-        // Badge hanya muncul jika jadwal terdekat < 3 hari dari sekarang
-        if (dt.getTime() - nowMs > THREE_DAYS_MS) return;
-        const badge = document.getElementById('notif-badge-' + pid);
-        if (!badge) return;
-        const tgl = dt.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long'});
-        const jam = dt.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-        badge.style.display = 'flex';
-        badge.title = 'Kegiatan ' + tgl + ' pukul ' + jam;
-      });
-    } catch(e) { /* badge tidak tampil jika fetch gagal */ }
-  })();
+  /* ── Notif badge — dijalankan setelah preload cache selesai ──
+     Ambil dari cache (tidak fetch ulang), badge hanya muncul
+     jika jadwal terdekat <= 3 hari dari hari ini (lokal WIB) ── */
+  function applyNotifBadges(jadwalArr) {
+    if (!jadwalArr || !jadwalArr.length) return;
+    const now         = new Date();
+    const nowMs       = now.getTime();
+    const THREE_DAYS  = 3 * 24 * 60 * 60 * 1000;
+    const nearest     = {};
 
-  /* ── ACTIVE NAV ── */
-  document.querySelectorAll('section[id]').forEach(s=>{
-    new IntersectionObserver(entries=>entries.forEach(e=>{
-      if(e.isIntersecting){
-        const id=e.target.getAttribute('id');
-        document.querySelectorAll('.nav-links a').forEach(l=>l.classList.toggle('active',l.getAttribute('href')===`#${id}`));
-      }
-    }),{threshold:0.4}).observe(s);
+    jadwalArr.forEach(function(r) {
+      // Validasi: tanggal harus format YYYY-MM-DD
+      if (!r.tanggal || !/^\d{4}-\d{2}-\d{2}$/.test(r.tanggal)) return;
+      const pid = parseInt(r.proker_id, 10);
+      if (isNaN(pid)) return;
+      // Jam: HH:MM, fallback 07:00
+      const jamStr = (r.jam || '').trim();
+      const jm     = /^(\d{1,2}):(\d{2})$/.exec(jamStr);
+      const hh     = jm ? jm[1].padStart(2,'0') : '07';
+      const mm     = jm ? jm[2] : '00';
+      // Parse sebagai lokal (bukan UTC) dengan gabung string langsung
+      const parts  = r.tanggal.split('-');
+      const dt     = new Date(+parts[0], +parts[1]-1, +parts[2], +hh, +mm, 0);
+      if (isNaN(dt.getTime()) || dt.getTime() <= nowMs) return;
+      const key = pid < 10 ? '0'+pid : ''+pid;
+      if (!nearest[key] || dt < nearest[key]) nearest[key] = dt;
+    });
+
+    Object.keys(nearest).forEach(function(pid) {
+      const dt   = nearest[pid];
+      const diff = dt.getTime() - nowMs;
+      // Hanya tampilkan badge jika kurang dari 3 hari
+      if (diff > THREE_DAYS) return;
+      const badge = document.getElementById('notif-badge-' + pid);
+      if (!badge) return;
+      const tgl = dt.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long'});
+      const jam = dt.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+      badge.style.display = 'flex';
+      badge.title = 'Kegiatan ' + tgl + ', pukul ' + jam;
+    });
+  }
+
+  /* ── ACTIVE NAV ── 
+     Garis merah mengikuti section yang sedang terlihat di viewport.
+     Klik nav link → langsung set active, tidak menunggu scroll observer.
+     Link eksternal (rekap.html dll) tidak ikut active logic. ── */
+  let _navClickLock = false;
+
+  function setActiveNav(href) {
+    document.querySelectorAll('.nav-links a:not(.nav-ext)').forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === href);
+    });
+  }
+
+  // Klik nav link → langsung set active + lock sementara agar scroll observer tidak override
+  document.querySelectorAll('.nav-links a:not(.nav-ext), .mm-link').forEach(link => {
+    link.addEventListener('click', () => {
+      const href = link.getAttribute('href');
+      if (!href || !href.startsWith('#')) return;
+      setActiveNav(href);
+      _navClickLock = true;
+      setTimeout(() => { _navClickLock = false; }, 900); // beri waktu scroll settle
+    });
   });
+
+  // Scroll observer — hanya aktif jika tidak sedang locked oleh klik
+  const _sectionIds = [];
+  document.querySelectorAll('section[id]').forEach(sec => {
+    _sectionIds.push(sec.id);
+    new IntersectionObserver(entries => entries.forEach(e => {
+      if (_navClickLock) return; // skip jika baru klik
+      if (e.isIntersecting) setActiveNav('#' + e.target.getAttribute('id'));
+    }), { threshold: 0.3, rootMargin: '-60px 0px -40% 0px' }).observe(sec);
+  });
+
+  // Set active awal berdasarkan hash URL jika ada
+  if (location.hash) setActiveNav(location.hash);
 
   /* ── HERO LOAD ── */
   setTimeout(()=>{

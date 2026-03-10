@@ -102,6 +102,18 @@ ul { list-style: none; }
 }
 .nav-links a:hover { color: var(--purple-mid); }
 .nav-links a:hover::after { transform: scaleX(1); }
+/* Link eksternal (Dashboard) — gaya berbeda, tidak ada garis bawah aktif */
+.nav-links a.nav-ext {
+  background: var(--purple-deep);
+  color: var(--white) !important;
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: .8rem;
+  font-weight: 600;
+  transition: background var(--trans), transform var(--trans);
+}
+.nav-links a.nav-ext:hover { background: var(--purple-mid); transform: translateY(-1px); }
+.nav-links a.nav-ext::after { display: none !important; }
 
 /* Hamburger */
 .hamburger {

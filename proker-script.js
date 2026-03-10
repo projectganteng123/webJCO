@@ -649,8 +649,27 @@ function renderPage(proker, sheetsData) {
       <div class="ph-top">
         <div class="ph-num">${id}</div>
         <div class="ph-badges">
-          <span class="ph-tag">${proker.tag}</span>
-          ${proker.cat?.includes('rutin')?'<span class="ph-tag">Kegiatan Rutin</span>':''}
+          ${(() => {
+            // Bangun set badge unik dari cat — hindari duplikasi dengan tag
+            const tagLower = (proker.tag||'').toLowerCase();
+            const catBadges = [];
+            const catStr = (proker.cat||'').toLowerCase();
+            // Map kategori → label badge tambahan (hanya jika berbeda dari tag)
+            const catMap = {
+              'rutin':      'Kegiatan Rutin',
+              'akademik':   'Akademik',
+              'event':      'Event',
+              'organisasi': 'Organisasi',
+              'lainlain':   'Lain-lain',
+            };
+            Object.entries(catMap).forEach(([k,v]) => {
+              if (catStr.includes(k) && v.toLowerCase() !== tagLower) {
+                catBadges.push(v);
+              }
+            });
+            const allBadges = [proker.tag, ...catBadges];
+            return allBadges.map(b => `<span class="ph-tag">${b}</span>`).join('');
+          })()}
         </div>
         <div class="ph-icon">${proker.icon}</div>
       </div>

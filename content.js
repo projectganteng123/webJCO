@@ -69,6 +69,7 @@ const CONTENT = {
       { label: "Timeline",       href: "#timeline" },
       { label: "Pengurus",       href: "#pengurus" },
       { label: "Kontak",         href: "#kontak"   },
+      { label: "📊 Dashboard",   href: "rekap.html" },
     ],
   },
 
@@ -143,7 +144,7 @@ const CONTENT = {
           { label: "🎯 Target",  val: "Kemampuan setara JLPT N4" },
           { label: "⏱️ Durasi",  val: "± 2–3 jam per pertemuan" },
         ],
-        chips: ["Nihongo Start Class", "Kotoba Mingguan", "Kaiwa Time"],
+        // chips dihapus — materi sudah tercakup di Proker 02
       },
       {
         num:   "02", icon: "🏫", cat: "rutin akademik",
@@ -360,7 +361,7 @@ const CONTENT = {
    * 2. Tempel di bawah menggantikan teks "PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI"
    */
   api: {
-    url: "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
+    url: "PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI",
     //
     // Contoh URL asli:
     // url: "https://script.google.com/macros/s/AKfycbXXXXXXXXXXX/exec",
@@ -419,299 +420,11 @@ const CONTENT = {
     jp_closing: "ありがとうございます 🌸",
   },
 
-  /* ── PROKER DETAIL ────────────────────────────────────
-   * Data detail untuk halaman masing-masing proker.
-   * Key = nomor proker (string 2 digit: "01", "02", dst)
-   *
-   * Untuk konten dinamis (pemberitahuan, dokumentasi, activity):
-   * → diambil dari Google Sheets (sheet: proker_notif, proker_docs, proker_activity)
-   * → data di sini hanya untuk bagian DESKRIPSI (statis)
+  /* ── PROKER DETAIL ──────────────────────────────────
+   * Konten detail proker (tujuan, waktu, lokasi, panitia, RAB, dll)
+   * sepenuhnya diambil dari Google Sheets — sheet: proker_detail
+   * Tidak ada data statis di sini sejak v3.
    * ─────────────────────────────────────────────────── */
-  prokerDetail: {
-
-    "01": {
-      slug: "pembelajaran-bahasa-jepang",
-      tujuan: "Membangun kemampuan bahasa Jepang anggota secara bertahap dan konsisten, mulai dari penguasaan aksara (hiragana, katakana), kosakata, tata bahasa, hingga percakapan dasar yang setara dengan standar JLPT N4.",
-      waktu: "Setiap Jumat, selama periode kepengurusan 2026–2027",
-      lokasi: "Ruang kelas SMKN 1 Cikarang Barat (menyesuaikan jadwal)",
-      target_peserta: "Seluruh anggota aktif kelas 10 dan 11",
-      estimasi_tanggal: "2026-08-01",
-      is_rutin: true,
-      rab: [
-        { item: "Fotokopi materi belajar", biaya: "Rp 50.000 / bulan" },
-        { item: "Alat tulis & papan tulis", biaya: "Rp 30.000 / semester" },
-      ],
-      panitia: [{ jabatan: "Penanggung Jawab", nama: "Bidang Akademik" }],
-      pemateri: [{ nama: "Sensei / Guru Pembimbing", peran: "Pengajar utama bahasa Jepang" }],
-    },
-
-    "02": {
-      slug: "bidang-akademik",
-      tujuan: "Menyediakan tiga program akademik terstruktur — Nihongo Start Class, Kotoba Mingguan, dan Kaiwa Time — agar setiap anggota memiliki fondasi bahasa Jepang yang kuat dan terukur.",
-      waktu: "Setiap minggu, terintegrasi dalam hari eskul",
-      lokasi: "SMKN 1 Cikarang Barat",
-      target_peserta: "Anggota kelas 10 dan 11",
-      estimasi_tanggal: "2026-08-01",
-      is_rutin: true,
-      rab: [
-        { item: "Materi Nihongo Start Class", biaya: "Rp 40.000 / semester" },
-        { item: "Kartu Kotoba Mingguan", biaya: "Rp 20.000 / semester" },
-      ],
-      panitia: [{ jabatan: "Penanggung Jawab", nama: "Bidang Akademik" }],
-      pemateri: [{ nama: "Pengurus Bidang Akademik", peran: "Fasilitator program" }],
-    },
-
-    "03": {
-      slug: "proyek-minat-bakat",
-      tujuan: "Memberikan ruang ekspresi kreatif bagi anggota melalui 6 bidang minat bakat — music cover, dance cover, cosplay, fan art, fan fiction, dan budaya Jepang — sehingga setiap anggota memiliki karya nyata yang bisa dibanggakan.",
-      waktu: "Setiap Kamis, selama periode kepengurusan",
-      lokasi: "SMKN 1 Cikarang Barat & lokasi menyesuaikan bidang",
-      target_peserta: "Seluruh anggota aktif",
-      estimasi_tanggal: "2026-08-01",
-      is_rutin: true,
-      rab: [
-        { item: "Properti & kostum (Cosplay)", biaya: "Menyesuaikan proyek" },
-        { item: "Peralatan rekam (Music/Dance)", biaya: "Menyesuaikan proyek" },
-        { item: "Alat gambar (Fan Art)", biaya: "Rp 50.000 / semester" },
-      ],
-      panitia: [{ jabatan: "Penanggung Jawab", nama: "Bidang Minat Bakat" }],
-      pemateri: [],
-    },
-
-    "04": {
-      slug: "bidang-organisasi-kekompakan",
-      tujuan: "Membangun organisasi yang sehat dari dalam — melalui evaluasi rutin, sharing session, dan kegiatan bonding — sehingga setiap anggota merasa terhubung, didengar, dan berperan dalam perjalanan JCOSASI.",
-      waktu: "Setiap bulan (Kamis atau Jumat), jadwal menyesuaikan",
-      lokasi: "SMKN 1 Cikarang Barat",
-      target_peserta: "Seluruh anggota kelas 10, 11, dan 12",
-      estimasi_tanggal: "2026-08-01",
-      is_rutin: true,
-      rab: [
-        { item: "Konsumsi sharing session", biaya: "Rp 50.000 / sesi" },
-      ],
-      panitia: [{ jabatan: "Penanggung Jawab", nama: "Bidang Organisasi" }],
-      pemateri: [],
-    },
-
-    "05": {
-      slug: "diklat",
-      tujuan: "Membekali calon pengurus Angkatan 13 dengan pemahaman mendalam tentang nilai, sistem, dan tanggung jawab organisasi JCOSASI — agar regenerasi kepemimpinan berjalan mulus dan berkelanjutan.",
-      waktu: "Estimasi: 25 Juli 2026",
-      lokasi: "SMKN 1 Cikarang Barat (ruang menyesuaikan)",
-      target_peserta: "Seluruh anggota Angkatan 13 (calon pengurus)",
-      estimasi_tanggal: "2026-07-25",
-      is_rutin: false,
-      rab: [
-        { item: "Konsumsi peserta & panitia", biaya: "Menyesuaikan jumlah peserta" },
-        { item: "Materi & modul DIKLAT",      biaya: "Rp 100.000" },
-        { item: "Sertifikat peserta",         biaya: "Rp 50.000" },
-      ],
-      panitia: [
-        { jabatan: "Ketua Pelaksana", nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Acara",       nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Konsumsi",    nama: "[ Diisi pengurus ]" },
-      ],
-      pemateri: [
-        { nama: "Pengurus Angkatan 12", peran: "Pemateri materi organisasi" },
-        { nama: "Alumni JCOSASI",       peran: "Pemateri pengalaman & motivasi" },
-      ],
-    },
-
-    "06": {
-      slug: "demos-ekskul",
-      tujuan: "Memperkenalkan JCOSASI kepada siswa baru SMKN 1 Cikarang Barat secara menarik dan berkesan — agar mereka mengenal, tertarik, dan termotivasi untuk bergabung sebagai anggota baru.",
-      waktu: "Menyesuaikan jadwal MPLS sekolah",
-      lokasi: "Lingkungan SMKN 1 Cikarang Barat",
-      target_peserta: "Seluruh peserta MPLS (siswa baru)",
-      estimasi_tanggal: "2026-07-14",
-      is_rutin: false,
-      rab: [
-        { item: "Properti display & banner", biaya: "Rp 150.000" },
-        { item: "Kostum penampilan",         biaya: "Menyesuaikan" },
-        { item: "Brosur / flyer digital",    biaya: "Rp 30.000" },
-      ],
-      panitia: [
-        { jabatan: "Ketua Pelaksana", nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Penampilan",  nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Humas",       nama: "[ Diisi pengurus ]" },
-      ],
-      pemateri: [],
-    },
-
-    "07": {
-      slug: "jcosasi-tanjoubi-workshop",
-      tujuan: "Merayakan hari jadi JCOSASI sebagai momen kebersamaan, apresiasi karya anggota, dan penguatan identitas komunitas — sekaligus menyelenggarakan workshop budaya Jepang yang edukatif dan menyenangkan.",
-      waktu: "Estimasi: 22 Agustus 2026",
-      lokasi: "SMKN 1 Cikarang Barat (aula / ruang menyesuaikan)",
-      target_peserta: "Seluruh anggota aktif dan alumni JCOSASI",
-      estimasi_tanggal: "2026-08-22",
-      is_rutin: false,
-      rab: [
-        { item: "Dekorasi &amp; properti acara", biaya: "Rp 200.000" },
-        { item: "Konsumsi peserta",              biaya: "Menyesuaikan jumlah hadir" },
-        { item: "Hadiah lomba",                  biaya: "Rp 150.000" },
-        { item: "Bahan workshop",                biaya: "Rp 100.000" },
-      ],
-      panitia: [
-        { jabatan: "Ketua Pelaksana", nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Acara",       nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Dekorasi",    nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Konsumsi",    nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Dokumentasi", nama: "[ Diisi pengurus ]" },
-      ],
-      pemateri: [
-        { nama: "[ Narasumber Workshop ]", peran: "Pemateri workshop budaya Jepang" },
-      ],
-    },
-
-    "08": {
-      slug: "pelantikan-anggota",
-      tujuan: "Meresmikan calon anggota sebagai anggota tetap JCOSASI Angkatan 14 melalui prosesi pelantikan yang bermakna — sebagai bentuk komitmen dan penerimaan resmi ke dalam keluarga besar JCOSASI.",
-      waktu: "Estimasi: 19 September 2026",
-      lokasi: "SMKN 1 Cikarang Barat",
-      target_peserta: "Calon anggota (Angkatan 14) yang telah memenuhi syarat",
-      estimasi_tanggal: "2026-09-19",
-      is_rutin: false,
-      rab: [
-        { item: "Konsumsi pelantikan",  biaya: "Menyesuaikan jumlah peserta" },
-        { item: "Sertifikat anggota",   biaya: "Rp 75.000" },
-        { item: "Properti pelantikan",  biaya: "Rp 80.000" },
-      ],
-      panitia: [
-        { jabatan: "Ketua Pelaksana",  nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Acara",        nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Konsumsi",     nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Dokumentasi",  nama: "[ Diisi pengurus ]" },
-      ],
-      pemateri: [],
-    },
-
-    "09": {
-      slug: "kolaborasi-class-meeting",
-      tujuan: "Memperkenalkan budaya Jepang kepada seluruh warga sekolah melalui perlombaan bertema Jepang dalam momen class meeting — sekaligus memperkuat eksistensi JCOSASI di lingkungan SMKN 1 Cikarang Barat.",
-      waktu: "Menyesuaikan jadwal class meeting sekolah",
-      lokasi: "SMKN 1 Cikarang Barat",
-      target_peserta: "Siswa/i SMKN 1 Cikarang Barat",
-      estimasi_tanggal: "2026-12-01",
-      is_rutin: false,
-      rab: [
-        { item: "Hadiah lomba",          biaya: "Rp 200.000" },
-        { item: "Properti & dekorasi",   biaya: "Rp 100.000" },
-        { item: "Perlengkapan lomba",    biaya: "Rp 80.000" },
-      ],
-      panitia: [
-        { jabatan: "Koordinator",     nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Lomba",       nama: "[ Diisi pengurus ]" },
-        { jabatan: "Kolaborasi OSIS", nama: "[ Koordinator OSIS ]" },
-      ],
-      pemateri: [],
-    },
-
-    "10": {
-      slug: "serah-terima-jabatan",
-      tujuan: "Menutup periode kepengurusan Angkatan 12 secara resmi dan bermartabat — menyerahkan tongkat estafet kepada Angkatan 13 sebagai wujud keberlanjutan organisasi yang terstruktur dan bertanggung jawab.",
-      waktu: "Estimasi: 9 Januari 2027",
-      lokasi: "SMKN 1 Cikarang Barat",
-      target_peserta: "Seluruh anggota aktif JCOSASI",
-      estimasi_tanggal: "2027-01-09",
-      is_rutin: false,
-      rab: [
-        { item: "Konsumsi acara",     biaya: "Menyesuaikan jumlah hadir" },
-        { item: "Kenang-kenangan",    biaya: "Rp 100.000" },
-        { item: "Properti seremoni",  biaya: "Rp 50.000" },
-      ],
-      panitia: [
-        { jabatan: "Ketua Pelaksana", nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Acara",       nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Dokumentasi", nama: "[ Diisi pengurus ]" },
-      ],
-      pemateri: [],
-    },
-
-    "11": {
-      slug: "mengikuti-lomba",
-      tujuan: "Membuktikan kualitas anggota JCOSASI di panggung kompetisi — mengasah kemampuan, membangun mental juara, dan membawa nama JCOSASI harum di berbagai ajang lomba bahasa dan budaya Jepang.",
-      waktu: "Menyesuaikan jadwal lomba (sepanjang tahun)",
-      lokasi: "Menyesuaikan penyelenggara lomba",
-      target_peserta: "Anggota terpilih / pendaftar sukarela",
-      estimasi_tanggal: "2026-09-01",
-      is_rutin: false,
-      rab: [
-        { item: "Biaya pendaftaran lomba", biaya: "Menyesuaikan lomba" },
-        { item: "Transportasi",            biaya: "Menyesuaikan lokasi" },
-        { item: "Kostum / properti",       biaya: "Menyesuaikan kategori lomba" },
-      ],
-      panitia: [{ jabatan: "Penanggung Jawab", nama: "Bidang Humas &amp; Akademik" }],
-      pemateri: [],
-    },
-
-    "12": {
-      slug: "konten-kreatif-sosial-media",
-      tujuan: "Mengubah setiap karya minat bakat anggota menjadi konten digital yang menarik dan layak tayang — membangun kehadiran JCOSASI di media sosial, menjangkau audiens lebih luas, dan mendokumentasikan perjalanan kreatif anggota.",
-      waktu: "Mengikuti selesainya proyek minat bakat",
-      lokasi: "Online (Instagram & TikTok JCOSASI)",
-      target_peserta: "Anggota bidang minat bakat",
-      estimasi_tanggal: "2026-09-01",
-      is_rutin: true,
-      rab: [
-        { item: "Editing software / tools",  biaya: "Gratis (mobile apps)" },
-        { item: "Properti foto/video",       biaya: "Menyesuaikan konten" },
-      ],
-      panitia: [{ jabatan: "Penanggung Jawab", nama: "Bidang Humas &amp; Minat Bakat" }],
-      pemateri: [],
-    },
-
-    "13": {
-      slug: "kintore-bersama",
-      tujuan: "Membangun fisik yang kuat dan prima sebagai investasi jangka panjang — karena anggota JCOSASI tidak hanya belajar bahasa Jepang, tapi juga mempersiapkan diri secara fisik untuk menghadapi tantangan magang, bekerja, atau kehidupan nyata di Jepang.",
-      waktu: "Sebulan sekali, setiap hari Minggu",
-      lokasi: "Lapangan / gym / area terbuka (menyesuaikan)",
-      target_peserta: "Seluruh anggota aktif JCOSASI",
-      estimasi_tanggal: "2026-08-01",
-      is_rutin: true,
-      rab: [
-        { item: "Konsumsi / minuman energi", biaya: "Rp 30.000 / sesi" },
-        { item: "Sewa lapangan (jika perlu)", biaya: "Menyesuaikan lokasi" },
-      ],
-      panitia: [{ jabatan: "Penanggung Jawab", nama: "Bidang Organisasi" }],
-      pemateri: [],
-    },
-
-    "14": {
-      slug: "sharing-alumni",
-      tujuan: "Menjembatani pengalaman nyata alumni dengan semangat anggota aktif — agar setiap anggota mendapat gambaran konkret tentang jalur kuliah, karir, dan kehidupan di Jepang, sekaligus mempererat silaturahmi lintas angkatan.",
-      waktu: "Menyesuaikan ketersediaan alumni (direncanakan 2x per tahun)",
-      lokasi: "Offline di SMKN 1 Cikarang Barat / Online via Zoom atau Meet",
-      target_peserta: "Seluruh anggota aktif dan alumni JCOSASI",
-      estimasi_tanggal: "2026-10-01",
-      is_rutin: false,
-      rab: [
-        { item: "Konsumsi (jika offline)", biaya: "Rp 50.000 / sesi" },
-        { item: "Platform meeting online", biaya: "Gratis (Zoom/Meet)" },
-      ],
-      panitia: [
-        { jabatan: "Koordinator",         nama: "[ Diisi pengurus ]" },
-        { jabatan: "Sie Hubungan Alumni", nama: "Bidang Humas" },
-      ],
-      pemateri: [
-        { nama: "Alumni JCOSASI (Angkatan 1–11)", peran: "Narasumber berbagi pengalaman" },
-      ],
-    },
-
-    "15": {
-      slug: "proker-15",
-      tujuan: "[ Tujuan proker ke-15 ]",
-      waktu: "[ Waktu kegiatan ]",
-      lokasi: "[ Lokasi kegiatan ]",
-      target_peserta: "[ Target peserta ]",
-      estimasi_tanggal: "2026-08-01",
-      is_rutin: false,
-      rab: [],
-      panitia: [],
-      pemateri: [],
-    },
-
-  },
 
 };
 
