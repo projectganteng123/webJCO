@@ -84,12 +84,13 @@ function renderRekap(allData) {
   const main  = document.getElementById('mainContent');
   const items = CONTENT?.proker?.items || [];
 
-  const detArr = (allData?.detArr || []).map(r => ({ ...r, proker_id: normId(r.proker_id) }));
-  const notArr = (allData?.notArr || []).map(r => ({ ...r, proker_id: normId(r.proker_id) }));
-  const cfgArr = (allData?.cfgArr || []).map(r => ({ ...r, proker_id: normId(r.proker_id) }));
-  const actArr = (allData?.actArr || []).map(r => ({ ...r, proker_id: normId(r.proker_id) }));
-  const jadArr = (allData?.jadArr || []).map(r => ({ ...r, proker_id: normId(r.proker_id) }));
-  const dokArr = (allData?.dokArr || []).map(r => ({ ...r, proker_id: normId(r.proker_id) }));
+  const _sr = r => sanitizeRow({ ...r, proker_id: normId(r.proker_id) });
+  const detArr = (allData?.detArr || []).map(_sr);
+  const notArr = (allData?.notArr || []).map(_sr);
+  const cfgArr = (allData?.cfgArr || []).map(_sr);
+  const actArr = (allData?.actArr || []).map(_sr);
+  const jadArr = (allData?.jadArr || []).map(_sr);
+  const dokArr = (allData?.dokArr || []).map(_sr);
 
   /* ── Statistik global ── */
   const totalProker   = items.length;
@@ -552,10 +553,11 @@ function printLaporanRekap() {
 
   const items  = CONTENT?.proker?.items || [];
   const org    = CONTENT?.org || {};
-  const detArr = (allData?.detArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
-  const dokArr = (allData?.dokArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
-  const actArr = (allData?.actArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
-  const jadArr = (allData?.jadArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
+  const _srP = r => sanitizeRow({ ...r, proker_id: normId(r.proker_id) });
+  const detArr = (allData?.detArr||[]).map(_srP);
+  const dokArr = (allData?.dokArr||[]).map(_srP);
+  const actArr = (allData?.actArr||[]).map(_srP);
+  const jadArr = (allData?.jadArr||[]).map(_srP);
 
   const now    = new Date();
   const tglCetak = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -701,14 +703,17 @@ ${items.map(p => {
     const d    = rows[0];
     const biayaSesi = rows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
     const dur  = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
-    const hadirAll = [d.hadir_peserta,d.hadir_panitia,d.hadir_narasumber].filter(Boolean).join(', ');
+    const hadirParts = [
+      d.hadir_peserta    ? { label: '👥 Peserta',     val: d.hadir_peserta }    : null,
+      d.hadir_panitia    ? { label: '🤝 Panitia',     val: d.hadir_panitia }    : null,
+      d.hadir_narasumber ? { label: '🎤 Narasumber',  val: d.hadir_narasumber } : null,
+    ].filter(Boolean);
     const biayaItems = rows.filter(r=>r.item_biaya||r.biaya_aktual);
     return `<div class="dok-sesi">
       <div class="dok-sesi-header">Sesi ${si+1} — ${formatTglPanjang(tgl)}</div>
       <div class="dok-sesi-meta">
-        ${d.waktu_mulai?'⏰ '+d.waktu_mulai+(d.waktu_selesai?' – '+d.waktu_selesai:'')+(dur?' ('+dur+')':''):'' }
-        ${hadirAll ? ' &nbsp;|&nbsp; 👥 '+hadirAll : ''}
-        ${biayaSesi ? ' &nbsp;|&nbsp; 💰 '+rupiah(biayaSesi) : ''}
+        ${d.waktu_mulai ? '⏰ ' + d.waktu_mulai + (d.waktu_selesai ? ' – ' + d.waktu_selesai : '') + (dur ? ' (' + dur + ')' : '') : ''}
+        ${biayaSesi ? ' &nbsp;|&nbsp; 💰 ' + rupiah(biayaSesi) : ''}
       </div>
       ${d.keterangan?`<div class="dok-sesi-ket">${d.keterangan}</div>`:''}
       ${d.materi?`<div class="dok-sesi-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
@@ -837,16 +842,18 @@ ${sesiKeys.length ? sesiKeys.map((tgl,si)=>{
   const d    = rows[0];
   const biayaSesi = rows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
   const dur  = hitungDurasi(d.waktu_mulai,d.waktu_selesai);
-  const hadirAll = [
-    d.hadir_peserta && '👥 Peserta: '+d.hadir_peserta,
-    d.hadir_panitia && '🤝 Panitia: '+d.hadir_panitia,
-    d.hadir_narasumber && '🎤 Narasumber: '+d.hadir_narasumber,
-  ].filter(Boolean).join(' | ');
+  const hadirPartsP = [
+    d.hadir_peserta    ? { label: '👥 Peserta',    val: d.hadir_peserta }    : null,
+    d.hadir_panitia    ? { label: '🤝 Panitia',    val: d.hadir_panitia }    : null,
+    d.hadir_narasumber ? { label: '🎤 Narasumber', val: d.hadir_narasumber } : null,
+  ].filter(Boolean);
   const biayaItems = rows.filter(r=>r.item_biaya||r.biaya_aktual);
   return `<div class="dok-sesi">
     <div class="dok-hdr">Sesi ${si+1} — ${formatTglPanjang(tgl)}</div>
     ${d.waktu_mulai?`<div class="dok-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>`:''}
-    ${hadirAll?`<div class="dok-meta">${hadirAll}</div>`:''}
+    ${hadirPartsP.length ? hadirPartsP.map(h =>
+      `<div class="dok-meta"><strong>${h.label}:</strong> ${h.val}</div>`
+    ).join('') : ''}
     ${d.keterangan?`<div class="dok-ket">${d.keterangan}</div>`:''}
     ${d.materi?`<div class="dok-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
     ${d.kendala?`<div class="dok-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}

@@ -73,25 +73,88 @@ function rupiahNum(val) {
  *  - String GMT  : Date object yang lolos Apps Script → format ulang
  *  Kolom waktu_teks (opsional) selalu ditampilkan apa adanya.
  */
+/** Sanitize satu baris data dari Sheets — bersihkan kolom yang mungkin berisi
+ *  Date object string (GMT panjang) dari cache lama atau Apps Script yang belum di-update.
+ *  Fungsi ini aman dipanggil berulang kali. */
+const _DATE_COLS = new Set(['estimasi_tanggal','tanggal','tanggal_sesi','tanggal_target',
+                             'tanggal_mulai','tanggal_selesai']);
+const _TIME_COLS = new Set(['waktu_mulai','waktu_selesai','jam']);
+const _SKIP_COLS = new Set(['waktu_teks','waktu']); // teks bebas — jangan di-parse
+
+function sanitizeRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  const out = { ...row };
+  Object.keys(out).forEach(k => {
+    const v = out[k];
+    if (!v || typeof v !== 'string') return;
+    if (_SKIP_COLS.has(k)) {
+      // Kolom teks bebas — jika berisi GMT string (Sheets kirim Date object), buang
+      if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) |GMT/.test(v)) { out[k] = '–'; }
+      return;
+    }
+    if (_DATE_COLS.has(k)) {
+      // Harus YYYY-MM-DD
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        out[k] = sanitizeWaktu(v); // akan extract YYYY-MM-DD atau return –
+        // Kalau sanitizeWaktu return nama bulan Indonesia, kita perlu YYYY-MM-DD kembali
+        // Jadi coba parse ulang
+        if (out[k] && out[k] !== '–' && !/^\d{4}-\d{2}-\d{2}$/.test(out[k])) {
+          // sanitizeWaktu mengembalikan "Sabtu, 25 Juli 2026" — coba re-parse ke YYYY-MM-DD
+          const raw2 = v.includes('GMT') || /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /.test(v) ? new Date(v) : null;
+          if (raw2 && !isNaN(raw2)) {
+            out[k] = raw2.getFullYear() + '-'
+              + String(raw2.getMonth()+1).padStart(2,'0') + '-'
+              + String(raw2.getDate()).padStart(2,'0');
+          }
+        }
+      }
+      return;
+    }
+    if (_TIME_COLS.has(k)) {
+      // Harus HH:MM
+      if (!/^\d{2}:\d{2}/.test(v)) {
+        out[k] = sanitizeWaktu(v);
+      }
+      return;
+    }
+  });
+  return out;
+}
+
 function sanitizeWaktu(str) {
   if (!str || str === '–') return str;
-  // String GMT panjang — parse dan format ulang
-  if (str.includes('GMT') || str.includes('Waktu Indonesia')) {
-    const d = new Date(str);
+  const raw = str.trim();
+
+  // ── Ciri-ciri Date.toString() dari JS/Apps Script ──
+  // "Sat Jul 25 2026 00:00:00 GMT+0700 (Waktu Indonesia Barat)"
+  // "Thu Jan 01 1970 07:00:00 GMT+0700"
+  const looksLikeDate = raw.includes('GMT') || raw.includes('Waktu Indonesia')
+    || /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /.test(raw);
+
+  if (looksLikeDate) {
+    const d = new Date(raw);
     if (!isNaN(d.getTime())) {
       if (d.getFullYear() <= 1900) {
-        // Kolom jam (Sheets simpan 14:00 sebagai 30 Des 1899)
-        return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        // Jam tersimpan sebagai 30 Des 1899 (Sheets time quirk)
+        return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
       }
-      // Tanggal penuh
-      const ymd = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      // Tanggal penuh → format Indonesia
+      const ymd = d.getFullYear() + '-'
+        + String(d.getMonth()+1).padStart(2,'0') + '-'
+        + String(d.getDate()).padStart(2,'0');
       return formatTglPanjang(ymd);
     }
+    // Gagal parse → coba ekstrak YYYY-MM-DD dari string
+    const m = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return formatTglPanjang(m[0]);
+    return '–'; // buang string aneh
   }
+
   // YYYY-MM-DD → format Indonesia
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return formatTglPanjang(str);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return formatTglPanjang(raw);
+
   // Teks bebas → tampil apa adanya
-  return str;
+  return raw;
 }
 
 function getProkerIdFromURL() {
@@ -238,10 +301,10 @@ function renderNotifs(notifs, status, estDate, cfg) {
 ══════════════════════════════════════════════ */
 function renderDeskripsi(proker, detail) {
   const D       = detail || {};
-  // waktu_teks = teks bebas ("Setiap Jumat"), waktu = tanggal event
-  // Prioritas: waktu_teks > waktu (di-sanitize) > fallback content.js
-  const waktuRaw = D.waktu_teks || D.waktu || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–';
-  const waktu    = D.waktu_teks ? waktuRaw : sanitizeWaktu(waktuRaw);
+  // Hanya pakai waktu_teks — kolom waktu (lama) buang, bisa berisi Date object string
+  const waktu = D.waktu_teks
+    || proker.detail?.find(d => d.label.includes('Waktu'))?.val
+    || '–';
   const lokasi  = D.lokasi   || '–';
   const sasaran = D.sasaran  || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
   const tujuan  = D.tujuan   || '';
@@ -660,12 +723,14 @@ function renderPage(proker, sheetsData) {
   const next  = idx<items.length-1 ? items[idx+1] : null;
 
   const sheetsData_ref = sheetsData; // referensi untuk tombol cetak
-  const detail      = sheetsData?.detail      || null;
-  const notifs      = sheetsData?.notifs      || [];
+  // Sanitize semua baris — bersihkan GMT string dari cache lama maupun Apps Script lama
+  const _sanArr = arr => (arr||[]).map(sanitizeRow);
+  const detail      = sanitizeRow(sheetsData?.detail) || null;
+  const notifs      = _sanArr(sheetsData?.notifs);
   const notifConfig = sheetsData?.notifConfig || null;
-  const activity    = sheetsData?.activity    || [];
-  const jadwal      = sheetsData?.jadwal      || [];
-  const dok         = sheetsData?.dok         || [];
+  const activity    = _sanArr(sheetsData?.activity);
+  const jadwal      = _sanArr(sheetsData?.jadwal);
+  const dok         = _sanArr(sheetsData?.dok);
 
   const {status, estDate} = getStatusProker(proker, detail, jadwal);
 
@@ -676,8 +741,11 @@ function renderPage(proker, sheetsData) {
   const statusLabel = {upcoming:'Akan Datang', ongoing:'Sedang Berjalan', done:'Selesai'}[status];
   const statusClass = {upcoming:'status-upcoming', ongoing:'status-ongoing', done:'status-done'}[status];
 
-  const heroWaktuRaw = detail?.waktu_teks || detail?.waktu || proker.detail?.find(d=>d.label.includes('Waktu'))?.val || '–';
-  const heroWaktu    = detail?.waktu_teks ? heroWaktuRaw : sanitizeWaktu(heroWaktuRaw);
+  // Hanya pakai waktu_teks (teks bebas dari Sheets) atau fallback content.js
+  // Jangan pakai detail?.waktu — kolom itu bisa berisi Date object string dari Sheets
+  const heroWaktu = detail?.waktu_teks
+    || proker.detail?.find(d => d.label.includes('Waktu'))?.val
+    || '–';
   const heroLokasi = detail?.lokasi  || '–';
   const heroSasaran= detail?.sasaran || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
 
