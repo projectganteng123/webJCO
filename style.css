@@ -1304,69 +1304,82 @@ footer {
 .pc-detail-btn:hover span { transform: translateX(3px); }
 
 /* ══════════════════════════════════════════
-   PROKER SEARCH BAR
+   PROKER CONTROLS — search + filter dalam 1 baris
 ══════════════════════════════════════════ */
 .proker-controls {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 40px;
 }
+/* Search wrap — ukuran sama dengan filter-btn, inline */
 .proker-search-wrap {
   position: relative;
-  width: 100%;
-  max-width: 480px;
+  display: flex;
+  align-items: center;
 }
 .psw-icon {
   position: absolute;
-  left: 14px; top: 50%;
+  left: 11px; top: 50%;
   transform: translateY(-50%);
-  width: 18px; height: 18px;
+  width: 14px; height: 14px;
   stroke: var(--grey-mid);
   pointer-events: none;
+  flex-shrink: 0;
 }
 .proker-search {
-  width: 100%;
-  padding: 12px 42px 12px 42px;
-  border: 2px solid var(--grey-light);
+  padding: 8px 32px 8px 30px;
+  border: 1.5px solid var(--grey-light);
   border-radius: 99px;
-  font-size: .95rem;
+  font-size: .875rem;
   font-family: var(--font-body);
+  font-weight: 500;
   color: var(--charcoal);
-  background: var(--white);
+  background: var(--off-white);
   outline: none;
-  transition: border-color .2s, box-shadow .2s;
+  width: 180px;
+  transition: border-color .2s, box-shadow .2s, width .25s;
   box-sizing: border-box;
 }
 .proker-search:focus {
   border-color: var(--purple-mid);
-  box-shadow: 0 0 0 3px rgba(107,52,175,.12);
+  box-shadow: 0 0 0 3px rgba(107,52,175,.1);
+  background: var(--white);
+  width: 220px;
 }
 .proker-search::placeholder { color: var(--grey-mid); }
 .psw-clear {
   position: absolute;
-  right: 12px; top: 50%;
+  right: 8px; top: 50%;
   transform: translateY(-50%);
   display: none;
   align-items: center; justify-content: center;
-  width: 22px; height: 22px;
+  width: 18px; height: 18px;
   background: var(--grey-light);
   border: none; border-radius: 50%;
-  font-size: .75rem; color: var(--grey-dark);
+  font-size: .65rem; color: var(--grey-dark);
   cursor: pointer; line-height: 1;
   transition: background .15s;
 }
 .psw-clear:hover { background: var(--purple-pale); color: var(--purple-deep); }
 
+/* Separator visual antara search dan filter */
+.proker-controls .proker-filter {
+  margin-bottom: 0;
+  padding-left: 10px;
+  border-left: 1.5px solid var(--grey-light);
+}
+
 /* Pesan kosong saat search tidak ketemu */
 .proker-search-empty {
   text-align: center;
-  padding: 40px 20px;
+  padding: 32px 20px;
   color: var(--grey-mid);
 }
-.pse-icon { font-size: 2.5rem; margin-bottom: 12px; }
-.proker-search-empty p { font-size: .95rem; }
+.pse-icon { font-size: 2rem; margin-bottom: 10px; }
+.proker-search-empty p { font-size: .9rem; }
 .proker-search-empty span { font-weight: 700; color: var(--purple-mid); }
 
 /* ══════════════════════════════════════════
@@ -1404,4 +1417,12 @@ footer {
   .activity-graph { gap: 4px !important; }
   .activity-months { gap: 4px !important; }
   .activity-week { gap: 4px !important; }
+}
+
+/* Search + filter responsive */
+@media (max-width: 640px) {
+  .proker-controls { flex-direction: column; gap: 12px; }
+  .proker-controls .proker-filter { border-left: none; padding-left: 0; border-top: 1.5px solid var(--grey-light); padding-top: 10px; }
+  .proker-search { width: 200px; }
+  .proker-search:focus { width: 240px; }
 }

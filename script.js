@@ -46,6 +46,28 @@ function buildOrgCard(data) {
     <div class="org-desc">${data.desc}</div>`;
 }
 
+/* ── Shared cache helpers (dipakai juga oleh proker-script.js via key sama) ── */
+function _jcosasiCacheKey(api) {
+  try { return 'jcosasi_v1_' + btoa(api).slice(0, 20).replace(/[^a-z0-9]/gi,''); }
+  catch(e) { return 'jcosasi_v1_default'; }
+}
+function _jcosasiJSONP(url) {
+  return new Promise(function(resolve, reject) {
+    var uid = '_jcb_pre_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    var sid = 'jsonp_' + uid;
+    var t   = setTimeout(function() { cleanup(); reject(new Error('timeout')); }, 12000);
+    window[uid] = function(data) { cleanup(); resolve(data); };
+    function cleanup() {
+      clearTimeout(t); delete window[uid];
+      var el = document.getElementById(sid); if (el) el.remove();
+    }
+    var el = document.createElement('script');
+    el.id  = sid; el.src = url + '&callback=' + uid;
+    el.onerror = function() { cleanup(); reject(new Error('load failed')); };
+    document.head.appendChild(el);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const C = CONTENT, O = C.org, L = C.logo, KT = C.kontak;
 
@@ -134,6 +156,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderPengurusSkeleton();
   loadPengurusFromSheets();
+
+  /* ── Preload cache Sheets di background setelah halaman selesai render ──
+     Sehingga saat user buka halaman proker, data sudah tersedia di cache.
+     Refresh halaman = invalidate cache (performance.navigation.type === 1) */
+  (async () => {
+    const api = CONTENT && CONTENT.api && CONTENT.api.url;
+    if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return;
+
+    // Invalidate cache jika halaman di-refresh (bukan navigasi biasa)
+    const isReload = performance && performance.navigation
+      ? performance.navigation.type === 1
+      : (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]?.type === 'reload');
+    if (isReload) {
+      try { sessionStorage.removeItem(_jcosasiCacheKey(api)); } catch(e) {}
+    }
+
+    // Cek apakah cache sudah ada dan valid
+    const CACHE_TTL = 15 * 60 * 1000;
+    const cacheKey  = _jcosasiCacheKey(api);
+    try {
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) {
+        const entry = JSON.parse(raw);
+        if (entry && entry.ts && Date.now() - entry.ts < CACHE_TTL) return; // cache masih fresh
+      }
+    } catch(e) {}
+
+    // Fetch semua sheet di background
+    const sheets = ['proker_detail','proker_notif','proker_notif_config',
+                    'proker_activity','proker_jadwal','proker_dokumentasi'];
+    try {
+      const results = await Promise.allSettled(sheets.map(sh => _jcosasiJSONP(api + '?sheet=' + sh)));
+      const safe = r => r.status === 'fulfilled' && r.value && r.value.status === 'ok' ? r.value.data : [];
+      const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
+      const allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr };
+      if (Object.values(allData).some(a => a.length > 0)) {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: allData }));
+      }
+    } catch(e) { /* preload gagal — tidak masalah, proker page akan fetch sendiri */ }
+  })();
 
   /* KONTAK */
   const KS = C.kontakSection;
@@ -251,6 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!data || data.status !== 'ok' || !data.data) return;
       const nowMs = Date.now();
       const nearest = {};
+      const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
       data.data.forEach(function(r) {
         if (!r.tanggal) return;
         const pid = parseInt(r.proker_id, 10);
@@ -265,11 +328,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!nearest[key] || dt < nearest[key]) nearest[key] = dt;
       });
       Object.keys(nearest).forEach(function(pid) {
+        const dt = nearest[pid];
+        // Badge hanya muncul jika jadwal terdekat < 3 hari dari sekarang
+        if (dt.getTime() - nowMs > THREE_DAYS_MS) return;
         const badge = document.getElementById('notif-badge-' + pid);
         if (!badge) return;
-        const tgl = nearest[pid].toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+        const tgl = dt.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long'});
+        const jam = dt.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
         badge.style.display = 'flex';
-        badge.title = 'Jadwal terdekat: ' + tgl;
+        badge.title = 'Kegiatan ' + tgl + ' pukul ' + jam;
       });
     } catch(e) { /* badge tidak tampil jika fetch gagal */ }
   })();

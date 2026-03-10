@@ -748,9 +748,11 @@ function fetchJSONP(url) {
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 menit
 
 function _cacheKey() {
-  // Key unik berdasarkan API URL — aman jika URL berubah
+  // Key HARUS sama dengan _jcosasiCacheKey() di script.js
+  // agar cache yang di-preload landing page langsung dipakai di sini
   const api = CONTENT?.api?.url || 'default';
-  return 'jcosasi_v1_' + btoa(api).slice(0, 20).replace(/[^a-z0-9]/gi,'');
+  try { return 'jcosasi_v1_' + btoa(api).slice(0, 20).replace(/[^a-z0-9]/gi,''); }
+  catch(e) { return 'jcosasi_v1_default'; }
 }
 
 function cacheLoad() {
@@ -848,10 +850,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     return;
   }
 
+  // Invalidate cache jika halaman proker di-refresh langsung
+  const _isReload = performance && performance.navigation
+    ? performance.navigation.type === 1
+    : (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]?.type === 'reload');
+  if (_isReload) cacheInvalidate();
+
   // Render skeleton loading dulu — tidak blank saat fetch
   $('mainContent').innerHTML = renderSkeleton(proker);
 
-  // Fetch data Sheets (dengan cache 15 menit)
+  // Fetch data Sheets (dengan cache 15 menit, di-preload dari landing page)
   let sheetsData = null;
   try {
     sheetsData = await fetchAllSheets(id);
