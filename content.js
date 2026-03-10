@@ -361,7 +361,7 @@ const CONTENT = {
    * 2. Tempel di bawah menggantikan teks "PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI"
    */
   api: {
-    url: "PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI",
+    url: "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
     //
     // Contoh URL asli:
     // url: "https://script.google.com/macros/s/AKfycbXXXXXXXXXXX/exec",
