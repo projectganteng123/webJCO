@@ -156,6 +156,12 @@ function renderRekap(allData) {
         <div class="rhn-name">${nearestProker ? nearestProker.icon + ' ' + nearestProker.judul.replace(/&amp;/g,'&') : 'Proker '+nearestEvent.pid}</div>
         <div id="rekapCountdownBox" class="countdown-wrap rhn-countdown"></div>
       </div>` : ''}
+
+      <div class="rh-actions">
+        <button class="rh-print-btn" onclick="printLaporanRekap()" title="Cetak laporan semua proker sebagai PDF">
+          🖨️ Cetak Laporan PDF
+        </button>
+      </div>
     </div>
 
     <!-- PEMBERITAHUAN SEMUA PROKER -->
@@ -196,7 +202,10 @@ function renderRekap(allData) {
   if (nearestEvent) startCountdown(nearestEvent.dt, 'rekapCountdownBox');
 
   /* ── Activity log gabungan ── */
-  buildActivityGraph('rekapActivityGraph', actArr, jadArr, dokArr);
+  /* Buat prokerLabelMap: pid → { icon, judul } */
+  const _prokerLabelMap = {};
+  (CONTENT?.proker?.items || []).forEach(p => { _prokerLabelMap[p.num] = { icon: p.icon, judul: p.judul.replace(/&amp;/g,'&') }; });
+  buildActivityGraph('rekapActivityGraph', actArr, jadArr, dokArr, _prokerLabelMap);
 }
 
 /* ══════════════════════════════════════════════
@@ -287,6 +296,7 @@ function renderRekapNotif(items, notArr, cfgArr, jadArr, actArr, detArr) {
       pid, proker, estDate,
       nearestMs: nearestDt ? nearestDt.getTime() : (estDate ? estDate.getTime() : Infinity),
       cdId, notifHtml,
+      hasCountdown: !!(cdAktif && estDate),
     });
   });
 
@@ -297,23 +307,32 @@ function renderRekapNotif(items, notArr, cfgArr, jadArr, actArr, detArr) {
   /* Urut dari yang paling dekat jadwalnya */
   cards.sort((a, b) => a.nearestMs - b.nearestMs);
 
-  const html = cards.map(c => `
-    <div class="rekap-notif-card">
-      <div class="rnc-header">
-        <a href="proker.html?id=${c.pid}" class="rnc-proker-link">
-          <span class="rnc-icon">${c.proker.icon}</span>
-          <span class="rnc-num">#${c.pid}</span>
-          <span class="rnc-name">${c.proker.judul.replace(/&amp;/g,'&')}</span>
-          <span class="rnc-arrow">→</span>
-        </a>
+  const html = `<div class="rnc-accordion-list">${cards.map((c, idx) => {
+    const isFirst = idx === 0;
+    // Badge: hitung mundur jika ada jadwal terdekat
+    const diffMs = c.estDate ? c.estDate.getTime() - Date.now() : null;
+    const diffDays = diffMs ? Math.ceil(diffMs / 86400000) : null;
+    const urgencyBadge = diffDays !== null && diffDays <= 7
+      ? `<span class="rnc-urgency ${diffDays <= 3 ? 'rnc-urgent' : 'rnc-soon'}">${diffDays <= 0 ? 'Hari ini!' : diffDays + ' hari lagi'}</span>`
+      : '';
+    return `
+    <div class="rekap-notif-card" id="rnc-${c.pid}">
+      <div class="rnc-header" onclick="toggleRncAccordion('${c.pid}')">
+        <span class="rnc-icon">${c.proker.icon}</span>
+        <span class="rnc-num">#${c.pid}</span>
+        <span class="rnc-name">${c.proker.judul.replace(/&amp;/g,'&')}</span>
+        ${urgencyBadge}
+        <a href="proker.html?id=${c.pid}" class="rnc-detail-link" onclick="event.stopPropagation()" title="Lihat halaman proker">↗</a>
+        <span class="rnc-chevron" id="rnc-chev-${c.pid}">${isFirst ? '▴' : '▾'}</span>
       </div>
-      <div class="rnc-body">${c.notifHtml}</div>
-    </div>`).join('');
+      <div class="rnc-body" id="rnc-body-${c.pid}" ${isFirst ? '' : 'style="display:none"'}>${c.notifHtml}</div>
+    </div>`;
+  }).join('')}</div>`;
 
-  /* Jalankan semua countdown setelah DOM ready */
+  /* Jalankan countdown setelah DOM ready */
   setTimeout(() => {
-    cards.forEach(c => {
-      if (c.estDate) startCountdown(c.estDate, c.cdId);
+    cards.forEach((c, idx) => {
+      if (c.estDate && (idx === 0)) startCountdown(c.estDate, c.cdId);
     });
   }, 0);
 
@@ -493,4 +512,356 @@ function renderRekapSkeleton() {
         <div class="sk-line w80"></div><div class="sk-line w60"></div><div class="sk-line w70"></div>
       </div>
     </div>`).join('')}`;
+}
+
+/* ══════════════════════════════════════════════
+   ACCORDION TOGGLE — PEMBERITAHUAN
+══════════════════════════════════════════════ */
+function toggleRncAccordion(pid) {
+  const body = document.getElementById('rnc-body-' + pid);
+  const chev = document.getElementById('rnc-chev-' + pid);
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.textContent = isOpen ? '▾' : '▴';
+  // Jalankan countdown saat accordion dibuka jika belum berjalan
+  if (!isOpen) {
+    const cdBox = body.querySelector('.countdown-wrap[id]');
+    if (cdBox && cdBox.innerHTML.trim() === '') {
+      // Cari estDate dari card data — trigger countdown
+      cdBox.innerHTML = '<span style="opacity:.6;font-size:.85rem">Menghitung...</span>';
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CETAK LAPORAN — REKAP SEMUA PROKER
+══════════════════════════════════════════════ */
+function printLaporanRekap() {
+  // Ambil data dari cache
+  const api = CONTENT?.api?.url;
+  if (!api) return;
+  const cacheKey = 'jcosasi_v1_' + (() => {
+    try { return btoa(api).slice(0,20).replace(/[^a-z0-9]/gi,''); } catch(e){ return 'default'; }
+  })();
+  let allData = null;
+  try {
+    const raw = sessionStorage.getItem(cacheKey);
+    if (raw) { const e = JSON.parse(raw); if (e?.data) allData = e.data; }
+  } catch(e) {}
+
+  const items  = CONTENT?.proker?.items || [];
+  const org    = CONTENT?.org || {};
+  const detArr = (allData?.detArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
+  const dokArr = (allData?.dokArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
+  const actArr = (allData?.actArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
+  const jadArr = (allData?.jadArr||[]).map(r=>({...r, proker_id: normId(r.proker_id)}));
+
+  const now    = new Date();
+  const tglCetak = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Hitung total keuangan
+  let grandTotal = 0;
+  dokArr.forEach(d => { grandTotal += rupiahNum(d.biaya_aktual); });
+
+  // Baris keuangan global
+  const keuRows = [];
+  const sesiSeen = new Set();
+  dokArr.forEach(d => {
+    if (!d.tanggal_sesi || !d.item_biaya) return;
+    const sesiKey = d.proker_id + '|' + d.tanggal_sesi + '|' + d.item_biaya;
+    if (sesiSeen.has(sesiKey)) return;
+    sesiSeen.add(sesiKey);
+    const proker = items.find(p => p.num === d.proker_id);
+    keuRows.push({
+      proker: proker ? '#'+d.proker_id+' '+proker.judul.replace(/&amp;/g,'&') : '#'+d.proker_id,
+      tanggal: d.tanggal_sesi,
+      item: d.item_biaya,
+      estimasi: rupiahNum(d.estimasi_biaya_item),
+      aktual: rupiahNum(d.biaya_aktual),
+    });
+  });
+  // Urutkan per tanggal
+  keuRows.sort((a,b) => (a.tanggal > b.tanggal ? 1 : -1));
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<title>Laporan Program Kerja JCOSASI 2026–2027</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1a1a2e; line-height: 1.5; }
+  .cover { text-align: center; padding: 60px 40px; border-bottom: 3px solid #3D1A5E; page-break-after: always; }
+  .cover h1 { font-size: 22pt; color: #3D1A5E; margin-bottom: 8px; }
+  .cover h2 { font-size: 14pt; font-weight: 400; color: #555; margin-bottom: 32px; }
+  .cover .org { font-size: 12pt; color: #3D1A5E; font-weight: 600; }
+  .cover .meta { font-size: 10pt; color: #888; margin-top: 8px; }
+  .cover .tgl { margin-top: 40px; font-size: 10pt; color: #aaa; }
+  h2.section-title { font-size: 13pt; color: #3D1A5E; border-bottom: 2px solid #3D1A5E; padding-bottom: 6px; margin: 24px 0 14px; }
+  h3.proker-title { font-size: 11pt; color: #2c0a4a; background: #f5eeff; padding: 8px 12px; border-left: 4px solid #3D1A5E; margin: 20px 0 10px; page-break-before: auto; }
+  .proker-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 10px; font-size: 9.5pt; color: #444; }
+  .proker-meta span::before { content: '• '; color: #9B59D4; }
+  .tujuan { font-size: 10pt; color: #333; margin-bottom: 10px; background: #fafafa; padding: 8px 10px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 12px; }
+  th { background: #3D1A5E; color: #fff; padding: 6px 8px; text-align: left; font-weight: 600; }
+  td { padding: 5px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8f5ff; }
+  .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+  .total-row td { font-weight: 700; background: #ede0f8 !important; }
+  .grand-total { text-align: right; font-size: 10pt; font-weight: 700; color: #3D1A5E; margin-top: 4px; }
+  .dok-sesi { margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; padding: 8px 10px; }
+  .dok-sesi-header { font-weight: 600; font-size: 10pt; color: #3D1A5E; margin-bottom: 4px; }
+  .dok-sesi-meta { font-size: 9pt; color: #666; margin-bottom: 4px; }
+  .dok-sesi-ket { font-size: 9.5pt; }
+  .no-data { color: #aaa; font-style: italic; font-size: 9.5pt; }
+  .keu-table th:nth-child(3), .keu-table td:nth-child(3),
+  .keu-table th:nth-child(4), .keu-table td:nth-child(4) { text-align: right; }
+  @media print {
+    .cover { page-break-after: always; }
+    h3.proker-title { page-break-before: auto; }
+    .no-print { display: none; }
+  }
+  .print-btn { position: fixed; bottom: 24px; right: 24px; background: #3D1A5E; color: #fff;
+    border: none; border-radius: 99px; padding: 12px 24px; font-size: 11pt; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(61,26,94,.35); z-index: 999; }
+  .print-btn:hover { background: #6B34AF; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div style="font-size:40pt;margin-bottom:16px">🌸</div>
+  <h1>Laporan Program Kerja</h1>
+  <h2>Periode 2026–2027</h2>
+  <div class="org">${org.nama_lengkap||'JCOSASI'} (${org.nama_singkat||'JCOSASI'})</div>
+  <div class="meta">${org.sekolah||''} · Cikarang Barat, Bekasi</div>
+  <div class="meta">Angkatan ${org.angkatan_aktif||'12'} · Berdiri ${org.berdiri||'2013'}</div>
+  <div class="tgl">Dicetak pada: ${tglCetak}</div>
+</div>
+
+<!-- DAFTAR PROKER -->
+<h2 class="section-title">📋 Daftar & Deskripsi Program Kerja</h2>
+${items.map(p => {
+  const det = detArr.find(d => d.proker_id === p.num) || {};
+  const aktual  = actArr.filter(r => r.proker_id === p.num && r.status !== 'batal').length;
+  const jadwals = jadArr.filter(r => r.proker_id === p.num);
+  const dokSesi = [...new Set(dokArr.filter(d=>d.proker_id===p.num&&d.tanggal_sesi).map(d=>d.tanggal_sesi))];
+
+  const metaParts = [
+    det.waktu_teks ? '⏰ '+det.waktu_teks : null,
+    det.lokasi     ? '📍 '+det.lokasi     : null,
+    det.sasaran    ? '👥 '+det.sasaran    : null,
+    det.pemateri   ? '🎤 '+det.pemateri   : null,
+  ].filter(Boolean);
+
+  return `
+  <h3 class="proker-title">${p.icon} #${p.num} — ${p.judul.replace(/&amp;/g,'&')} <span style="font-size:9pt;font-weight:400;color:#777">(${p.tag})</span></h3>
+  <div class="tujuan">${det.tujuan || p.desc?.replace(/<[^>]*>/g,'') || '–'}</div>
+  ${metaParts.length ? `<div class="proker-meta">${metaParts.map(m=>`<span>${m}</span>`).join('')}</div>` : ''}
+  <div style="font-size:9pt;color:#555;margin-bottom:4px">
+    Jadwal direncanakan: <strong>${jadwals.length}</strong> sesi &nbsp;|&nbsp;
+    Terlaksana: <strong>${aktual}</strong> &nbsp;|&nbsp;
+    Terdokumentasi: <strong>${dokSesi.length}</strong> sesi
+  </div>`;
+}).join('')}
+
+<!-- KEUANGAN -->
+<h2 class="section-title" style="margin-top:32px">💰 Rekapitulasi Keuangan</h2>
+${keuRows.length ? `
+<table class="keu-table">
+  <thead><tr><th>Proker</th><th>Tanggal</th><th>Item Biaya</th><th>Estimasi</th><th>Aktual</th></tr></thead>
+  <tbody>
+    ${keuRows.map(r=>`<tr>
+      <td>${r.proker}</td>
+      <td>${formatTglPanjang(r.tanggal)}</td>
+      <td>${r.item}</td>
+      <td class="num-col">${r.estimasi ? rupiah(r.estimasi) : '–'}</td>
+      <td class="num-col">${r.aktual ? rupiah(r.aktual) : '–'}</td>
+    </tr>`).join('')}
+    <tr class="total-row"><td colspan="4">Total Keseluruhan</td><td class="num-col">${rupiah(grandTotal)||'–'}</td></tr>
+  </tbody>
+</table>` : '<p class="no-data">Belum ada data keuangan.</p>'}
+
+<!-- DOKUMENTASI -->
+<h2 class="section-title" style="margin-top:32px">📸 Dokumentasi Kegiatan</h2>
+${items.map(p => {
+  const sesiMap = {};
+  dokArr.filter(d=>d.proker_id===p.num&&d.tanggal_sesi).forEach(d=>{
+    if(!sesiMap[d.tanggal_sesi]) sesiMap[d.tanggal_sesi]=[];
+    sesiMap[d.tanggal_sesi].push(d);
+  });
+  const sesiKeys = Object.keys(sesiMap).sort();
+  if (!sesiKeys.length) return '';
+  return `
+  <h3 class="proker-title">${p.icon} #${p.num} — ${p.judul.replace(/&amp;/g,'&')}</h3>
+  ${sesiKeys.map((tgl,si) => {
+    const rows = sesiMap[tgl];
+    const d    = rows[0];
+    const biayaSesi = rows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
+    const dur  = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
+    const hadirAll = [d.hadir_peserta,d.hadir_panitia,d.hadir_narasumber].filter(Boolean).join(', ');
+    const biayaItems = rows.filter(r=>r.item_biaya||r.biaya_aktual);
+    return `<div class="dok-sesi">
+      <div class="dok-sesi-header">Sesi ${si+1} — ${formatTglPanjang(tgl)}</div>
+      <div class="dok-sesi-meta">
+        ${d.waktu_mulai?'⏰ '+d.waktu_mulai+(d.waktu_selesai?' – '+d.waktu_selesai:'')+(dur?' ('+dur+')':''):'' }
+        ${hadirAll ? ' &nbsp;|&nbsp; 👥 '+hadirAll : ''}
+        ${biayaSesi ? ' &nbsp;|&nbsp; 💰 '+rupiah(biayaSesi) : ''}
+      </div>
+      ${d.keterangan?`<div class="dok-sesi-ket">${d.keterangan}</div>`:''}
+      ${d.materi?`<div class="dok-sesi-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
+      ${d.kendala?`<div class="dok-sesi-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}
+      ${biayaItems.length?`<table style="margin-top:6px">
+        <thead><tr><th>Item</th><th style="text-align:right">Estimasi</th><th style="text-align:right">Aktual</th></tr></thead>
+        <tbody>${biayaItems.map(r=>`<tr><td>${r.item_biaya||'–'}</td><td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td><td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td></tr>`).join('')}</tbody>
+      </table>`:''}
+    </div>`;
+  }).join('')}`;
+}).join('')}
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+/* ══════════════════════════════════════════════
+   CETAK LAPORAN — SATU PROKER (dipanggil dari proker-script.js)
+══════════════════════════════════════════════ */
+function printLaporanProker(proker, sheetsData) {
+  const det    = sheetsData?.detail || {};
+  const dok    = sheetsData?.dok    || [];
+  const act    = sheetsData?.activity || [];
+  const jadwal = sheetsData?.jadwal   || [];
+  const org    = CONTENT?.org || {};
+
+  const now      = new Date();
+  const tglCetak = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  const aktualCount = act.filter(r=>r.status!=='batal').length +
+    new Set(dok.filter(d=>d.tanggal_sesi).map(d=>d.tanggal_sesi)).size;
+  const sesiMap = {};
+  dok.forEach(d=>{ if(!d.tanggal_sesi){return;} if(!sesiMap[d.tanggal_sesi])sesiMap[d.tanggal_sesi]=[]; sesiMap[d.tanggal_sesi].push(d); });
+  const sesiKeys = Object.keys(sesiMap).sort();
+
+  let totalBiaya = 0;
+  dok.forEach(d=>{ totalBiaya += rupiahNum(d.biaya_aktual); });
+
+  const metaParts = [
+    det.waktu_teks ? '⏰ '+det.waktu_teks : null,
+    det.lokasi     ? '📍 '+det.lokasi     : null,
+    det.sasaran    ? '👥 '+det.sasaran    : null,
+    det.pemateri   ? '🎤 '+det.pemateri   : null,
+    det.panitia    ? '🤝 '+det.panitia    : null,
+  ].filter(Boolean);
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<title>Laporan ${proker.judul.replace(/&amp;/g,'&')} — JCOSASI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1a1a2e; line-height: 1.5; padding: 32px 40px; max-width: 800px; margin: 0 auto; }
+  .cover { text-align: center; padding: 40px 20px 32px; border-bottom: 3px solid #3D1A5E; margin-bottom: 28px; }
+  .cover .num { font-size: 28pt; font-weight: 900; color: #3D1A5E; }
+  .cover h1 { font-size: 18pt; color: #2c0a4a; margin: 8px 0 4px; }
+  .cover .tag { display:inline-block; background:#f5eeff; color:#3D1A5E; border-radius:99px; padding:2px 12px; font-size:9pt; margin-bottom:8px; }
+  .cover .desc { font-size:10pt; color:#555; margin-bottom:12px; }
+  .cover .org { font-size:9.5pt; color:#888; }
+  .cover .tgl { margin-top:16px; font-size:9pt; color:#bbb; }
+  h2 { font-size:12pt; color:#3D1A5E; border-bottom:2px solid #3D1A5E; padding-bottom:5px; margin:22px 0 12px; }
+  .meta-grid { display:flex; flex-wrap:wrap; gap:6px 20px; margin-bottom:12px; font-size:9.5pt; color:#444; }
+  .meta-grid span::before { content:'• '; color:#9B59D4; }
+  .tujuan { background:#f8f5ff; border-left:3px solid #9B59D4; padding:10px 12px; font-size:10pt; border-radius:4px; margin-bottom:14px; }
+  .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .stat { background:#f5eeff; border-radius:8px; padding:10px 16px; text-align:center; min-width:80px; }
+  .stat-num { display:block; font-size:14pt; font-weight:900; color:#3D1A5E; }
+  .stat-lbl { display:block; font-size:8pt; color:#777; }
+  table { width:100%; border-collapse:collapse; font-size:9.5pt; margin-bottom:12px; }
+  th { background:#3D1A5E; color:#fff; padding:6px 8px; text-align:left; font-weight:600; }
+  td { padding:5px 8px; border-bottom:1px solid #eee; vertical-align:top; }
+  tr:nth-child(even) td { background:#f8f5ff; }
+  .num-col { text-align:right; }
+  .total-row td { font-weight:700; background:#ede0f8 !important; }
+  .dok-sesi { border:1px solid #ddd; border-radius:4px; padding:10px 12px; margin-bottom:10px; }
+  .dok-hdr { font-weight:600; color:#3D1A5E; margin-bottom:4px; }
+  .dok-meta { font-size:9pt; color:#666; margin-bottom:4px; }
+  .dok-ket { font-size:9.5pt; }
+  .no-data { color:#aaa; font-style:italic; }
+  .print-btn { position:fixed; bottom:24px; right:24px; background:#3D1A5E; color:#fff;
+    border:none; border-radius:99px; padding:12px 24px; font-size:11pt; cursor:pointer;
+    box-shadow:0 4px 16px rgba(61,26,94,.35); }
+  .print-btn:hover { background:#6B34AF; }
+  @media print { .print-btn { display:none; } }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="num">${proker.icon} #${proker.num}</div>
+  <h1>${proker.judul.replace(/&amp;/g,'&')}</h1>
+  <span class="tag">${proker.tag}</span>
+  <div class="desc">${proker.desc?.replace(/<[^>]*>/g,'')||''}</div>
+  <div class="org">${org.nama_lengkap||'JCOSASI'} · ${org.sekolah||''} · Periode 2026–2027</div>
+  <div class="tgl">Dicetak: ${tglCetak}</div>
+</div>
+
+<h2>📋 Deskripsi Kegiatan</h2>
+<div class="tujuan">${det.tujuan||'–'}</div>
+${metaParts.length?`<div class="meta-grid">${metaParts.map(m=>`<span>${m}</span>`).join('')}</div>`:''}
+
+<div class="stats">
+  <div class="stat"><span class="stat-num">${jadwal.length}</span><span class="stat-lbl">Jadwal</span></div>
+  <div class="stat"><span class="stat-num">${aktualCount}</span><span class="stat-lbl">Terlaksana</span></div>
+  <div class="stat"><span class="stat-num">${sesiKeys.length}</span><span class="stat-lbl">Terdokumentasi</span></div>
+  <div class="stat"><span class="stat-num">${totalBiaya>0?rupiah(totalBiaya):'–'}</span><span class="stat-lbl">Total Biaya</span></div>
+</div>
+
+${det.rab ? (() => {
+  try {
+    const rab = JSON.parse(det.rab);
+    if (!rab.length) return '';
+    return `<h2>💰 Rencana Anggaran Biaya (RAB)</h2>
+    <table><thead><tr><th>Item</th><th class="num-col">Estimasi</th><th class="num-col">Aktual</th></tr></thead>
+    <tbody>${rab.map(r=>`<tr><td>${r.item||'–'}</td><td class="num-col">${r.estimasi?rupiah(rupiahNum(r.estimasi)):'–'}</td><td class="num-col">${r.aktual?rupiah(rupiahNum(r.aktual)):'–'}</td></tr>`).join('')}</tbody></table>`;
+  } catch(e) { return ''; }
+})() : ''}
+
+<h2>📸 Dokumentasi Kegiatan</h2>
+${sesiKeys.length ? sesiKeys.map((tgl,si)=>{
+  const rows = sesiMap[tgl];
+  const d    = rows[0];
+  const biayaSesi = rows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
+  const dur  = hitungDurasi(d.waktu_mulai,d.waktu_selesai);
+  const hadirAll = [
+    d.hadir_peserta && '👥 Peserta: '+d.hadir_peserta,
+    d.hadir_panitia && '🤝 Panitia: '+d.hadir_panitia,
+    d.hadir_narasumber && '🎤 Narasumber: '+d.hadir_narasumber,
+  ].filter(Boolean).join(' | ');
+  const biayaItems = rows.filter(r=>r.item_biaya||r.biaya_aktual);
+  return `<div class="dok-sesi">
+    <div class="dok-hdr">Sesi ${si+1} — ${formatTglPanjang(tgl)}</div>
+    ${d.waktu_mulai?`<div class="dok-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>`:''}
+    ${hadirAll?`<div class="dok-meta">${hadirAll}</div>`:''}
+    ${d.keterangan?`<div class="dok-ket">${d.keterangan}</div>`:''}
+    ${d.materi?`<div class="dok-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
+    ${d.kendala?`<div class="dok-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}
+    ${biayaItems.length?`<table style="margin-top:8px">
+      <thead><tr><th>Item</th><th class="num-col">Estimasi</th><th class="num-col">Aktual</th></tr></thead>
+      <tbody>${biayaItems.map(r=>`<tr><td>${r.item_biaya||'–'}</td><td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td><td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td></tr>`).join('')}
+      <tr class="total-row"><td>Total Sesi</td><td>–</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr></tbody>
+    </table>`:''}
+  </div>`;
+}).join('') : '<p class="no-data">Belum ada dokumentasi.</p>'}
+
+<button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }

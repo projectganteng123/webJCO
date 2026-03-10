@@ -319,7 +319,7 @@ function renderDeskripsi(proker, detail) {
 /* ══════════════════════════════════════════════
    ACTIVITY GRAPH — 6 STATE WARNA
 ══════════════════════════════════════════════ */
-function buildActivityGraph(containerId, activityRows, jadwalRows, dok) {
+function buildActivityGraph(containerId, activityRows, jadwalRows, dok, prokerLabelMap) {
   const container = $(containerId);
   if (!container) return;
 
@@ -328,16 +328,45 @@ function buildActivityGraph(containerId, activityRows, jadwalRows, dok) {
   const today = new Date(); today.setHours(0,0,0,0);
 
   /* Build sets */
-  const rencanaSet = new Set();
-  (jadwalRows||[]).forEach(r => { if(r.tanggal) rencanaSet.add(r.tanggal); });
+  // rencanaMap: tanggal → Set nama proker
+  const rencanaMap = new Map();
+  (jadwalRows||[]).forEach(r => {
+    if (!r.tanggal) return;
+    if (!rencanaMap.has(r.tanggal)) rencanaMap.set(r.tanggal, new Set());
+    if (prokerLabelMap && r.proker_id) rencanaMap.get(r.tanggal).add(r.proker_id);
+  });
+  const rencanaSet = new Set(rencanaMap.keys());
 
-  const aktualSet = new Set(), batalSet = new Set();
+  // aktualMap & batalMap: tanggal → Set proker_id
+  const aktualMap = new Map(), batalMap = new Map();
   (activityRows||[]).forEach(r => {
     if (!r.tanggal) return;
-    if (r.status === 'batal') batalSet.add(r.tanggal);
-    else aktualSet.add(r.tanggal);
+    if (r.status === 'batal') {
+      if (!batalMap.has(r.tanggal)) batalMap.set(r.tanggal, new Set());
+      if (prokerLabelMap && r.proker_id) batalMap.get(r.tanggal).add(r.proker_id);
+    } else {
+      if (!aktualMap.has(r.tanggal)) aktualMap.set(r.tanggal, new Set());
+      if (prokerLabelMap && r.proker_id) aktualMap.get(r.tanggal).add(r.proker_id);
+    }
   });
-  (dok||[]).forEach(d => { if(d.tanggal_sesi) aktualSet.add(d.tanggal_sesi); });
+  (dok||[]).forEach(d => {
+    if (!d.tanggal_sesi) return;
+    if (!aktualMap.has(d.tanggal_sesi)) aktualMap.set(d.tanggal_sesi, new Set());
+    if (prokerLabelMap && d.proker_id) aktualMap.get(d.tanggal_sesi).add(d.proker_id);
+  });
+  const aktualSet = new Set(aktualMap.keys());
+  const batalSet  = new Set(batalMap.keys());
+
+  /* Helper: nama-nama proker pada tanggal tertentu */
+  function prokerNamesOn(dateMap, key) {
+    if (!prokerLabelMap || !dateMap.has(key)) return '';
+    const ids = [...dateMap.get(key)];
+    if (!ids.length) return '';
+    return ids.map(pid => {
+      const p = prokerLabelMap[pid];
+      return p ? p.icon + ' ' + p.judul : '#' + pid;
+    }).join(', ');
+  }
 
   /* Bangun weeks */
   const graphStart = new Date(START);
@@ -419,7 +448,16 @@ function buildActivityGraph(containerId, activityRows, jadwalRows, dok) {
       else            { state='past';   tip='Tidak ada kegiatan'; }
 
       cell.setAttribute('data-state', state);
-      const tipFull = `${formatTglPanjang(key)} — ${tip}`;
+      // Tooltip — jika rekap (prokerLabelMap ada), tampilkan nama proker
+      let tipProker = '';
+      if (prokerLabelMap) {
+        if      (state === 'actual')       tipProker = prokerNamesOn(aktualMap, key);
+        else if (state === 'cancelled')    tipProker = prokerNamesOn(batalMap, key);
+        else if (state === 'planned' || state === 'today-planned') tipProker = prokerNamesOn(rencanaMap, key);
+      }
+      const tipFull = tipProker
+        ? `${formatTglPanjang(key)} — ${tip}<br><span style="font-size:.8em;opacity:.85">${tipProker}</span>`
+        : `${formatTglPanjang(key)} — ${tip}`;
       cell.addEventListener('mouseenter', e=>showTooltip(e, tipFull));
       cell.addEventListener('mouseleave', hideTooltip);
       cell.addEventListener('mousemove',  moveTooltip);
@@ -621,6 +659,7 @@ function renderPage(proker, sheetsData) {
   const prev  = idx>0              ? items[idx-1] : null;
   const next  = idx<items.length-1 ? items[idx+1] : null;
 
+  const sheetsData_ref = sheetsData; // referensi untuk tombol cetak
   const detail      = sheetsData?.detail      || null;
   const notifs      = sheetsData?.notifs      || [];
   const notifConfig = sheetsData?.notifConfig || null;
@@ -680,6 +719,11 @@ function renderPage(proker, sheetsData) {
         <div class="ph-meta-item">👥 ${heroSasaran}</div>
         ${heroLokasi!=='–'?`<div class="ph-meta-item">📍 ${heroLokasi}</div>`:''}
       </div>
+      <div class="ph-actions">
+        <button class="ph-print-btn" id="btnCetakProker" title="Cetak laporan proker ini sebagai PDF">
+          🖨️ Cetak Laporan
+        </button>
+      </div>
     </div>
 
     <div class="pcard">
@@ -730,6 +774,17 @@ function renderPage(proker, sheetsData) {
 
   const fb=$('sesi-body-0'), fi=$('toggle-icon-0');
   if(fb){fb.classList.add('open');if(fi)fi.textContent='▴';}
+
+  // Ikat tombol cetak — printLaporanProker dari rekap-script.js
+  const _btnCetak = document.getElementById('btnCetakProker');
+  if (_btnCetak) {
+    const _sdCapture = { ...sheetsData_ref }; // closure
+    _btnCetak.addEventListener('click', () => {
+      if (typeof printLaporanProker === 'function') {
+        printLaporanProker(proker, sheetsData_ref);
+      }
+    });
+  }
 }
 
 /* ══════════════════════════════════════════════
