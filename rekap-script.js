@@ -375,6 +375,9 @@ function renderRekapDok(items, dokArr) {
     return `<div class="dok-empty"><div class="de-icon">📷</div><p>Dokumentasi belum tersedia.</p></div>`;
   }
 
+  // Simpan ke global agar printLaporanSesi bisa akses per idx
+  window._rekapSesiList = sesiList;
+
   return `<div class="dok-sesi-list">${sesiList.map((sesi, idx) => {
     const items_rows = sesi.rows;
     const proker     = getProkerByNum(sesi.proker_id);
@@ -470,10 +473,13 @@ function renderRekapDok(items, dokArr) {
         </div>
         <div class="dsh-right">
           ${totBiayaSesi > 0 ? `<span class="dsh-biaya">${rupiah(totBiayaSesi)}</span>` : ''}
+          <button class="dsh-print-btn" title="Cetak laporan sesi ini"
+            onclick="event.stopPropagation(); printLaporanSesi(${JSON.stringify(idx)})"
+          >🖨️</button>
           <span class="dsh-toggle" id="${rkTi}">▾</span>
         </div>
       </div>
-      <div class="dok-sesi-body" id="${rkId}">
+      <div class="dok-sesi-body${idx === 0 ? ' open' : ''}" id="${rkId}">
         ${fotoHtml}${hadirHtml}${materiHtml}${biayaHtml}${kendalaHtml}
       </div>
     </div>`;
@@ -594,7 +600,8 @@ function printLaporanRekap() {
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1a1a2e; line-height: 1.5; }
-  .cover { text-align: center; padding: 60px 40px; border-bottom: 3px solid #3D1A5E; page-break-after: always; }
+  .cover { text-align: center; padding: 0 40px; border-bottom: 3px solid #3D1A5E; page-break-after: always;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .cover h1 { font-size: 22pt; color: #3D1A5E; margin-bottom: 8px; }
   .cover h2 { font-size: 14pt; font-weight: 400; color: #555; margin-bottom: 32px; }
   .cover .org { font-size: 12pt; color: #3D1A5E; font-weight: 600; }
@@ -711,16 +718,21 @@ ${items.map(p => {
     const biayaItems = rows.filter(r=>r.item_biaya||r.biaya_aktual);
     return `<div class="dok-sesi">
       <div class="dok-sesi-header">Sesi ${si+1} — ${formatTglPanjang(tgl)}</div>
-      <div class="dok-sesi-meta">
-        ${d.waktu_mulai ? '⏰ ' + d.waktu_mulai + (d.waktu_selesai ? ' – ' + d.waktu_selesai : '') + (dur ? ' (' + dur + ')' : '') : ''}
-        ${biayaSesi ? ' &nbsp;|&nbsp; 💰 ' + rupiah(biayaSesi) : ''}
-      </div>
+      ${d.waktu_mulai ? `<div class="dok-sesi-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>` : ''}
+      ${hadirParts.map(h=>`<div class="dok-sesi-meta"><strong>${h.label}:</strong> ${h.val}</div>`).join('')}
       ${d.keterangan?`<div class="dok-sesi-ket">${d.keterangan}</div>`:''}
       ${d.materi?`<div class="dok-sesi-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
       ${d.kendala?`<div class="dok-sesi-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}
       ${biayaItems.length?`<table style="margin-top:6px">
         <thead><tr><th>Item</th><th style="text-align:right">Estimasi</th><th style="text-align:right">Aktual</th></tr></thead>
-        <tbody>${biayaItems.map(r=>`<tr><td>${r.item_biaya||'–'}</td><td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td><td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td></tr>`).join('')}</tbody>
+        <tbody>
+          ${biayaItems.map(r=>`<tr>
+            <td>${r.item_biaya||'–'}</td>
+            <td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td>
+            <td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td>
+          </tr>`).join('')}
+          <tr class="total-row"><td>Total Sesi</td><td class="num-col">–</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr>
+        </tbody>
       </table>`:''}
     </div>`;
   }).join('')}`;
@@ -772,7 +784,8 @@ function printLaporanProker(proker, sheetsData) {
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1a1a2e; line-height: 1.5; padding: 32px 40px; max-width: 800px; margin: 0 auto; }
-  .cover { text-align: center; padding: 40px 20px 32px; border-bottom: 3px solid #3D1A5E; margin-bottom: 28px; }
+  .cover { text-align: center; padding: 0 40px; border-bottom: 3px solid #3D1A5E; margin-bottom: 28px;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .cover .num { font-size: 28pt; font-weight: 900; color: #3D1A5E; }
   .cover h1 { font-size: 18pt; color: #2c0a4a; margin: 8px 0 4px; }
   .cover .tag { display:inline-block; background:#f5eeff; color:#3D1A5E; border-radius:99px; padding:2px 12px; font-size:9pt; margin-bottom:8px; }
@@ -869,6 +882,453 @@ ${sesiKeys.length ? sesiKeys.map((tgl,si)=>{
 </body></html>`;
 
   const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+/* ══════════════════════════════════════════════
+   CETAK LAPORAN SATU SESI — dari halaman rekap
+══════════════════════════════════════════════ */
+function printLaporanSesi(idx) {
+  const sesiList = window._rekapSesiList;
+  if (!sesiList || !sesiList[idx]) return;
+
+  const sesi     = sesiList[idx];
+  const rows     = sesi.rows;
+  const d        = rows[0];
+  const proker   = getProkerByNum(sesi.proker_id);
+  const org      = CONTENT?.org || {};
+  const now      = new Date();
+  const tglCetak = now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const tglSesi  = formatTglPanjang(sesi.tanggal_sesi);
+  const dur      = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
+  const jamStr   = d.waktu_mulai
+    ? d.waktu_mulai + (d.waktu_selesai ? ' – ' + d.waktu_selesai : '') + (dur ? ' (' + dur + ')' : '')
+    : '–';
+
+  // ── Daftar hadir gabungan: [{no, nama, peran}] ──
+  const hadirRows = [];
+  const parseNama = (str, peran) =>
+    (str||'').split(',').map(n=>n.trim()).filter(Boolean).map(nama => ({ nama, peran }));
+  parseNama(d.hadir_peserta,    'Peserta').forEach(r => hadirRows.push(r));
+  parseNama(d.hadir_panitia,    'Panitia').forEach(r => hadirRows.push(r));
+  parseNama(d.hadir_narasumber, 'Narasumber').forEach(r => hadirRows.push(r));
+
+  // ── Biaya ──
+  const biayaItems = rows.filter(r => r.item_biaya || r.biaya_aktual);
+  const totalBiaya = biayaItems.reduce((s,r) => s + rupiahNum(r.biaya_aktual), 0);
+  const totalEst   = biayaItems.reduce((s,r) => s + rupiahNum(r.estimasi_biaya_item), 0);
+
+  // ── Nomor sesi (urutan ke-N dari proker yang sama, urut tanggal) ──
+  const sesiProkerSama = sesiList
+    .filter(s => s.proker_id === sesi.proker_id)
+    .sort((a,b) => (a.tanggal_sesi > b.tanggal_sesi ? 1 : -1));
+  const nomorSesi = sesiProkerSama.findIndex(s => s.tanggal_sesi === sesi.tanggal_sesi) + 1;
+
+  // ── Foto ──
+  const fotos = rows.filter(r => r.foto_url);
+
+  // ── Layout foto adaptif berdasarkan jumlah ──
+  // 1 foto  → full width (1 kolom)
+  // 2 foto  → 2 kolom sejajar
+  // 3 foto  → foto pertama full width, 2 lainnya di bawah
+  // 4 foto  → 2×2 grid
+  // 5+ foto → foto pertama full width, sisanya 2 kolom (max 5 diambil)
+  const fotosCapped = fotos.slice(0, 5);
+  const n = fotosCapped.length;
+  let fotoGridCols, fotoGridClass;
+  if      (n === 1) { fotoGridCols = '1fr';         fotoGridClass = 'fg-1'; }
+  else if (n === 2) { fotoGridCols = '1fr 1fr';     fotoGridClass = 'fg-2'; }
+  else if (n === 3) { fotoGridCols = '1fr 1fr';     fotoGridClass = 'fg-3'; }
+  else if (n === 4) { fotoGridCols = '1fr 1fr';     fotoGridClass = 'fg-4'; }
+  else              { fotoGridCols = '1fr 1fr';     fotoGridClass = 'fg-5'; }
+
+  // Tinggi foto adaptif — lebih tinggi jika lebih sedikit
+  const fotoH = n === 1 ? '220px' : n <= 2 ? '190px' : '150px';
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<title>Laporan Sesi — ${proker ? proker.judul.replace(/&amp;/g,'&') : 'Proker'} · ${tglSesi}</title>
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 210mm; min-height: 297mm; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 10.5pt;
+  color: #1a1a2e;
+  line-height: 1.55;
+  padding: 18mm 18mm 16mm;
+}
+
+/* ── KOP SURAT ── */
+.kop {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 3px solid #3D1A5E;
+  padding-bottom: 10px;
+  margin-bottom: 6px;
+}
+.kop-logo {
+  width: 52px; height: 52px; flex-shrink: 0;
+  background: #3D1A5E;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24pt; color: #fff;
+}
+.kop-text { flex: 1; }
+.kop-org   { font-size: 13pt; font-weight: 800; color: #3D1A5E; letter-spacing: .3px; }
+.kop-sub   { font-size: 8.5pt; color: #666; }
+.kop-right { text-align: right; font-size: 8pt; color: #999; }
+
+/* ── JUDUL LAPORAN ── */
+.lap-title {
+  text-align: center;
+  margin: 10px 0 4px;
+  font-size: 13pt;
+  font-weight: 800;
+  color: #2c0a4a;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.lap-sub {
+  text-align: center;
+  font-size: 9pt;
+  color: #666;
+  margin-bottom: 14px;
+}
+.divider { border: none; border-top: 1px solid #ddd; margin: 10px 0; }
+
+/* ── INFO BOKS ── */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+  background: #f8f5ff;
+  border: 1px solid #d9c8f5;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 9.5pt;
+}
+.info-row { display: flex; gap: 6px; }
+.info-label { color: #666; min-width: 90px; flex-shrink: 0; }
+.info-val   { font-weight: 600; color: #1a1a2e; }
+
+/* ── SECTION TITLE ── */
+h3 {
+  font-size: 10pt;
+  color: #3D1A5E;
+  border-left: 3px solid #3D1A5E;
+  padding-left: 8px;
+  margin: 14px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+/* ── TABEL UMUM ── */
+table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+th {
+  background: #3D1A5E; color: #fff;
+  padding: 6px 8px; text-align: left; font-weight: 600;
+}
+td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+tr:nth-child(even) td { background: #f8f5ff; }
+.num-col { text-align: right; font-variant-numeric: tabular-nums; }
+.total-row td { font-weight: 700; background: #ede0f8 !important; border-top: 2px solid #c4a0e8; }
+
+/* ── BADGE PERAN ── */
+.badge-peserta    { background: #DBEAFE; color: #1D4ED8; border-radius: 99px; padding: 1px 8px; font-size: 8.5pt; font-weight: 600; }
+.badge-panitia    { background: #D1FAE5; color: #065F46; border-radius: 99px; padding: 1px 8px; font-size: 8.5pt; font-weight: 600; }
+.badge-narasumber { background: #FEF3C7; color: #92400E; border-radius: 99px; padding: 1px 8px; font-size: 8.5pt; font-weight: 600; }
+
+/* ── TEKS BEBAS ── */
+.text-box {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 9.5pt;
+  margin-bottom: 10px;
+}
+.text-label { font-size: 8.5pt; color: #888; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 3px; }
+
+/* ── FOTO ── */
+.foto-section { margin-top: 4px; }
+.foto-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  align-items: flex-start;
+}
+.foto-cell {
+  flex: 1;
+  min-width: 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  text-align: center;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px;
+}
+.foto-cell img {
+  display: block;
+  max-width: 100%;
+  max-height: var(--fh, 140px); /* batas tinggi — foto tidak akan melebihi ini */
+  width: auto;
+  height: auto;
+  object-fit: contain;       /* seluruh foto tampil, tidak terpotong */
+  margin: 0 auto;
+  border-radius: 2px;
+}
+.foto-cap {
+  font-size: 7.5pt; color: #777;
+  text-align: center; margin-top: 3px;
+}
+h3.foto-h3 {
+  break-before: auto;
+  page-break-before: auto;
+}
+
+/* ── TTD AREA ── */
+.ttd-area {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+.ttd-box {
+  text-align: center;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.ttd-role { font-size: 8.5pt; font-weight: 700; color: #3D1A5E; margin-bottom: 48px; }
+.ttd-line { border-top: 1px solid #555; margin-top: 0; }
+.ttd-name { font-size: 8pt; color: #555; margin-top: 4px; }
+
+/* ── NO DATA ── */
+.no-data { color: #bbb; font-style: italic; font-size: 9pt; }
+
+/* ── PRINT ── */
+.print-btn {
+  position: fixed; bottom: 20px; right: 20px;
+  background: #3D1A5E; color: #fff;
+  border: none; border-radius: 99px;
+  padding: 10px 22px; font-size: 10.5pt;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(61,26,94,.35);
+}
+.print-btn:hover { background: #6B34AF; }
+@media print {
+  body { padding: 12mm 14mm; }
+  .print-btn { display: none; }
+  .foto-row  { break-inside: avoid !important; page-break-inside: avoid !important; }
+  .foto-cell { break-inside: avoid !important; page-break-inside: avoid !important; }
+  .foto-section { break-inside: avoid !important; page-break-inside: avoid !important; }
+  h3.foto-h3 { break-after: avoid !important; page-break-after: avoid !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- KOP -->
+<div class="kop">
+  <div class="kop-logo">${proker ? proker.icon : '🌸'}</div>
+  <div class="kop-text">
+    <div class="kop-org">${org.nama_lengkap || 'JCOSASI'}</div>
+    <div class="kop-sub">${org.sekolah || 'SMKN 1 Cikarang Barat'} · ${org.angkatan_aktif || 'Angkatan 12'} · Periode 2026–2027</div>
+  </div>
+  <div class="kop-right">Dicetak: ${tglCetak}</div>
+</div>
+
+<div class="lap-title">Laporan Kegiatan</div>
+<div class="lap-sub">${proker ? proker.judul.replace(/&amp;/g,'&') : 'Program Kerja'} · Sesi ke-${nomorSesi}</div>
+<hr class="divider"/>
+
+<!-- INFO KEGIATAN -->
+<div class="info-grid">
+  <div class="info-row">
+    <span class="info-label">Program Kerja</span>
+    <span class="info-val">${proker ? '#' + sesi.proker_id + ' ' + proker.judul.replace(/&amp;/g,'&') : sesi.proker_id}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Nomor Sesi</span>
+    <span class="info-val">Sesi ke-${nomorSesi} dari ${sesiProkerSama.length} sesi</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Tanggal</span>
+    <span class="info-val">${tglSesi}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Waktu</span>
+    <span class="info-val">${jamStr}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Jumlah Hadir</span>
+    <span class="info-val">${hadirRows.length > 0 ? hadirRows.length + ' orang' : '–'}</span>
+  </div>
+  ${d.lokasi ? `<div class="info-row">
+    <span class="info-label">Lokasi</span>
+    <span class="info-val">${d.lokasi}</span>
+  </div>` : ''}
+  ${totalBiaya > 0 ? `<div class="info-row">
+    <span class="info-label">Total Biaya</span>
+    <span class="info-val">${rupiah(totalBiaya)}</span>
+  </div>` : ''}
+</div>
+
+${d.keterangan ? `
+<div class="text-box">
+  <div class="text-label">Keterangan Kegiatan</div>
+  ${d.keterangan}
+</div>` : ''}
+
+${d.materi ? `
+<div class="text-box">
+  <div class="text-label">Materi &amp; Progress</div>
+  ${d.materi}
+</div>` : ''}
+
+${d.kendala ? `
+<div class="text-box" style="border-color:#FECACA;background:#FFF5F5;">
+  <div class="text-label" style="color:#B91C1C;">Kendala &amp; Evaluasi</div>
+  ${d.kendala}
+</div>` : ''}
+
+<!-- DAFTAR HADIR -->
+${hadirRows.length ? `
+<h3>✅ Daftar Hadir</h3>
+<table>
+  <thead>
+    <tr>
+      <th style="width:36px">No</th>
+      <th>Nama</th>
+      <th style="width:110px">Peran</th>
+      <th style="width:110px">Tanda Tangan</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${hadirRows.map((r,i) => `<tr>
+      <td class="num-col">${i+1}</td>
+      <td>${r.nama}</td>
+      <td><span class="badge-${r.peran.toLowerCase()}">${r.peran}</span></td>
+      <td style="height:24px"></td>
+    </tr>`).join('')}
+  </tbody>
+</table>` : ''}
+
+<!-- RINCIAN BIAYA -->
+${biayaItems.length ? `
+<h3>💰 Rincian Biaya</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th class="num-col" style="width:110px">Estimasi</th>
+      <th class="num-col" style="width:110px">Aktual</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${biayaItems.map(r => `<tr>
+      <td>${r.item_biaya || '–'}</td>
+      <td class="num-col">${r.estimasi_biaya_item ? rupiah(rupiahNum(r.estimasi_biaya_item)) : '–'}</td>
+      <td class="num-col">${r.biaya_aktual ? rupiah(rupiahNum(r.biaya_aktual)) : '–'}</td>
+    </tr>`).join('')}
+    <tr class="total-row">
+      <td>Total</td>
+      <td class="num-col">${totalEst ? rupiah(totalEst) : '–'}</td>
+      <td class="num-col">${rupiah(totalBiaya) || '–'}</td>
+    </tr>
+  </tbody>
+</table>` : ''}
+
+<!-- FOTO KEGIATAN -->
+${fotosCapped.length ? (() => {
+  // Susun foto menjadi baris-baris flex yang aman untuk print
+  // Layout:
+  //  1 foto  → 1 baris, 1 foto full (tinggi 220px)
+  //  2 foto  → 1 baris, 2 foto (tinggi 190px)
+  //  3 foto  → baris 1: 1 foto full (200px), baris 2: 2 foto (155px)
+  //  4 foto  → 2 baris × 2 foto (165px)
+  //  5 foto  → baris 1: 1 foto full (200px), baris 2: 2 foto, baris 3: 2 foto (145px)
+  const imgs = fotosCapped.map(f => ({
+    src: convertGDriveUrl(f.foto_url),
+    cap: f.keterangan || '',
+    url: f.foto_url,
+  }));
+
+  let fotoRows = [];
+  // --fh = max-height untuk img (object-fit:contain → tidak pernah terpotong)
+  // Nilai dikurangi agar foto portrait tetap muat dalam 1 halaman
+  if (n === 1) {
+    fotoRows = [[{ ...imgs[0], h: '180px' }]];
+  } else if (n === 2) {
+    fotoRows = [[{ ...imgs[0], h: '150px' }, { ...imgs[1], h: '150px' }]];
+  } else if (n === 3) {
+    fotoRows = [
+      [{ ...imgs[0], h: '155px' }],
+      [{ ...imgs[1], h: '120px' }, { ...imgs[2], h: '120px' }],
+    ];
+  } else if (n === 4) {
+    fotoRows = [
+      [{ ...imgs[0], h: '130px' }, { ...imgs[1], h: '130px' }],
+      [{ ...imgs[2], h: '130px' }, { ...imgs[3], h: '130px' }],
+    ];
+  } else {
+    fotoRows = [
+      [{ ...imgs[0], h: '150px' }],
+      [{ ...imgs[1], h: '115px' }, { ...imgs[2], h: '115px' }],
+      [{ ...imgs[3], h: '115px' }, { ...imgs[4], h: '115px' }],
+    ];
+  }
+
+  const rowsHtml = fotoRows.map(row => `
+    <div class="foto-row">
+      ${row.map(img => `
+        <div class="foto-cell" style="--fh:${img.h}">
+          <img src="${img.src}" alt="${img.cap}"
+               onerror="this.closest('.foto-cell').style.display='none'"/>
+          ${img.cap ? `<div class="foto-cap">${img.cap}</div>` : ''}
+        </div>`).join('')}
+    </div>`).join('');
+
+  return `
+<h3 class="foto-h3">📷 Foto Kegiatan${fotos.length > 5 ? ' (menampilkan 5 dari '+fotos.length+')' : ''}</h3>
+<div class="foto-section">${rowsHtml}</div>`;
+})() : ''}
+
+<!-- TANDA TANGAN -->
+<div class="ttd-area" style="margin-top:${fotos.length?'16px':'32px'}">
+  <div class="ttd-box">
+    <div class="ttd-role">Ketua Pelaksana</div>
+    <hr class="ttd-line"/>
+    <div class="ttd-name">( _________________________ )</div>
+  </div>
+  <div class="ttd-box">
+    <div class="ttd-role">Sekretaris</div>
+    <hr class="ttd-line"/>
+    <div class="ttd-name">( _________________________ )</div>
+  </div>
+  <div class="ttd-box">
+    <div class="ttd-role">Pembina / Guru Pendamping</div>
+    <hr class="ttd-line"/>
+    <div class="ttd-name">( _________________________ )</div>
+  </div>
+</div>
+
+<button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Pop-up diblokir browser. Izinkan pop-up untuk situs ini.'); return; }
   win.document.write(html);
   win.document.close();
 }

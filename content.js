@@ -37,7 +37,7 @@ const CONTENT = {
      *   2. Ubah path di bawah, contoh: "./logo-jcosasi.png"
      *   3. Ubah use_image menjadi: true
      */
-    use_image:  false,
+    use_image:  true,
     path:       "./logo-jcosasi.png",   // ganti dengan nama file logo kamu
     alt:        "Logo JCOSASI",
     width_nav:  "40px",

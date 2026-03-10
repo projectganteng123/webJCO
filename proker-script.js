@@ -301,9 +301,11 @@ function renderNotifs(notifs, status, estDate, cfg) {
 ══════════════════════════════════════════════ */
 function renderDeskripsi(proker, detail) {
   const D       = detail || {};
-  // Hanya pakai waktu_teks — kolom waktu (lama) buang, bisa berisi Date object string
+  // Prioritas: waktu_teks (Sheets) → label Waktu (content.js) → estimasi_tanggal (Sheets)
   const waktu = D.waktu_teks
     || proker.detail?.find(d => d.label.includes('Waktu'))?.val
+    || (D.estimasi_tanggal ? formatTglPanjang(D.estimasi_tanggal) : null)
+    || proker.detail?.find(d => d.label.includes('Estimasi'))?.val
     || '–';
   const lokasi  = D.lokasi   || '–';
   const sasaran = D.sasaran  || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
@@ -741,10 +743,11 @@ function renderPage(proker, sheetsData) {
   const statusLabel = {upcoming:'Akan Datang', ongoing:'Sedang Berjalan', done:'Selesai'}[status];
   const statusClass = {upcoming:'status-upcoming', ongoing:'status-ongoing', done:'status-done'}[status];
 
-  // Hanya pakai waktu_teks (teks bebas dari Sheets) atau fallback content.js
-  // Jangan pakai detail?.waktu — kolom itu bisa berisi Date object string dari Sheets
+  // Prioritas: waktu_teks (Sheets) → label Waktu (content.js) → estimasi_tanggal
   const heroWaktu = detail?.waktu_teks
     || proker.detail?.find(d => d.label.includes('Waktu'))?.val
+    || (detail?.estimasi_tanggal ? formatTglPanjang(detail.estimasi_tanggal) : null)
+    || proker.detail?.find(d => d.label.includes('Estimasi'))?.val
     || '–';
   const heroLokasi = detail?.lokasi  || '–';
   const heroSasaran= detail?.sasaran || proker.detail?.find(d=>d.label.includes('Sasaran'))?.val || '–';
