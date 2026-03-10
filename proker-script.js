@@ -739,27 +739,92 @@ function fetchJSONP(url) {
   });
 }
 
+/* ══════════════════════════════════════════════
+   CACHE — sessionStorage, TTL 15 menit
+   Menyimpan SEMUA sheet sekaligus dalam 1 entry.
+   Semua proker berbagi cache yang sama — navigasi
+   prev/next tidak perlu fetch ulang selama TTL aktif.
+══════════════════════════════════════════════ */
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 menit
+
+function _cacheKey() {
+  // Key unik berdasarkan API URL — aman jika URL berubah
+  const api = CONTENT?.api?.url || 'default';
+  return 'jcosasi_v1_' + btoa(api).slice(0, 20).replace(/[^a-z0-9]/gi,'');
+}
+
+function cacheLoad() {
+  try {
+    const raw = sessionStorage.getItem(_cacheKey());
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (!entry || !entry.ts || !entry.data) return null;
+    if (Date.now() - entry.ts > CACHE_TTL_MS) {
+      sessionStorage.removeItem(_cacheKey());
+      return null;
+    }
+    return entry.data;
+  } catch(e) { return null; }
+}
+
+function cacheSave(data) {
+  try {
+    sessionStorage.setItem(_cacheKey(), JSON.stringify({ ts: Date.now(), data }));
+  } catch(e) {
+    // sessionStorage penuh (misal mode privat terbatas) — tidak masalah, skip
+  }
+}
+
+function cacheInvalidate() {
+  try { sessionStorage.removeItem(_cacheKey()); } catch(e) {}
+}
+
 async function fetchAllSheets(prokerId) {
   const api = CONTENT?.api?.url;
-  if(!api||api==='PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
+  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
 
-  const sheetNames = ['proker_detail','proker_notif','proker_notif_config',
-                      'proker_activity','proker_jadwal','proker_dokumentasi'];
-  const results = await Promise.allSettled(
-    sheetNames.map(s=>fetchJSONP(`${api}?sheet=${s}`))
-  );
-  const safe = res => res.status==='fulfilled'&&res.value?.status==='ok' ? res.value.data : [];
-  const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
+  /* ── Coba cache dulu ── */
+  let allData = cacheLoad();
 
-  // Normalisasi proker_id: "01", "1", 1 → semuanya cocok
-  // matchId: bandingkan sebagai angka desimal (parseInt hapus leading zero)
-  const pid = parseInt(prokerId, 10);
+  if (!allData) {
+    /* ── Cache miss: fetch 6 sheet paralel ── */
+    const sheetNames = ['proker_detail','proker_notif','proker_notif_config',
+                        'proker_activity','proker_jadwal','proker_dokumentasi'];
+    let results;
+    try {
+      results = await Promise.allSettled(
+        sheetNames.map(s => fetchJSONP(`${api}?sheet=${s}`))
+      );
+    } catch(e) {
+      console.warn('[JCOSASI] Fetch error:', e);
+      return null;
+    }
+
+    const safe = res =>
+      res.status === 'fulfilled' && res.value?.status === 'ok'
+        ? res.value.data : [];
+
+    const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
+    allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr };
+
+    /* Simpan ke cache hanya jika setidaknya 1 sheet ada datanya */
+    if (Object.values(allData).some(arr => arr.length > 0)) {
+      cacheSave(allData);
+    } else {
+      /* Semua sheet kosong / gagal — kembalikan null agar banner error muncul */
+      return null;
+    }
+  }
+
+  /* ── Filter per proker_id ── */
+  const { detArr, notArr, cfgArr, actArr, jadArr, dokArr } = allData;
+  const pid     = parseInt(prokerId, 10);
   const matchId = r => parseInt(r.proker_id, 10) === pid;
 
   return {
-    detail:      detArr.find(matchId)||null,
-    notifs:      notArr.filter(r=>matchId(r)||r.proker_id==='all'),
-    notifConfig: cfgArr.find(matchId)||null,
+    detail:      detArr.find(matchId)      || null,
+    notifs:      notArr.filter(r => matchId(r) || r.proker_id === 'all'),
+    notifConfig: cfgArr.find(matchId)      || null,
     activity:    actArr.filter(matchId),
     jadwal:      jadArr.filter(matchId),
     dok:         dokArr.filter(matchId),
@@ -783,14 +848,34 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     return;
   }
 
-  // Render skeleton loading dulu — agar halaman tidak blank
+  // Render skeleton loading dulu — tidak blank saat fetch
   $('mainContent').innerHTML = renderSkeleton(proker);
 
-  // Fetch data Sheets
-  const sheetsData = await fetchAllSheets(id);
+  // Fetch data Sheets (dengan cache 15 menit)
+  let sheetsData = null;
+  try {
+    sheetsData = await fetchAllSheets(id);
+  } catch(e) {
+    console.warn('[JCOSASI] fetchAllSheets error:', e);
+  }
 
-  // Render konten penuh
+  // Render halaman — sheetsData null = tampil dengan data kosong + banner error
   renderPage(proker, sheetsData);
+
+  if (!sheetsData) {
+    // Invalidate cache yang mungkin corrupt, agar retry fresh
+    cacheInvalidate();
+    const warn = document.createElement('div');
+    warn.className = 'sheets-error-banner';
+    warn.innerHTML = `
+      <div class="seb-icon">⚠️</div>
+      <div class="seb-body">
+        <div class="seb-title">Data tidak dapat dimuat</div>
+        <div class="seb-text">Koneksi ke Google Sheets gagal. Beberapa informasi mungkin tidak tersedia.</div>
+        <button class="seb-btn" onclick="location.reload()">🔄 Coba Lagi</button>
+      </div>`;
+    $('mainContent').prepend(warn);
+  }
 });
 
 /* ── Skeleton loading ── */

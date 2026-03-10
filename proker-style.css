@@ -846,3 +846,52 @@ img { max-width: 100%; display: block; }
 .sk-line.w80 { width:80%; }
 .sk-line.w60 { width:60%; }
 .sk-line.w70 { width:70%; }
+
+/* ── Sheets error banner ── */
+.sheets-error-banner {
+  background: #FFF3CD;
+  border: 1.5px solid #F0C040;
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  font-size: .88rem;
+  color: #7D5A00;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.sheets-error-banner a {
+  color: #7D5A00;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* ══════════════════════════════════════════
+   SHEETS ERROR BANNER
+══════════════════════════════════════════ */
+.sheets-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #FFF8E7;
+  border: 2px solid #F39C12;
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.seb-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+.seb-body { flex: 1; }
+.seb-title {
+  font-weight: 700; font-size: .95rem;
+  color: #B7770D; margin-bottom: 4px;
+}
+.seb-text {
+  font-size: .85rem; color: var(--grey-dark);
+  line-height: 1.5; margin-bottom: 12px;
+}
+.seb-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #F39C12; color: var(--white);
+  border: none; border-radius: 8px;
+  padding: 8px 16px; font-size: .85rem; font-weight: 600;
+  cursor: pointer; transition: background var(--trans);
+}
+.seb-btn:hover { background: #D68910; }
