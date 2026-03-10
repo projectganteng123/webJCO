@@ -10,50 +10,47 @@
    OVERRIDE: proker.html?page=rekap tidak butuh renderPage
    dari proker-script.js. Init sendiri di bawah.
 ══════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', async () => {
-  // Hanya jalankan di proker.html?page=rekap
-  const _p = new URLSearchParams(window.location.search).get('page');
-  if (_p !== 'rekap') return;
-
+/* ══════════════════════════════════════════════
+   REKAP INIT — dijalankan oleh proker-script.js
+   setelah ia selesai cek ?page=rekap.
+   Fungsi fetch & cache dipakai dari proker-script.js
+   agar tidak ada duplikasi dan urutan load aman.
+══════════════════════════════════════════════ */
+async function initRekap() {
   const main = document.getElementById('mainContent');
 
-  /* ── Invalidate cache jika reload ── */
+  // Invalidate cache jika reload — pakai cacheInvalidate() dari proker-script.js
   const isReload = performance && performance.navigation
     ? performance.navigation.type === 1
     : (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]?.type === 'reload');
-  if (isReload) {
-    try {
-      const api = CONTENT?.api?.url;
-      if (api) {
-        const _k = 'jcosasi_v1_' + (() => {
-          try { return btoa(api).slice(0,20).replace(/[^a-z0-9]/gi,''); } catch(e){ return 'default'; }
-        })();
-        sessionStorage.removeItem(_k);
-      }
-    } catch(e) {}
-  }
+  if (isReload) cacheInvalidate();
 
-  // Set judul navbar untuk mode rekap
+  // Set judul navbar
   const _navTitle = document.getElementById('navTitle');
   const _navNum   = document.getElementById('navNum');
   if (_navTitle) _navTitle.textContent = 'Rekap Keseluruhan';
   if (_navNum)   _navNum.textContent   = '📊';
 
-  /* ── Render skeleton dulu ── */
+  // Skeleton dulu
   main.innerHTML = renderRekapSkeleton();
 
-  /* ── Ambil semua data (cache dulu, fallback fetch) ── */
+  // Ambil data — pakai fetchAllSheets dari proker-script.js
+  // fetchAllSheets butuh prokerId tapi untuk rekap kita butuh raw allData
+  // Gunakan cacheLoad() langsung, jika miss fetch via fetchAllSheetsRaw()
   let allData = null;
   try {
-    allData = await fetchAllSheetsGlobal();
+    allData = cacheLoad();           // dari proker-script.js
+    if (!allData) {
+      allData = await fetchAllSheetsRaw();   // fetch & simpan cache
+    }
   } catch(e) {
-    console.warn('[JCOSASI Rekap] fetch error:', e);
+    console.warn('[JCOSASI Rekap]', e);
   }
 
-  /* ── Render halaman ── */
   renderRekap(allData);
 
   if (!allData) {
+    cacheInvalidate();
     const warn = document.createElement('div');
     warn.className = 'sheets-error-banner';
     warn.innerHTML = `
@@ -65,43 +62,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>`;
     main.prepend(warn);
   }
-});
-
-/* ══════════════════════════════════════════════
-   FETCH SEMUA DATA (pakai cache bersama)
-══════════════════════════════════════════════ */
-async function fetchAllSheetsGlobal() {
-  const api = CONTENT?.api?.url;
-  if (!api || api === "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec") return null;
-
-  const CACHE_TTL = 15 * 60 * 1000;
-  const cacheKey  = 'jcosasi_v1_' + (() => {
-    try { return btoa(api).slice(0,20).replace(/[^a-z0-9]/gi,''); } catch(e){ return 'default'; }
-  })();
-
-  /* Coba cache dulu */
-  try {
-    const raw = sessionStorage.getItem(cacheKey);
-    if (raw) {
-      const entry = JSON.parse(raw);
-      if (entry?.ts && Date.now() - entry.ts < CACHE_TTL) return entry.data;
-    }
-  } catch(e) {}
-
-  /* Cache miss — fetch */
-  const sheets  = ['proker_detail','proker_notif','proker_notif_config',
-                   'proker_activity','proker_jadwal','proker_dokumentasi'];
-  const results = await Promise.allSettled(sheets.map(s => fetchJSONP(`${api}?sheet=${s}`)));
-  const safe    = r => r.status === 'fulfilled' && r.value?.status === 'ok' ? r.value.data : [];
-  const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
-  const allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr };
-
-  if (Object.values(allData).some(a => a.length > 0)) {
-    try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: allData })); } catch(e) {}
-  } else {
-    return null;
-  }
-  return allData;
 }
 
 /* ══════════════════════════════════════════════

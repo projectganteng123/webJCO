@@ -852,13 +852,46 @@ async function fetchAllSheets(prokerId) {
   };
 }
 
+/* ── fetchAllSheetsRaw: fetch semua sheet tanpa filter proker_id ──
+   Dipakai oleh rekap-script.js. Hasil disimpan ke cache yang sama. */
+async function fetchAllSheetsRaw() {
+  const api = CONTENT?.api?.url;
+  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
+
+  const sheetNames = ['proker_detail','proker_notif','proker_notif_config',
+                      'proker_activity','proker_jadwal','proker_dokumentasi'];
+  let results;
+  try {
+    results = await Promise.allSettled(
+      sheetNames.map(s => fetchJSONP(`${api}?sheet=${s}`))
+    );
+  } catch(e) {
+    console.warn('[JCOSASI] fetchAllSheetsRaw error:', e);
+    return null;
+  }
+
+  const safe = res =>
+    res.status === 'fulfilled' && res.value?.status === 'ok' ? res.value.data : [];
+  const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
+  const allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr };
+
+  if (Object.values(allData).some(a => a.length > 0)) {
+    cacheSave(allData);
+    return allData;
+  }
+  return null;
+}
+
 /* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // Jika URL mengandung ?page=rekap → serahkan ke rekap-script.js
+  // Jika ?page=rekap → jalankan initRekap() dari rekap-script.js
   const _page = new URLSearchParams(window.location.search).get('page');
-  if (_page === 'rekap') return;
+  if (_page === 'rekap') {
+    if (typeof initRekap === 'function') initRekap();
+    return;
+  }
 
   const id     = getProkerIdFromURL();
   const proker = getProkerData(id);
