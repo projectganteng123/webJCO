@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 ══════════════════════════════════════════════ */
 async function fetchAllSheetsGlobal() {
   const api = CONTENT?.api?.url;
-  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
+  if (!api || api === "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec") return null;
 
   const CACHE_TTL = 15 * 60 * 1000;
   const cacheKey  = 'jcosasi_v1_' + (() => {
