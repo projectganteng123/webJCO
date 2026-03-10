@@ -1,0 +1,223 @@
+/* ============================================================
+   JCOSASI — rekap-style.css
+   Styles khusus halaman rekap / dashboard
+   ============================================================ */
+
+/* ══════════════════════════════════════════════
+   REKAP HERO
+══════════════════════════════════════════════ */
+.rekap-hero {
+  background: linear-gradient(135deg, var(--purple-deep) 0%, #6B34AF 60%, #9B59D4 100%);
+  border-radius: var(--radius);
+  padding: 48px 40px 40px;
+  margin-bottom: 32px;
+  color: var(--white);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.rekap-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.rh-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 99px;
+  padding: 5px 16px;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  margin-bottom: 16px;
+}
+.rh-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.15;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.rh-jp {
+  font-family: var(--font-jp);
+  font-size: .9rem;
+  font-weight: 400;
+  opacity: .7;
+  letter-spacing: .1em;
+}
+.rh-desc {
+  font-size: .9rem;
+  opacity: .8;
+  margin-bottom: 32px;
+}
+
+/* Stats grid */
+.rh-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.rhs-item {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 14px;
+  padding: 16px 22px;
+  min-width: 90px;
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+.rhs-num {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.rhs-label {
+  display: block;
+  font-size: .72rem;
+  opacity: .8;
+  line-height: 1.3;
+}
+
+/* Nearest event */
+.rh-nearest {
+  background: rgba(255,255,255,.1);
+  border: 1.5px solid rgba(255,255,255,.25);
+  border-radius: 14px;
+  padding: 20px 24px;
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: left;
+}
+.rhn-label {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .07em;
+  opacity: .8;
+  margin-bottom: 6px;
+}
+.rhn-name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.rhn-countdown .countdown-boxes {
+  gap: 8px;
+}
+.rhn-countdown .cd-box {
+  background: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.25);
+  min-width: 52px;
+}
+
+/* ══════════════════════════════════════════════
+   NOTIF CARDS PER PROKER
+══════════════════════════════════════════════ */
+.rekap-notif-card {
+  border: 1.5px solid var(--grey-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.rekap-notif-card:last-child { margin-bottom: 0; }
+
+.rnc-header {
+  background: linear-gradient(90deg, var(--purple-pale) 0%, var(--off-white) 100%);
+  border-bottom: 1.5px solid var(--grey-light);
+  padding: 0;
+}
+.rnc-proker-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  text-decoration: none;
+  color: var(--charcoal);
+  transition: background var(--trans);
+}
+.rnc-proker-link:hover { background: var(--purple-pale); }
+.rnc-icon { font-size: 1.2rem; flex-shrink: 0; }
+.rnc-num  {
+  font-size: .75rem; font-weight: 700;
+  color: var(--purple-deep);
+  background: var(--purple-pale);
+  border: 1px solid rgba(107,52,175,.2);
+  border-radius: 99px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+.rnc-name {
+  font-weight: 600;
+  font-size: .9rem;
+  flex: 1;
+  line-height: 1.3;
+}
+.rnc-arrow {
+  color: var(--purple-mid);
+  font-size: .85rem;
+  flex-shrink: 0;
+  opacity: .7;
+}
+
+.rnc-body {
+  padding: 20px 20px 16px;
+}
+/* Override countdown dalam rekap notif — lebih kompak */
+.rnc-body .countdown-wrap { margin-bottom: 0; }
+.rnc-body .cd-label { font-size: .75rem; }
+.rnc-body .countdown-boxes { gap: 6px; }
+.rnc-body .cd-box { min-width: 46px; padding: 8px 6px; }
+.rnc-body .cd-num { font-size: 1.2rem; }
+.rnc-body .cd-unit { font-size: .6rem; }
+
+/* ══════════════════════════════════════════════
+   DOKUMENTASI — PROKER BADGE
+══════════════════════════════════════════════ */
+.dsh-proker-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--purple-pale);
+  border: 1px solid rgba(107,52,175,.18);
+  border-radius: 99px;
+  padding: 3px 10px 3px 6px;
+  margin-bottom: 6px;
+  max-width: 100%;
+}
+.dpb-icon { font-size: .9rem; flex-shrink: 0; }
+.dpb-name {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--purple-deep);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .rekap-hero { padding: 32px 20px 28px; }
+  .rh-stats { gap: 8px; }
+  .rhs-item { padding: 12px 14px; min-width: 72px; }
+  .rhs-num  { font-size: 1.2rem; }
+  .rhs-label { font-size: .65rem; }
+  .rh-nearest { padding: 16px; }
+  .rnc-proker-link { padding: 10px 14px; }
+  .rnc-name { font-size: .82rem; }
+  .rnc-body { padding: 14px 14px 12px; }
+  .dpb-name { max-width: 180px; }
+}

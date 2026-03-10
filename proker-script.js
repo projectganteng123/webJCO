@@ -856,9 +856,9 @@ async function fetchAllSheets(prokerId) {
    INIT
 ══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // Guard: init ini hanya untuk proker.html, bukan rekap.html
-  // rekap-script.js punya DOMContentLoaded sendiri
-  if (document.body.dataset.page === 'rekap') return;
+  // Jika URL mengandung ?page=rekap → serahkan ke rekap-script.js
+  const _page = new URLSearchParams(window.location.search).get('page');
+  if (_page === 'rekap') return;
 
   const id     = getProkerIdFromURL();
   const proker = getProkerData(id);
