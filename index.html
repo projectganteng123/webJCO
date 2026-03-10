@@ -111,13 +111,24 @@
         <h2 id="prokerHeading"></h2>
         <p class="section-desc" id="prokerDesc"></p>
       </div>
-      <div class="proker-filter">
-        <button class="filter-btn active" data-filter="all">Semua</button>
-        <button class="filter-btn" data-filter="rutin">Rutin</button>
-        <button class="filter-btn" data-filter="akademik">Akademik</button>
-        <button class="filter-btn" data-filter="event">Event</button>
-        <button class="filter-btn" data-filter="organisasi">Organisasi</button>
-        <button class="filter-btn" data-filter="lainlain">Lain-lain</button>
+      <div class="proker-controls">
+        <div class="proker-search-wrap">
+          <svg class="psw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="prokerSearch" class="proker-search" placeholder="Cari program kerja..." autocomplete="off" />
+          <button class="psw-clear" id="prokerSearchClear" aria-label="Hapus" style="display:none">✕</button>
+        </div>
+        <div class="proker-filter">
+          <button class="filter-btn active" data-filter="all">Semua</button>
+          <button class="filter-btn" data-filter="rutin">Rutin</button>
+          <button class="filter-btn" data-filter="akademik">Akademik</button>
+          <button class="filter-btn" data-filter="event">Event</button>
+          <button class="filter-btn" data-filter="organisasi">Organisasi</button>
+          <button class="filter-btn" data-filter="lainlain">Lain-lain</button>
+        </div>
+      </div>
+      <div id="prokerSearchEmpty" class="proker-search-empty" style="display:none">
+        <div class="pse-icon">🔍</div>
+        <p>Tidak ada proker yang cocok dengan "<span id="prokerSearchQuery"></span>"</p>
       </div>
       <div class="proker-grid" id="prokerGrid"></div>
     </div>

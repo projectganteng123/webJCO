@@ -100,8 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (p.akademik) extra = `<div class="akademik-list">${p.akademik.map(a=>`<div class="ak-item"><strong>${a.judul}</strong><p>${a.desc}</p></div>`).join('')}</div>`;
     else if (p.mb) extra = `<div class="mb-grid">${p.mb.map(m=>`<div class="mb-item">${m}</div>`).join('')}</div>`;
     else if (p.org) extra = `<div class="org-list">${p.org.map(o=>`<div class="org-item"><span class="org-dot"></span><strong>${o.judul}</strong> — ${o.desc}</div>`).join('')}</div>`;
-    return `<div class="proker-card fade-up${delay}" data-cat="${p.cat}">
-      <div class="pc-header"><span class="pc-num">${p.num}</span><span class="pc-tag ${p.tag_class}">${p.tag}</span></div>
+    return `<div class="proker-card fade-up${delay}" data-cat="${p.cat}" data-judul="${p.judul.toLowerCase()}" data-num="${p.num}">
+      <div class="pc-header">
+        <span class="pc-num">${p.num}</span>
+        <span class="pc-tag ${p.tag_class}">${p.tag}</span>
+        <span class="pc-notif-badge" id="notif-badge-${p.num}" style="display:none" title="Ada jadwal kegiatan terdekat">🔔</span>
+      </div>
       <div class="pc-icon">${p.icon}</div><h3>${p.judul}</h3><p>${p.desc}</p>
       <div class="pc-detail">${p.detail.map(d=>`<div class="pc-detail-item"><span class="pd-label">${d.label}</span><span>${d.val}</span></div>`).join('')}</div>
       ${extra}
@@ -179,19 +183,96 @@ document.addEventListener('DOMContentLoaded', () => {
   }), {threshold:0.1, rootMargin:'0px 0px -40px 0px'});
   document.querySelectorAll('.fade-up,.fade-left,.fade-right').forEach(el=>obs.observe(el));
 
-  /* ── PROKER FILTER ── */
+  /* ── PROKER FILTER + SEARCH ── */
+  let activeFilter = 'all';
+  let searchQuery  = '';
+
+  function applyProkerFilter() {
+    const q = searchQuery.trim().toLowerCase();
+    let anyVisible = false;
+    document.querySelectorAll('.proker-card').forEach(card => {
+      const catOk   = activeFilter === 'all' || (card.dataset.cat||'').includes(activeFilter);
+      const judulOk = !q || (card.dataset.judul||'').includes(q) || (card.dataset.num||'').includes(q);
+      const show    = catOk && judulOk;
+      card.classList.toggle('hidden', !show);
+      if (show) {
+        anyVisible = true;
+        card.classList.remove('visible');
+        requestAnimationFrame(()=>requestAnimationFrame(()=>card.classList.add('visible')));
+      }
+    });
+    const emptyEl = document.getElementById('prokerSearchEmpty');
+    const qEl     = document.getElementById('prokerSearchQuery');
+    if (emptyEl) emptyEl.style.display = (!anyVisible && q) ? 'block' : 'none';
+    if (qEl && q) qEl.textContent = q;
+  }
+
   document.querySelectorAll('.filter-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
-      const f = btn.dataset.filter;
-      document.querySelectorAll('.proker-card').forEach(card=>{
-        const show = f==='all' || (card.dataset.cat||'').includes(f);
-        card.classList.toggle('hidden',!show);
-        if(show){ card.classList.remove('visible'); requestAnimationFrame(()=>requestAnimationFrame(()=>card.classList.add('visible'))); }
-      });
+      activeFilter = btn.dataset.filter;
+      applyProkerFilter();
     });
   });
+
+  const searchInput = document.getElementById('prokerSearch');
+  const searchClear = document.getElementById('prokerSearchClear');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value;
+      if (searchClear) searchClear.style.display = searchQuery ? 'flex' : 'none';
+      applyProkerFilter();
+    });
+  }
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      searchQuery = '';
+      searchClear.style.display = 'none';
+      applyProkerFilter();
+    });
+  }
+
+  /* ── Notif badge: fetch proker_jadwal, tandai card yg ada jadwal ke depan ── */
+  (async () => {
+    const api = CONTENT && CONTENT.api && CONTENT.api.url;
+    if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return;
+    try {
+      const cb = '_jcb_badge_' + Date.now();
+      const data = await new Promise((res, rej) => {
+        const t = setTimeout(() => { delete window[cb]; rej(new Error('timeout')); }, 10000);
+        window[cb] = d => { clearTimeout(t); delete window[cb]; res(d); };
+        const el = document.createElement('script');
+        el.src = api + '?sheet=proker_jadwal&callback=' + cb;
+        el.onerror = rej;
+        document.head.appendChild(el);
+      });
+      if (!data || data.status !== 'ok' || !data.data) return;
+      const nowMs = Date.now();
+      const nearest = {};
+      data.data.forEach(function(r) {
+        if (!r.tanggal) return;
+        const pid = parseInt(r.proker_id, 10);
+        if (isNaN(pid)) return;
+        const jamStr = (r.jam || '').trim();
+        const jm = jamStr.match(/^(\d{1,2}):(\d{2})$/);
+        const hh = jm ? (jm[1].length < 2 ? '0'+jm[1] : jm[1]) : '07';
+        const mm = jm ? jm[2] : '00';
+        const dt = new Date(r.tanggal + 'T' + hh + ':' + mm + ':00');
+        if (isNaN(dt.getTime()) || dt.getTime() <= nowMs) return;
+        const key = pid < 10 ? '0' + pid : '' + pid;
+        if (!nearest[key] || dt < nearest[key]) nearest[key] = dt;
+      });
+      Object.keys(nearest).forEach(function(pid) {
+        const badge = document.getElementById('notif-badge-' + pid);
+        if (!badge) return;
+        const tgl = nearest[pid].toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+        badge.style.display = 'flex';
+        badge.title = 'Jadwal terdekat: ' + tgl;
+      });
+    } catch(e) { /* badge tidak tampil jika fetch gagal */ }
+  })();
 
   /* ── ACTIVE NAV ── */
   document.querySelectorAll('section[id]').forEach(s=>{

@@ -1302,3 +1302,106 @@ footer {
 }
 .pc-detail-btn span { transition: transform var(--trans); }
 .pc-detail-btn:hover span { transform: translateX(3px); }
+
+/* ══════════════════════════════════════════
+   PROKER SEARCH BAR
+══════════════════════════════════════════ */
+.proker-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.proker-search-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+}
+.psw-icon {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  width: 18px; height: 18px;
+  stroke: var(--grey-mid);
+  pointer-events: none;
+}
+.proker-search {
+  width: 100%;
+  padding: 12px 42px 12px 42px;
+  border: 2px solid var(--grey-light);
+  border-radius: 99px;
+  font-size: .95rem;
+  font-family: var(--font-body);
+  color: var(--charcoal);
+  background: var(--white);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
+}
+.proker-search:focus {
+  border-color: var(--purple-mid);
+  box-shadow: 0 0 0 3px rgba(107,52,175,.12);
+}
+.proker-search::placeholder { color: var(--grey-mid); }
+.psw-clear {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  background: var(--grey-light);
+  border: none; border-radius: 50%;
+  font-size: .75rem; color: var(--grey-dark);
+  cursor: pointer; line-height: 1;
+  transition: background .15s;
+}
+.psw-clear:hover { background: var(--purple-pale); color: var(--purple-deep); }
+
+/* Pesan kosong saat search tidak ketemu */
+.proker-search-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--grey-mid);
+}
+.pse-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.proker-search-empty p { font-size: .95rem; }
+.proker-search-empty span { font-weight: 700; color: var(--purple-mid); }
+
+/* ══════════════════════════════════════════
+   NOTIF BADGE PADA PROKER CARD
+══════════════════════════════════════════ */
+.pc-notif-badge {
+  margin-left: auto;
+  display: none; /* diatur via JS */
+  align-items: center; justify-content: center;
+  font-size: .85rem;
+  animation: bell-shake 2.5s ease-in-out infinite;
+  cursor: default;
+}
+@keyframes bell-shake {
+  0%, 85%, 100% { transform: rotate(0deg); }
+  88%  { transform: rotate(-18deg); }
+  92%  { transform: rotate(18deg); }
+  96%  { transform: rotate(-10deg); }
+  98%  { transform: rotate(8deg); }
+}
+
+/* ══════════════════════════════════════════
+   ACTIVITY LOG — MOBILE LARGER CELLS
+══════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .activity-day {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 3px !important;
+  }
+  .activity-month-label {
+    width: 18px !important;
+    font-size: .65rem;
+  }
+  .activity-graph { gap: 4px !important; }
+  .activity-months { gap: 4px !important; }
+  .activity-week { gap: 4px !important; }
+}
