@@ -80,9 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const isExt = !l.href.startsWith('#');
     return `<li><a href="${l.href}"${isExt?' class="nav-ext"':''} ${isExt?'':''} >${l.label}</a></li>`;
   }).join(''));
-  set('mobileLinks', C.nav.links.map(l =>
-    `<li><a href="${l.href}" class="mm-link">${l.label}</a></li>`
-  ).join(''));
+  set('mobileLinks', C.nav.links.map(l => {
+    const isExt = !l.href.startsWith('#');
+    return `<li><a href="${l.href}" class="mm-link${isExt?' mm-link-ext':''}">${l.label}</a></li>`;
+  }).join(''));
 
   /* HERO */
   set('heroBadge', C.hero.badge);
@@ -164,50 +165,47 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPengurusSkeleton();
   loadPengurusFromSheets();
 
-  /* ── Preload cache Sheets di background setelah halaman selesai render ──
-     Sehingga saat user buka halaman proker, data sudah tersedia di cache.
-     Refresh halaman = invalidate cache (performance.navigation.type === 1) */
+  /* ── Preload cache Sheets di background ──
+     1. Jika cache ada & fresh (<15 mnt) → pakai cache, lalu tetap fetch baru di background
+        → Saat data baru tiba, ganti data lama secara silent (tanpa loading/refresh)
+     2. Jika cache tidak ada / expired → fetch, simpan, terapkan badge
+     Tidak ada lagi invalidate-on-reload — user tidak perlu refresh untuk update data ── */
   (async () => {
     const api = CONTENT && CONTENT.api && CONTENT.api.url;
     if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return;
 
-    // Invalidate cache jika halaman di-refresh (bukan navigasi biasa)
-    const isReload = performance && performance.navigation
-      ? performance.navigation.type === 1
-      : (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]?.type === 'reload');
-    if (isReload) {
-      try { sessionStorage.removeItem(_jcosasiCacheKey(api)); } catch(e) {}
-    }
-
-    // Cek apakah cache sudah ada dan valid
     const CACHE_TTL = 15 * 60 * 1000;
     const cacheKey  = _jcosasiCacheKey(api);
+
+    // Cek cache
+    let hasCacheFresh = false;
     try {
       const raw = sessionStorage.getItem(cacheKey);
       if (raw) {
         const entry = JSON.parse(raw);
         if (entry && entry.ts && Date.now() - entry.ts < CACHE_TTL) {
-          // Cache fresh — langsung terapkan badge
+          hasCacheFresh = true;
           applyNotifBadges((entry.data && entry.data.jadArr) || []);
-          return;
         }
       }
     } catch(e) {}
 
-    // Fetch semua sheet di background
+    // Selalu fetch di background — jika cache sudah ada, update silent setelah tiba
     const sheets = ['proker_detail','proker_notif','proker_notif_config',
                     'proker_activity','proker_jadwal','proker_dokumentasi'];
     try {
-      const results = await Promise.allSettled(sheets.map(sh => _jcosasiJSONP(api + '?sheet=' + sh)));
+      const results = await Promise.allSettled(
+        sheets.map(sh => _jcosasiJSONP(api + '?sheet=' + sh))
+      );
       const safe = r => r.status === 'fulfilled' && r.value && r.value.status === 'ok' ? r.value.data : [];
       const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
       const allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr };
       if (Object.values(allData).some(a => a.length > 0)) {
         sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: allData }));
-        // Terapkan badge dari data jadwal yang baru di-cache
+        // Terapkan badge dari data terbaru (silent — tidak ada reload)
         applyNotifBadges(allData.jadArr || []);
       }
-    } catch(e) { /* preload gagal — tidak masalah, proker page akan fetch sendiri */ }
+    } catch(e) { /* fetch gagal — gunakan cache yang ada */ }
   })();
 
   /* KONTAK */
@@ -247,10 +245,32 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY>60), {passive:true});
 
   /* ── HAMBURGER ── */
-  const ham = $('hamburger'), mob = $('mobileMenu');
-  ham.addEventListener('click', () => mob.classList.toggle('open'));
-  document.querySelectorAll('.mm-link').forEach(l=>l.addEventListener('click',()=>mob.classList.remove('open')));
-  document.addEventListener('click', e=>{ if(!ham.contains(e.target)&&!mob.contains(e.target)) mob.classList.remove('open'); });
+  const ham = $('hamburger'), mob = $('mobileMenu'), nav = $('navbar');
+  // Toggle menu + animasi hamburger → X
+  ham.addEventListener('click', () => {
+    mob.classList.toggle('open');
+    ham.classList.toggle('active');
+  });
+  // Tutup saat klik link
+  document.querySelectorAll('.mm-link').forEach(l => l.addEventListener('click', () => {
+    mob.classList.remove('open');
+    ham.classList.remove('active');
+  }));
+  // Tutup saat klik di luar
+  document.addEventListener('click', e => {
+    if (!ham.contains(e.target) && !mob.contains(e.target)) {
+      mob.classList.remove('open');
+      ham.classList.remove('active');
+    }
+  });
+  // Deteksi apakah navbar sedang di atas hero (bg gelap) → hamburger putih
+  const heroSec = document.getElementById('hero');
+  if (heroSec) {
+    const heroObs = new IntersectionObserver(entries => {
+      nav.classList.toggle('on-dark', entries[0].isIntersecting);
+    }, { threshold: 0.1 });
+    heroObs.observe(heroSec);
+  }
 
   /* ── SCROLL ANIMATIONS ── */
   const obs = new IntersectionObserver(entries=>entries.forEach(e=>{
@@ -346,8 +366,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!badge) return;
       const tgl = dt.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long'});
       const jam = dt.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+      const msg = '🔔 Kegiatan: ' + tgl + ', pukul ' + jam;
       badge.style.display = 'flex';
-      badge.title = 'Kegiatan ' + tgl + ', pukul ' + jam;
+      badge.title = msg;  // desktop hover
+      // Mobile: tap menampilkan tooltip custom
+      badge.dataset.notifMsg = msg;
+      badge.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        // Hapus tooltip lain yang terbuka
+        document.querySelectorAll('.notif-tooltip').forEach(el => el.remove());
+        // Buat tooltip
+        const tip = document.createElement('div');
+        tip.className = 'notif-tooltip';
+        tip.textContent = msg;
+        badge.appendChild(tip);
+        // Tutup otomatis setelah 3 detik atau klik di luar
+        const close = () => tip.remove();
+        setTimeout(close, 3500);
+        document.addEventListener('click', close, { once: true });
+      });
     });
   }
 

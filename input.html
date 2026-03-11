@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Input Data — JCOSASI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMzRDFBNUUiLz48dGV4dCB4PSIxNiIgeT0iMjIiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPko8L3RleHQ+PC9zdmc+"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --p:#3D1A5E;--pm:#6B34AF;--pl:#9B72CF;--pale:#F0E8FF;--paler:#F8F4FF;
+  --red:#DC2626;--redl:#FEE2E2;--green:#16A34A;--greenl:#DCFCE7;
+  --amber:#D97706;--amberl:#FEF3C7;
+  --ink:#0F0A1E;--ink2:#3D3652;--ink3:#6B6380;
+  --line:#E8E2F0;--bg:#F7F5FA;--white:#FFFFFF;
+  --r:10px;--r2:16px;
+  --sh:0 1px 3px rgba(61,26,94,.08),0 4px 16px rgba(61,26,94,.06);
+  --font:'Plus Jakarta Sans',system-ui,sans-serif;
+  --nav:56px;
+}
+html{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;}
+body{min-height:100vh;}
+.nav{position:sticky;top:0;z-index:100;height:var(--nav);background:var(--p);display:flex;align-items:center;padding:0 20px;gap:12px;box-shadow:0 2px 16px rgba(0,0,0,.25);}
+.nav-icon{font-size:1.3rem;}
+.nav-title{font-size:.95rem;font-weight:800;color:#fff;letter-spacing:-.01em;}
+.nav-sub{font-size:.72rem;color:rgba(255,255,255,.55);font-weight:500;}
+.nav-back{margin-left:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 14px;border-radius:99px;font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:background .2s;font-family:var(--font);}
+.nav-back:hover{background:rgba(255,255,255,.22);}
+.api-banner{background:var(--amberl);border-bottom:2px solid var(--amber);padding:10px 20px;font-size:.8rem;color:#78350F;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.api-banner input{flex:1;min-width:200px;padding:6px 10px;border:1.5px solid #F59E0B;border-radius:6px;font-size:.8rem;font-family:var(--font);background:#fff;color:var(--ink);outline:none;}
+.api-banner input:focus{border-color:var(--amber);box-shadow:0 0 0 2px rgba(217,119,6,.15);}
+.api-banner label{font-weight:700;white-space:nowrap;}
+.api-save{background:var(--amber);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:background .15s;}
+.api-save:hover{background:#B45309;}
+.api-ok{background:var(--greenl);border-bottom-color:var(--green);color:#14532D;}
+.api-ok .api-chg{margin-left:auto;background:none;border:1px solid var(--green);color:var(--green);padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:var(--font);}
+.shell{display:flex;height:calc(100vh - var(--nav) - 42px);overflow:hidden;}
+.sidebar{width:210px;flex-shrink:0;background:var(--white);border-right:1px solid var(--line);overflow-y:auto;padding:12px 0;}
+.sidebar-section{font-size:.64rem;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;padding:10px 16px 4px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--ink2);border-left:3px solid transparent;transition:all .15s;user-select:none;}
+.sb-item:hover{background:var(--paler);color:var(--p);}
+.sb-item.active{background:var(--pale);color:var(--p);border-left-color:var(--p);}
+.sb-icon{font-size:1rem;width:20px;text-align:center;}
+.main{flex:1;overflow-y:auto;padding:20px 18px 60px;}
+.panel{display:none;}
+.panel.active{display:block;}
+.panel-header{margin-bottom:18px;}
+.panel-title{font-size:1.15rem;font-weight:800;color:var(--ink);line-height:1.3;}
+.panel-sub{font-size:.78rem;color:var(--ink3);margin-top:3px;line-height:1.5;}
+.card{background:var(--white);border-radius:var(--r2);box-shadow:var(--sh);border:1px solid var(--line);margin-bottom:14px;overflow:hidden;}
+.card-head{padding:12px 16px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
+.card-head-icon{font-size:.95rem;}
+.card-head-title{font-size:.85rem;font-weight:800;color:var(--ink);}
+.card-head-sub{font-size:.72rem;color:var(--ink3);margin-top:1px;}
+.card-body{padding:16px;}
+.fg{display:grid;gap:12px;}
+.fg-2{grid-template-columns:1fr 1fr;}
+.fg-3{grid-template-columns:1fr 1fr 1fr;}
+.full{grid-column:1/-1;}
+.fld{display:flex;flex-direction:column;gap:4px;}
+.lbl{font-size:.7rem;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;}
+.lbl-opt{font-weight:500;color:var(--ink3);opacity:.65;}
+input,select,textarea{padding:8px 11px;border:1.5px solid var(--line);border-radius:var(--r);font-size:.84rem;font-family:var(--font);color:var(--ink);background:var(--white);outline:none;width:100%;transition:border-color .18s,box-shadow .18s;}
+input:focus,select:focus,textarea:focus{border-color:var(--pm);box-shadow:0 0 0 3px rgba(107,52,175,.1);}
+input::placeholder,textarea::placeholder{color:var(--ink3);opacity:.5;}
+textarea{resize:vertical;min-height:68px;line-height:1.55;}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6380' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px;}
+.hint{font-size:.68rem;color:var(--ink3);margin-top:2px;line-height:1.4;}
+.req{color:var(--red);}
+.dyn-wrap{overflow-x:auto;margin-bottom:2px;}
+.dyn-table{width:100%;border-collapse:collapse;min-width:400px;}
+.dyn-table th{font-size:.66rem;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;padding:5px 7px;border-bottom:2px solid var(--line);text-align:left;white-space:nowrap;}
+.dyn-table td{padding:4px 4px;}
+.dyn-table tr:not(:last-child) td{border-bottom:1px solid var(--paler);}
+.dyn-table input,.dyn-table select{padding:6px 8px;font-size:.8rem;}
+.dyn-table input[type=number]{text-align:right;}
+.col-del{width:30px;}
+.btn-del{background:none;border:1px solid var(--line);border-radius:6px;width:26px;height:26px;cursor:pointer;color:var(--ink3);display:flex;align-items:center;justify-content:center;font-size:.75rem;transition:all .15s;}
+.btn-del:hover{background:var(--redl);border-color:var(--red);color:var(--red);}
+.btn-add{display:inline-flex;align-items:center;gap:5px;background:var(--paler);border:1.5px dashed var(--pl);color:var(--pm);border-radius:var(--r);padding:6px 13px;font-size:.78rem;font-weight:700;cursor:pointer;margin-top:8px;transition:all .15s;font-family:var(--font);}
+.btn-add:hover{background:var(--pale);border-color:var(--pm);}
+.toggle{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;}
+.toggle label{padding:6px 13px;font-size:.76rem;font-weight:700;cursor:pointer;transition:all .15s;color:var(--ink3);text-transform:none;letter-spacing:0;user-select:none;}
+.toggle input[type=radio]{display:none;}
+.toggle input[type=radio]:checked + label{background:var(--p);color:#fff;}
+.action-bar{display:flex;align-items:center;gap:10px;padding:14px 0 0;border-top:1px solid var(--line);margin-top:4px;flex-wrap:wrap;}
+.btn-submit{display:flex;align-items:center;gap:6px;background:var(--p);color:#fff;border:none;border-radius:var(--r);padding:10px 20px;font-size:.85rem;font-weight:800;cursor:pointer;transition:all .18s;font-family:var(--font);box-shadow:0 2px 8px rgba(61,26,94,.25);}
+.btn-submit:hover{background:var(--pm);transform:translateY(-1px);}
+.btn-submit:disabled{opacity:.5;pointer-events:none;}
+.btn-reset{background:none;border:1.5px solid var(--line);color:var(--ink3);border-radius:var(--r);padding:10px 16px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--font);}
+.btn-reset:hover{border-color:var(--red);color:var(--red);}
+.mode-badge{margin-left:auto;padding:5px 11px;border-radius:99px;font-size:.7rem;font-weight:800;letter-spacing:.3px;text-transform:uppercase;}
+.mode-insert{background:var(--greenl);color:#14532D;}
+.mode-update{background:var(--amberl);color:#78350F;}
+.btn-load{display:inline-flex;align-items:center;gap:5px;background:var(--paler);border:1px solid var(--pl);color:var(--pm);border-radius:6px;padding:6px 13px;font-size:.76rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--font);}
+.btn-load:hover{background:var(--p);color:#fff;border-color:var(--p);}
+.btn-load:disabled{opacity:.5;pointer-events:none;}
+.callout{background:var(--paler);border-left:3px solid var(--pm);border-radius:0 var(--r) var(--r) 0;padding:9px 13px;font-size:.75rem;color:var(--ink2);line-height:1.6;margin-bottom:12px;}
+.callout b{color:var(--p);}
+.sep{height:1px;background:var(--line);margin:14px 0;}
+#toast{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:7px;pointer-events:none;}
+.toast-item{background:var(--ink);color:#fff;padding:10px 16px;border-radius:9px;font-size:.8rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:toast-in .2s ease;max-width:300px;display:flex;align-items:center;gap:7px;}
+.toast-item.ok{background:#166534;border-left:3px solid #4ADE80;}
+.toast-item.err{background:#991B1B;border-left:3px solid #FCA5A5;}
+.toast-item.info{background:#1E3A5F;border-left:3px solid #60A5FA;}
+@keyframes toast-in{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:none;}}
+.loader{display:none;position:fixed;inset:0;z-index:500;background:rgba(15,10,30,.45);backdrop-filter:blur(3px);align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loader.show{display:flex;}
+.spin{width:40px;height:40px;border-radius:50%;border:4px solid rgba(255,255,255,.15);border-top-color:#fff;animation:spin .7s linear infinite;}
+.loader-txt{color:#fff;font-size:.83rem;font-weight:600;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.mode-info{margin-top:8px;font-size:.75rem;}
+@media(max-width:640px){
+  .sidebar{width:160px;}
+  .fg-2,.fg-3{grid-template-columns:1fr;}
+  .full{grid-column:1;}
+}
+@media(max-width:480px){
+  .shell{flex-direction:column;height:auto;}
+  .sidebar{width:100%;height:auto;border-right:none;border-bottom:1px solid var(--line);padding:6px 0;overflow-x:auto;display:flex;gap:0;white-space:nowrap;}
+  .sidebar-section{display:none;}
+  .sb-item{display:inline-flex;border-left:none;border-bottom:3px solid transparent;padding:9px 13px;flex-shrink:0;}
+  .sb-item.active{border-bottom-color:var(--p);border-left-color:transparent;background:var(--pale);}
+  .main{overflow-y:auto;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-icon">🌸</span>
+  <div><div class="nav-title">JCOSASI — Input Data</div><div class="nav-sub">Panel pengisian Google Sheets</div></div>
+  <a href="index.html" class="nav-back">← Beranda</a>
+</nav>
+
+<div class="api-banner" id="apiBanner">
+  <label for="apiInput">🔑 URL Apps Script:</label>
+  <input id="apiInput" type="text" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false"/>
+  <button class="api-save" onclick="saveApiUrl()">Simpan</button>
+</div>
+
+<div class="loader" id="loader"><div class="spin"></div><div class="loader-txt" id="loaderTxt">Menyimpan…</div></div>
+<div id="toast"></div>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-section">Data Kegiatan</div>
+    <div class="sb-item active" onclick="showPanel('dok')" id="sb-dok"><span class="sb-icon">📸</span><span>Dokumentasi Sesi</span></div>
+    <div class="sb-item" onclick="showPanel('jadwal')" id="sb-jadwal"><span class="sb-icon">📅</span><span>Jadwal</span></div>
+    <div class="sb-item" onclick="showPanel('activity')" id="sb-activity"><span class="sb-icon">✅</span><span>Activity Log</span></div>
+    <div class="sidebar-section">Konfigurasi</div>
+    <div class="sb-item" onclick="showPanel('proker-detail')" id="sb-proker-detail"><span class="sb-icon">📋</span><span>Detail Proker</span></div>
+    <div class="sb-item" onclick="showPanel('notif-config')" id="sb-notif-config"><span class="sb-icon">🔔</span><span>Notif Config</span></div>
+    <div class="sb-item" onclick="showPanel('pengurus')" id="sb-pengurus"><span class="sb-icon">👥</span><span>Pengurus</span></div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ═══ DOKUMENTASI SESI ═══ -->
+    <div class="panel active" id="panel-dok">
+      <div class="panel-header">
+        <div class="panel-title">📸 Dokumentasi Sesi</div>
+        <div class="panel-sub">Laporan pelaksanaan per sesi — kehadiran, foto, materi, biaya · Sheet: <b>proker_dokumentasi</b></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">🎯</span><div><div class="card-head-title">Pilih Proker &amp; Tanggal</div><div class="card-head-sub">Load data existing untuk revisi, atau kosongkan untuk laporan baru</div></div></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="fld"><label class="lbl">Program Kerja <span class="req">*</span></label>
+              <select id="dok-pid" onchange="clearDokMode()"><option value="">— Pilih —</option></select></div>
+            <div class="fld"><label class="lbl">Tanggal Sesi <span class="req">*</span></label>
+              <input type="date" id="dok-tanggal" onchange="clearDokMode()"/></div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn-load" id="btn-load-dok" onclick="loadDokExisting()">🔍 Cek Data Existing</button>
+            <span id="dok-mode-info" class="mode-info"></span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">⏱️</span><div><div class="card-head-title">Info Sesi</div></div></div>
+        <div class="card-body">
+          <div class="fg fg-3">
+            <div class="fld"><label class="lbl">Waktu Mulai</label><input type="time" id="dok-waktu-mulai"/></div>
+            <div class="fld"><label class="lbl">Waktu Selesai</label><input type="time" id="dok-waktu-selesai"/></div>
+            <div class="fld"><label class="lbl">Lokasi <span class="lbl-opt">(opsional)</span></label><input type="text" id="dok-lokasi" placeholder="Ruang kelas, Aula…"/></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">👥</span><div><div class="card-head-title">Kehadiran</div><div class="card-head-sub">Pisahkan tiap nama dengan koma</div></div></div>
+        <div class="card-body fg">
+          <div class="fld"><label class="lbl">Peserta</label><textarea id="dok-peserta" placeholder="Andi Pratama, Siti Rahayu, …" rows="3"></textarea></div>
+          <div class="fld"><label class="lbl">Panitia</label><textarea id="dok-panitia" placeholder="Ketua Pelaksana, Sekretaris, …" rows="2"></textarea></div>
+          <div class="fld"><label class="lbl">Narasumber <span class="lbl-opt">(opsional)</span></label><input type="text" id="dok-narasumber" placeholder="Sensei Tanaka, …"/></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">📝</span><div><div class="card-head-title">Catatan Sesi</div></div></div>
+        <div class="card-body fg">
+          <div class="fld"><label class="lbl">Keterangan Kegiatan</label><textarea id="dok-ket" placeholder="Ringkasan kegiatan sesi ini…" rows="3"></textarea></div>
+          <div class="fld"><label class="lbl">Materi &amp; Progress</label><textarea id="dok-materi" placeholder="Materi yang dibahas, progress belajar…" rows="3"></textarea></div>
+          <div class="fld"><label class="lbl">Kendala <span class="lbl-opt">(opsional)</span></label><textarea id="dok-kendala" placeholder="Kendala yang dihadapi, evaluasi…" rows="2"></textarea></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">🖼️</span><div><div class="card-head-title">Foto Kegiatan</div><div class="card-head-sub">URL Google Drive — satu baris per foto</div></div></div>
+        <div class="card-body">
+          <div class="callout"><b>Tips:</b> Di Google Drive, klik kanan foto → Dapatkan link → ubah ke <code>https://drive.google.com/uc?export=view&amp;id=FILE_ID</code></div>
+          <div class="dyn-wrap"><table class="dyn-table"><thead><tr><th>URL Foto</th><th>Keterangan Foto</th><th class="col-del"></th></tr></thead><tbody id="foto-tbody"></tbody></table></div>
+          <button class="btn-add" onclick="addFotoRow()">＋ Tambah Foto</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">💰</span><div><div class="card-head-title">Rincian Biaya <span class="lbl-opt">(opsional)</span></div></div></div>
+        <div class="card-body">
+          <div class="dyn-wrap"><table class="dyn-table"><thead><tr><th>Item Biaya</th><th style="width:130px">Estimasi (Rp)</th><th style="width:130px">Aktual (Rp)</th><th class="col-del"></th></tr></thead><tbody id="biaya-tbody"></tbody></table></div>
+          <button class="btn-add" onclick="addBiayaRow()">＋ Tambah Item</button>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn-submit" id="btn-dok" onclick="submitDok()">💾 <span id="dok-btn-lbl">Simpan ke Sheets</span></button>
+        <button class="btn-reset" onclick="resetDok()">↺ Reset</button>
+        <span class="mode-badge mode-insert" id="dok-mode-badge">Mode: Baru</span>
+      </div>
+    </div>
+
+    <!-- ═══ JADWAL ═══ -->
+    <div class="panel" id="panel-jadwal">
+      <div class="panel-header">
+        <div class="panel-title">📅 Jadwal Kegiatan</div>
+        <div class="panel-sub">Jadwal mendatang untuk countdown &amp; badge notifikasi · Sheet: <b>proker_jadwal</b></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">📥</span><div><div class="card-head-title">Load &amp; Edit Jadwal</div><div class="card-head-sub">Muat semua jadwal dari Sheets, edit di tabel, lalu simpan semuanya sekaligus</div></div></div>
+        <div class="card-body">
+          <button class="btn-load" id="btn-load-jadwal" onclick="loadJadwal()">🔍 Muat Semua Jadwal</button>
+          <span id="jadwal-info" class="mode-info"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="dyn-wrap"><table class="dyn-table"><thead><tr><th>Proker</th><th style="width:148px">Tanggal</th><th style="width:108px">Jam</th><th class="col-del"></th></tr></thead><tbody id="jadwal-tbody"></tbody></table></div>
+          <button class="btn-add" onclick="addJadwalRow()">＋ Tambah Jadwal</button>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn-submit" onclick="submitJadwal()">💾 Simpan Semua Jadwal</button>
+        <button class="btn-reset" onclick="resetJadwal()">↺ Kosongkan</button>
+        <span class="mode-badge" style="background:var(--paler);color:var(--pm);margin-left:auto;">Replace semua baris jadwal</span>
+      </div>
+    </div>
+
+    <!-- ═══ ACTIVITY LOG ═══ -->
+    <div class="panel" id="panel-activity">
+      <div class="panel-header">
+        <div class="panel-title">✅ Activity Log</div>
+        <div class="panel-sub">Catat kegiatan yang sudah terlaksana atau dibatalkan · Sheet: <b>proker_activity</b></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">📥</span><div><div class="card-head-title">Load Data Existing</div></div></div>
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="fld"><label class="lbl">Filter Proker</label>
+              <select id="act-filter"><option value="">Semua proker</option></select></div>
+            <div class="fld"><label class="lbl">&nbsp;</label><button class="btn-load" id="btn-load-act" onclick="loadActivity()" style="align-self:flex-end;">🔍 Muat dari Sheets</button></div>
+          </div>
+          <span id="act-info" class="mode-info"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="dyn-wrap"><table class="dyn-table"><thead><tr><th>Proker</th><th style="width:148px">Tanggal</th><th style="width:150px">Status</th><th class="col-del"></th></tr></thead><tbody id="act-tbody"></tbody></table></div>
+          <button class="btn-add" onclick="addActRow()">＋ Tambah Entri</button>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn-submit" onclick="submitActivity()">💾 Simpan Log</button>
+        <button class="btn-reset" onclick="resetActivity()">↺ Kosongkan</button>
+      </div>
+    </div>
+
+    <!-- ═══ DETAIL PROKER ═══ -->
+    <div class="panel" id="panel-proker-detail">
+      <div class="panel-header">
+        <div class="panel-title">📋 Detail Proker</div>
+        <div class="panel-sub">Deskripsi, tujuan, waktu, lokasi, panitia, dan RAB · Sheet: <b>proker_detail</b></div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="fld"><label class="lbl">Program Kerja <span class="req">*</span></label>
+              <select id="pd-pid" onchange="clearPdMode()"><option value="">— Pilih —</option></select></div>
+            <div class="fld"><label class="lbl">&nbsp;</label><button class="btn-load" id="btn-load-pd" onclick="loadProkerDetail()" style="align-self:flex-end;">🔍 Load Data yang Ada</button></div>
+          </div>
+          <span id="pd-mode-info" class="mode-info"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body fg">
+          <div class="fld"><label class="lbl">Tujuan Kegiatan <span class="req">*</span></label><textarea id="pd-tujuan" placeholder="Tujuan dan manfaat dari program kerja ini…" rows="3"></textarea></div>
+          <div class="fg fg-2">
+            <div class="fld"><label class="lbl">Waktu (Teks Bebas)</label><input type="text" id="pd-waktu-teks" placeholder="Setiap Jumat, 14:00–16:00"/><span class="hint">Contoh: "Setiap Kamis" atau "Menyesuaikan"</span></div>
+            <div class="fld"><label class="lbl">Estimasi Tanggal</label><input type="date" id="pd-estimasi-tanggal"/><span class="hint">Tanggal perkiraan pelaksanaan utama</span></div>
+            <div class="fld"><label class="lbl">Lokasi</label><input type="text" id="pd-lokasi" placeholder="Ruang kelas, Aula…"/></div>
+            <div class="fld"><label class="lbl">Sasaran</label><input type="text" id="pd-sasaran" placeholder="Seluruh anggota aktif JCOSASI"/></div>
+            <div class="fld"><label class="lbl">Pemateri / Narasumber</label><input type="text" id="pd-pemateri" placeholder="Sensei, alumni, pembicara…"/></div>
+            <div class="fld"><label class="lbl">Panitia / PIC</label><input type="text" id="pd-panitia" placeholder="Divisi Akademik, Ketua Pelaksana…"/></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">💰</span><div><div class="card-head-title">RAB (Rencana Anggaran)</div><div class="card-head-sub">Disimpan sebagai JSON di kolom rab</div></div></div>
+        <div class="card-body">
+          <div class="dyn-wrap"><table class="dyn-table"><thead><tr><th>Item</th><th style="width:140px">Jumlah / Satuan</th><th style="width:130px">Estimasi (Rp)</th><th class="col-del"></th></tr></thead><tbody id="rab-tbody"></tbody></table></div>
+          <button class="btn-add" onclick="addRabRow()">＋ Tambah Item RAB</button>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn-submit" onclick="submitProkerDetail()">💾 <span id="pd-btn-lbl">Simpan Detail Proker</span></button>
+        <button class="btn-reset" onclick="resetProkerDetail()">↺ Reset</button>
+        <span class="mode-badge mode-insert" id="pd-mode-badge">Mode: Baru</span>
+      </div>
+    </div>
+
+    <!-- ═══ NOTIF CONFIG ═══ -->
+    <div class="panel" id="panel-notif-config">
+      <div class="panel-header">
+        <div class="panel-title">🔔 Konfigurasi Notifikasi</div>
+        <div class="panel-sub">Countdown, ajakan, dan peringatan wajib hadir per proker · Sheet: <b>proker_notif_config</b></div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="fg fg-2">
+            <div class="fld"><label class="lbl">Program Kerja <span class="req">*</span></label>
+              <select id="nc-pid" onchange="clearNcMode()"><option value="">— Pilih —</option></select></div>
+            <div class="fld"><label class="lbl">&nbsp;</label><button class="btn-load" id="btn-load-nc" onclick="loadNotifConfig()" style="align-self:flex-end;">🔍 Load Konfigurasi</button></div>
+          </div>
+          <span id="nc-mode-info" class="mode-info"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body fg">
+          <div class="fld"><label class="lbl">Countdown Aktif?</label>
+            <div class="toggle"><input type="radio" name="nc-cd" id="nc-cd-y" value="true" checked/><label for="nc-cd-y">✅ Aktif</label><input type="radio" name="nc-cd" id="nc-cd-n" value="false"/><label for="nc-cd-n">❌ Nonaktif</label></div></div>
+          <div class="sep"></div>
+          <div class="fld"><label class="lbl">Tampilkan Ajakan Hadir?</label>
+            <div class="toggle"><input type="radio" name="nc-aj" id="nc-aj-y" value="true" checked/><label for="nc-aj-y">✅ Ya</label><input type="radio" name="nc-aj" id="nc-aj-n" value="false"/><label for="nc-aj-n">❌ Tidak</label></div></div>
+          <div class="fg fg-2">
+            <div class="fld"><label class="lbl">Teks Ajakan</label><input type="text" id="nc-ajakan-teks" placeholder="Yuk hadir ke kegiatan ini! 🌸"/></div>
+            <div class="fld"><label class="lbl">Sub-teks Ajakan</label><input type="text" id="nc-ajakan-sub" placeholder="Jangan sampai ketinggalan ya~"/></div>
+          </div>
+          <div class="sep"></div>
+          <div class="fld"><label class="lbl">Wajib Hadir?</label>
+            <div class="toggle"><input type="radio" name="nc-wj" id="nc-wj-n" value="false" checked/><label for="nc-wj-n">❌ Tidak</label><input type="radio" name="nc-wj" id="nc-wj-y" value="true"/><label for="nc-wj-y">⚠️ Wajib</label></div></div>
+          <div class="fg fg-2">
+            <div class="fld"><label class="lbl">Teks Wajib Hadir</label><input type="text" id="nc-wajib-teks" placeholder="Kehadiran wajib semua anggota"/></div>
+            <div class="fld"><label class="lbl">Sanksi</label><input type="text" id="nc-sanksi" placeholder="Alpha = pengurangan poin keaktifan…"/></div>
+          </div>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn-submit" onclick="submitNotifConfig()">💾 Simpan Konfigurasi</button>
+        <button class="btn-reset" onclick="resetNotifConfig()">↺ Reset</button>
+        <span class="mode-badge mode-insert" id="nc-mode-badge">Mode: Baru</span>
+      </div>
+    </div>
+
+    <!-- ═══ PENGURUS ═══ -->
+    <div class="panel" id="panel-pengurus">
+      <div class="panel-header">
+        <div class="panel-title">👥 Pengurus</div>
+        <div class="panel-sub">Data kepengurusan JCOSASI Angkatan 12 · Sheet: <b>pengurus</b></div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button class="btn-load" id="btn-load-peng" onclick="loadPengurus()">🔍 Muat dari Sheets</button>
+          <span id="peng-info" class="mode-info"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-head-icon">📝</span><div><div class="card-head-title">Daftar Pengurus</div><div class="card-head-sub">Edit langsung — simpan sekaligus (replace all)</div></div></div>
+        <div class="card-body">
+          <div class="callout"><b>jabatan_level:</b> inti · bidang · anggota &nbsp;·&nbsp; <b>bidang_nama:</b> isi jika level = bidang (contoh: Akademik, Humas, Kreatif)</div>
+          <div class="dyn-wrap"><table class="dyn-table"><thead><tr><th style="width:85px">Level</th><th style="width:155px">Jabatan</th><th>Nama</th><th style="width:80px">Kelas</th><th>URL Foto</th><th style="width:110px">Bidang</th><th class="col-del"></th></tr></thead><tbody id="peng-tbody"></tbody></table></div>
+          <button class="btn-add" onclick="addPengRow()">＋ Tambah Pengurus</button>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn-submit" onclick="submitPengurus()">💾 Simpan Semua Pengurus</button>
+        <button class="btn-reset" onclick="resetPengurus()">↺ Kosongkan</button>
+        <span class="mode-badge" style="background:var(--paler);color:var(--pm);margin-left:auto;">Replace semua baris</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+'use strict';
+/* ══ CONFIG ══ */
+const STORAGE_KEY = 'jcosasi_input_api_v1';
+let API_URL = '';
+
+const PROKER = [
+  ['01','Pembelajaran Bahasa Jepang'],['02','Bidang Akademik'],['03','Proyek MB'],
+  ['04','Bidang Organisasi'],['05','DIKLAT'],['06','DEMOS Ekskul'],
+  ['07','Tanjoubi & Workshop'],['08','Pelantikan Anggota'],['09','Class Meeting'],
+  ['10','Serah Terima Jabatan'],['11','Mengikuti Lomba'],['12','Konten Kreatif'],
+  ['13','Kintore Bersama'],['14','Sharing Bersama Alumni']
+];
+
+function prokerOpts(selVal=''){return PROKER.map(([v,l])=>`<option value="${v}"${v===selVal?' selected':''}>${v} · ${l}</option>`).join('');}
+
+/* ══ DOM HELPERS ══ */
+const $=id=>document.getElementById(id);
+const val=id=>$(id)?.value?.trim()??'';
+const setVal=(id,v)=>{if($(id))$(id).value=v??'';};
+function mkTd(html){const td=document.createElement('td');td.innerHTML=html;return td;}
+function delRowEl(btn){btn.closest('tr').remove();}
+function escA(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+/* ══ API URL ══ */
+function initApiUrl(){
+  API_URL=localStorage.getItem(STORAGE_KEY)||'';
+  $('apiInput')&&($('apiInput').value=API_URL);
+  updateApiBanner(!!API_URL);
+  if(API_URL) populateAllProkerSelects();
+}
+function saveApiUrl(){
+  const u=$('apiInput')?.value?.trim()||'';
+  if(!u||!u.startsWith('https://')){toast('URL tidak valid — harus diawali https://','err');return;}
+  API_URL=u;localStorage.setItem(STORAGE_KEY,u);updateApiBanner(true);toast('URL tersimpan ✓','ok');
+  populateAllProkerSelects();
+}
+function updateApiBanner(ok){
+  const b=$('apiBanner');if(!b)return;
+  if(ok){
+    b.className='api-banner api-ok';
+    b.innerHTML=`<span>✅ Apps Script terhubung</span><code style="font-size:.7rem;opacity:.65;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${API_URL}</code><button class="api-chg" onclick="changeApi()">Ganti</button>`;
+  }else{
+    b.className='api-banner';
+    b.innerHTML=`<label for="apiInput">🔑 URL Apps Script:</label><input id="apiInput" type="text" placeholder="https://script.google.com/macros/s/…/exec" value="${escA(API_URL)}" spellcheck="false"/><button class="api-save" onclick="saveApiUrl()">Simpan</button>`;
+  }
+}
+function changeApi(){
+  $('apiBanner').className='api-banner';
+  $('apiBanner').innerHTML=`<label for="apiInput">🔑 URL Apps Script:</label><input id="apiInput" type="text" placeholder="https://script.google.com/macros/s/…/exec" value="${escA(API_URL)}" spellcheck="false"/><button class="api-save" onclick="saveApiUrl()">Simpan</button>`;
+}
+function checkApi(){if(!API_URL){toast('Simpan URL Apps Script dulu di bagian atas','err');return false;}return true;}
+
+function populateAllProkerSelects(){
+  const ids=['dok-pid','pd-pid','nc-pid','act-filter'];
+  ids.forEach(id=>{
+    const el=$(id); if(!el)return;
+    const cur=el.value;
+    const isFilter=id==='act-filter';
+    el.innerHTML=(isFilter?'<option value="">Semua proker</option>':'<option value="">— Pilih —</option>')+prokerOpts(cur);
+  });
+}
+
+/* ══ TOAST ══ */
+function toast(msg,type='info'){
+  const el=document.createElement('div');el.className=`toast-item ${type}`;
+  const ic={ok:'✅',err:'❌',info:'ℹ️'};
+  el.innerHTML=`<span>${ic[type]||'ℹ️'}</span><span>${msg}</span>`;
+  $('toast').appendChild(el);
+  setTimeout(()=>el.remove(),type==='err'?5000:3000);
+}
+
+/* ══ LOADER ══ */
+const showLoader=txt=>{$('loaderTxt').textContent=txt||'Menyimpan…';$('loader').classList.add('show');};
+const hideLoader=()=>$('loader').classList.remove('show');
+
+/* ══ PANEL NAV ══ */
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  $('panel-'+id)?.classList.add('active');
+  $('sb-'+id)?.classList.add('active');
+}
+
+/* ══ API ══ */
+function apiGet(sheet){
+  return new Promise((res,rej)=>{
+    const cb='jcCb'+Date.now();
+    const s=document.createElement('script');
+    s.src=`${API_URL}?sheet=${sheet}&callback=${cb}&_=${Date.now()}`;
+    window[cb]=data=>{delete window[cb];s.remove();res(data);};
+    s.onerror=()=>{delete window[cb];s.remove();rej(new Error('Fetch gagal — cek URL & izin deploy'));};
+    document.head.appendChild(s);
+    setTimeout(()=>{if(window[cb]){delete window[cb];s.remove();rej(new Error('Timeout'));}},15000);
+  });
+}
+async function apiPost(body){
+  const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),mode:'cors'});
+  return r.json();
+}
+
+/* ════════════════════════════════════════
+   DOKUMENTASI SESI
+════════════════════════════════════════ */
+let _dokMode='insert';
+
+function clearDokMode(){
+  _dokMode='insert';
+  $('dok-mode-info').innerHTML='';
+  $('dok-mode-badge').className='mode-badge mode-insert';
+  $('dok-mode-badge').textContent='Mode: Baru';
+  $('dok-btn-lbl').textContent='Simpan ke Sheets';
+}
+
+async function loadDokExisting(){
+  const pid=val('dok-pid'),tgl=val('dok-tanggal');
+  if(!pid){toast('Pilih proker dulu','err');return;}
+  if(!checkApi())return;
+  const btn=$('btn-load-dok');btn.disabled=true;btn.textContent='⌛ Memuat…';
+  try{
+    const res=await apiGet('proker_dokumentasi');
+    const rows=(res?.data||[]).filter(r=>r.proker_id===pid&&(!tgl||r.tanggal_sesi===tgl));
+    btn.disabled=false;btn.textContent='🔍 Cek Data Existing';
+    if(!rows.length){
+      $('dok-mode-info').innerHTML=`<span style="color:var(--green);font-weight:700;">✅ Belum ada data — mode tambah baru</span>`;
+      _dokMode='insert';$('dok-mode-badge').className='mode-badge mode-insert';$('dok-mode-badge').textContent='Mode: Baru';return;
+    }
+    _dokMode='update';
+    $('dok-mode-badge').className='mode-badge mode-update';$('dok-mode-badge').textContent='Mode: Update';
+    $('dok-mode-info').innerHTML=`<span style="background:var(--amberl);color:#78350F;padding:4px 10px;border-radius:6px;font-weight:700;">✏️ ${rows.length} baris ditemukan — akan di-replace</span>`;
+    $('dok-btn-lbl').textContent='Update ke Sheets';
+    // Populate form
+    const d=rows[0];
+    setVal('dok-waktu-mulai',d.waktu_mulai||'');setVal('dok-waktu-selesai',d.waktu_selesai||'');setVal('dok-lokasi',d.lokasi||'');
+    setVal('dok-peserta',d.hadir_peserta||'');setVal('dok-panitia',d.hadir_panitia||'');setVal('dok-narasumber',d.hadir_narasumber||'');
+    setVal('dok-ket',d.keterangan||'');setVal('dok-materi',d.materi||'');setVal('dok-kendala',d.kendala||'');
+    $('foto-tbody').innerHTML='';rows.filter(r=>r.foto_url).forEach(r=>addFotoRow(r.foto_url,r.keterangan));if(!$('foto-tbody').children.length)addFotoRow();
+    $('biaya-tbody').innerHTML='';rows.filter(r=>r.item_biaya||r.biaya_aktual).forEach(r=>addBiayaRow(r.item_biaya,r.estimasi_biaya_item,r.biaya_aktual));if(!$('biaya-tbody').children.length)addBiayaRow();
+    toast(`${rows.length} baris dimuat — form sudah terisi`,'info');
+  }catch(e){btn.disabled=false;btn.textContent='🔍 Cek Data Existing';toast('Gagal: '+e.message,'err');}
+}
+
+let _fc=0,_bc=0;
+function addFotoRow(url='',cap=''){
+  const tr=document.createElement('tr');
+  tr.appendChild(mkTd(`<input type="text" class="f-url" placeholder="https://drive.google.com/uc?export=view&id=…" value="${escA(url)}"/>`));
+  tr.appendChild(mkTd(`<input type="text" class="f-cap" placeholder="Keterangan foto (opsional)" value="${escA(cap)}"/>`));
+  tr.appendChild(mkTd(`<button class="btn-del" onclick="delRowEl(this)" title="Hapus">✕</button>`));
+  $('foto-tbody').appendChild(tr);
+}
+function addBiayaRow(item='',est='',akt=''){
+  const tr=document.createElement('tr');
+  tr.appendChild(mkTd(`<input type="text" class="b-item" placeholder="Nama item" value="${escA(item)}"/>`));
+  tr.appendChild(mkTd(`<input type="number" class="b-est" placeholder="0" value="${escA(est)}" min="0"/>`));
+  tr.appendChild(mkTd(`<input type="number" class="b-akt" placeholder="0" value="${escA(akt)}" min="0"/>`));
+  tr.appendChild(mkTd(`<button class="btn-del" onclick="delRowEl(this)">✕</button>`));
+  $('biaya-tbody').appendChild(tr);
+}
+
+async function submitDok(){
+  const pid=val('dok-pid'),tgl=val('dok-tanggal');
+  if(!pid||!tgl){toast('Proker dan tanggal wajib diisi','err');return;}
+  if(!checkApi())return;
+  const fotos=[...$('foto-tbody').querySelectorAll('tr')].map(tr=>({url:tr.querySelector('.f-url')?.value.trim()||'',cap:tr.querySelector('.f-cap')?.value.trim()||''})).filter(f=>f.url);
+  const biayas=[...$('biaya-tbody').querySelectorAll('tr')].map(tr=>({item:tr.querySelector('.b-item')?.value.trim()||'',est:tr.querySelector('.b-est')?.value.trim()||'',akt:tr.querySelector('.b-akt')?.value.trim()||''})).filter(b=>b.item||b.est||b.akt);
+  const base={proker_id:pid,tanggal_sesi:tgl,waktu_mulai:val('dok-waktu-mulai'),waktu_selesai:val('dok-waktu-selesai'),lokasi:val('dok-lokasi'),hadir_peserta:val('dok-peserta'),hadir_panitia:val('dok-panitia'),hadir_narasumber:val('dok-narasumber'),keterangan:val('dok-ket'),materi:val('dok-materi'),kendala:val('dok-kendala')};
+  const maxRows=Math.max(1,fotos.length,biayas.length);
+  const rows=[];
+  for(let i=0;i<maxRows;i++){
+    const f=fotos[i]||{url:'',cap:''};const b=biayas[i]||{item:'',est:'',akt:''};
+    rows.push(i===0?{...base,foto_url:f.url,keterangan:base.keterangan||f.cap,item_biaya:b.item,estimasi_biaya_item:b.est,biaya_aktual:b.akt}:{proker_id:pid,tanggal_sesi:tgl,foto_url:f.url,keterangan:f.cap,hadir_peserta:'',hadir_panitia:'',hadir_narasumber:'',materi:'',waktu_mulai:'',waktu_selesai:'',kendala:'',lokasi:'',item_biaya:b.item,estimasi_biaya_item:b.est,biaya_aktual:b.akt});
+  }
+  showLoader(_dokMode==='update'?'Mengupdate dokumentasi sesi…':'Menyimpan dokumentasi sesi…');
+  try{
+    const body=_dokMode==='update'?{action:'replace',sheet:'proker_dokumentasi',key:'tanggal_sesi',keyValue:tgl,rows}:{action:'insert',sheet:'proker_dokumentasi',rows};
+    const res=await apiPost(body);hideLoader();
+    if(res.status==='ok'){toast(`✅ ${rows.length} baris berhasil disimpan!`,'ok');clearDokMode();}
+    else throw new Error(res.message||'Gagal');
+  }catch(e){hideLoader();toast('Gagal: '+e.message,'err');}
+}
+
+function resetDok(){
+  ['dok-pid','dok-tanggal','dok-waktu-mulai','dok-waktu-selesai','dok-lokasi','dok-peserta','dok-panitia','dok-narasumber','dok-ket','dok-materi','dok-kendala'].forEach(id=>setVal(id,''));
+  $('foto-tbody').innerHTML='';addFotoRow();
+  $('biaya-tbody').innerHTML='';addBiayaRow();
+  clearDokMode();
+  setVal('dok-tanggal',new Date().toISOString().split('T')[0]);
+}
+
+/* ════════════════════════════════════════
+   JADWAL
+════════════════════════════════════════ */
+function addJadwalRow(pid='',tgl='',jam=''){
+  const tr=document.createElement('tr');
+  tr.appendChild(mkTd(`<select class="j-pid" style="min-width:180px"><option value="">–</option>${prokerOpts(pid)}</select>`));
+  tr.appendChild(mkTd(`<input type="date" class="j-tgl" value="${escA(tgl)}"/>`));
+  tr.appendChild(mkTd(`<input type="time" class="j-jam" value="${escA(jam)}"/>`));
+  tr.appendChild(mkTd(`<button class="btn-del" onclick="delRowEl(this)">✕</button>`));
+  $('jadwal-tbody').appendChild(tr);
+}
+async function loadJadwal(){
+  if(!checkApi())return;
+  const btn=$('btn-load-jadwal');btn.disabled=true;btn.textContent='⌛ Memuat…';
+  try{
+    const res=await apiGet('proker_jadwal');const rows=res?.data||[];
+    $('jadwal-tbody').innerHTML='';rows.forEach(r=>addJadwalRow(r.proker_id,r.tanggal,r.jam));
+    if(!rows.length)addJadwalRow();
+    $('jadwal-info').innerHTML=`<span style="color:var(--ink3);">${rows.length} jadwal dimuat</span>`;
+    btn.disabled=false;btn.textContent='🔍 Muat Semua Jadwal';toast(`${rows.length} jadwal dimuat`,'info');
+  }catch(e){btn.disabled=false;btn.textContent='🔍 Muat Semua Jadwal';toast('Gagal: '+e.message,'err');}
+}
+async function submitJadwal(){
+  if(!checkApi())return;
+  const rows=[...$('jadwal-tbody').querySelectorAll('tr')].map(tr=>({proker_id:tr.querySelector('.j-pid')?.value||'',tanggal:tr.querySelector('.j-tgl')?.value||'',jam:tr.querySelector('.j-jam')?.value||''})).filter(r=>r.proker_id&&r.tanggal);
+  if(!rows.length){toast('Tidak ada jadwal untuk disimpan','err');return;}
+  showLoader('Menyimpan jadwal…');
+  try{
+    // Hapus semua lalu insert (tidak ada key tunggal untuk replace-all)
+    for(const[,l]of PROKER){const pid=PROKER.find(p=>l)&&PROKER[0];}
+    // Insert semua baris baru (append)
+    const res=await apiPost({action:'insert',sheet:'proker_jadwal',rows});
+    hideLoader();
+    if(res.status==='ok')toast(`✅ ${rows.length} jadwal tersimpan`,'ok');
+    else throw new Error(res.message);
+  }catch(e){hideLoader();toast('Gagal: '+e.message,'err');}
+}
+function resetJadwal(){$('jadwal-tbody').innerHTML='';addJadwalRow();}
+
+/* ════════════════════════════════════════
+   ACTIVITY LOG
+════════════════════════════════════════ */
+function addActRow(pid='',tgl='',status='aktual'){
+  const tr=document.createElement('tr');
+  tr.appendChild(mkTd(`<select class="a-pid" style="min-width:160px"><option value="">–</option>${prokerOpts(pid)}</select>`));
+  tr.appendChild(mkTd(`<input type="date" class="a-tgl" value="${escA(tgl)}"/>`));
+  tr.appendChild(mkTd(`<select class="a-status"><option value="aktual"${status==='aktual'?' selected':''}>✅ Aktual</option><option value="batal"${status==='batal'?' selected':''}>❌ Batal</option></select>`));
+  tr.appendChild(mkTd(`<button class="btn-del" onclick="delRowEl(this)">✕</button>`));
+  $('act-tbody').appendChild(tr);
+}
+async function loadActivity(){
+  if(!checkApi())return;
+  const filterPid=val('act-filter');
+  const btn=$('btn-load-act');btn.disabled=true;btn.textContent='⌛ Memuat…';
+  try{
+    const res=await apiGet('proker_activity');let rows=res?.data||[];
+    if(filterPid)rows=rows.filter(r=>r.proker_id===filterPid);
+    $('act-tbody').innerHTML='';rows.forEach(r=>addActRow(r.proker_id,r.tanggal,r.status));
+    if(!rows.length)addActRow(filterPid);
+    $('act-info').innerHTML=`<span style="color:var(--ink3);">${rows.length} entri dimuat</span>`;
+    btn.disabled=false;btn.textContent='🔍 Muat dari Sheets';toast(`${rows.length} entri dimuat`,'info');
+  }catch(e){btn.disabled=false;btn.textContent='🔍 Muat dari Sheets';toast('Gagal: '+e.message,'err');}
+}
+async function submitActivity(){
+  if(!checkApi())return;
+  const rows=[...$('act-tbody').querySelectorAll('tr')].map(tr=>({proker_id:tr.querySelector('.a-pid')?.value||'',tanggal:tr.querySelector('.a-tgl')?.value||'',status:tr.querySelector('.a-status')?.value||'aktual'})).filter(r=>r.proker_id&&r.tanggal);
+  if(!rows.length){toast('Tidak ada data','err');return;}
+  showLoader('Menyimpan activity log…');
+  try{
+    const res=await apiPost({action:'insert',sheet:'proker_activity',rows});
+    hideLoader();if(res.status==='ok')toast(`✅ ${rows.length} entri disimpan`,'ok');else throw new Error(res.message);
+  }catch(e){hideLoader();toast('Gagal: '+e.message,'err');}
+}
+function resetActivity(){$('act-tbody').innerHTML='';addActRow();}
+
+/* ════════════════════════════════════════
+   DETAIL PROKER
+════════════════════════════════════════ */
+let _pdMode='insert';
+function clearPdMode(){_pdMode='insert';$('pd-mode-info').innerHTML='';$('pd-mode-badge').className='mode-badge mode-insert';$('pd-mode-badge').textContent='Mode: Baru';$('pd-btn-lbl').textContent='Simpan Detail Proker';}
+function addRabRow(item='',jml='',est=''){
+  const tr=document.createElement('tr');
+  tr.appendChild(mkTd(`<input type="text" class="r-item" placeholder="Konsumsi, sewa ruang…" value="${escA(item)}"/>`));
+  tr.appendChild(mkTd(`<input type="text" class="r-jml" placeholder="30 orang / 1 paket" value="${escA(jml)}"/>`));
+  tr.appendChild(mkTd(`<input type="number" class="r-est" placeholder="0" value="${escA(est)}" min="0"/>`));
+  tr.appendChild(mkTd(`<button class="btn-del" onclick="delRowEl(this)">✕</button>`));
+  $('rab-tbody').appendChild(tr);
+}
+async function loadProkerDetail(){
+  const pid=val('pd-pid');if(!pid){toast('Pilih proker dulu','err');return;}if(!checkApi())return;
+  const btn=$('btn-load-pd');btn.disabled=true;btn.textContent='⌛ Memuat…';
+  try{
+    const res=await apiGet('proker_detail');const found=(res?.data||[]).find(r=>r.proker_id===pid);
+    btn.disabled=false;btn.textContent='🔍 Load Data yang Ada';
+    if(!found){$('pd-mode-info').innerHTML=`<span style="color:var(--green);font-weight:700;">✅ Belum ada — isi sebagai data baru</span>`;_pdMode='insert';return;}
+    _pdMode='update';$('pd-mode-badge').className='mode-badge mode-update';$('pd-mode-badge').textContent='Mode: Update';$('pd-btn-lbl').textContent='Update ke Sheets';
+    $('pd-mode-info').innerHTML=`<span style="background:var(--amberl);color:#78350F;padding:4px 10px;border-radius:6px;font-weight:700;">✏️ Data ditemukan — form sudah terisi</span>`;
+    setVal('pd-tujuan',found.tujuan||'');setVal('pd-waktu-teks',found.waktu_teks||'');setVal('pd-estimasi-tanggal',found.estimasi_tanggal||'');
+    setVal('pd-lokasi',found.lokasi||'');setVal('pd-sasaran',found.sasaran||'');setVal('pd-pemateri',found.pemateri||'');setVal('pd-panitia',found.panitia||'');
+    $('rab-tbody').innerHTML='';
+    try{const rab=typeof found.rab==='string'?JSON.parse(found.rab||'[]'):found.rab||[];if(Array.isArray(rab))rab.forEach(r=>addRabRow(r.item||'',r.jumlah||'',r.estimasi||''));}catch(e){}
+    if(!$('rab-tbody').children.length)addRabRow();
+    toast('Data proker dimuat','info');
+  }catch(e){btn.disabled=false;btn.textContent='🔍 Load Data yang Ada';toast('Gagal: '+e.message,'err');}
+}
+async function submitProkerDetail(){
+  const pid=val('pd-pid');if(!pid){toast('Pilih proker dulu','err');return;}if(!checkApi())return;
+  const rab=[...$('rab-tbody').querySelectorAll('tr')].map(tr=>({item:tr.querySelector('.r-item')?.value.trim()||'',jumlah:tr.querySelector('.r-jml')?.value.trim()||'',estimasi:tr.querySelector('.r-est')?.value.trim()||''})).filter(r=>r.item);
+  const row={proker_id:pid,tujuan:val('pd-tujuan'),waktu_teks:val('pd-waktu-teks'),estimasi_tanggal:val('pd-estimasi-tanggal'),lokasi:val('pd-lokasi'),sasaran:val('pd-sasaran'),pemateri:val('pd-pemateri'),panitia:val('pd-panitia'),rab:rab.length?JSON.stringify(rab):''};
+  if(!row.tujuan){toast('Tujuan wajib diisi','err');return;}
+  showLoader(_pdMode==='update'?'Mengupdate detail proker…':'Menyimpan detail proker…');
+  try{
+    const res=await apiPost({action:'upsert',sheet:'proker_detail',key:'proker_id',keyValue:pid,row});
+    hideLoader();if(res.status==='ok')toast(`✅ Detail proker ${pid} disimpan (${res.action})`,'ok');else throw new Error(res.message);
+  }catch(e){hideLoader();toast('Gagal: '+e.message,'err');}
+}
+function resetProkerDetail(){['pd-pid','pd-tujuan','pd-waktu-teks','pd-estimasi-tanggal','pd-lokasi','pd-sasaran','pd-pemateri','pd-panitia'].forEach(id=>setVal(id,''));$('rab-tbody').innerHTML='';addRabRow();clearPdMode();}
+
+/* ════════════════════════════════════════
+   NOTIF CONFIG
+════════════════════════════════════════ */
+let _ncMode='insert';
+function clearNcMode(){_ncMode='insert';$('nc-mode-info').innerHTML='';$('nc-mode-badge').className='mode-badge mode-insert';$('nc-mode-badge').textContent='Mode: Baru';}
+async function loadNotifConfig(){
+  const pid=val('nc-pid');if(!pid){toast('Pilih proker dulu','err');return;}if(!checkApi())return;
+  const btn=$('btn-load-nc');btn.disabled=true;btn.textContent='⌛ Memuat…';
+  try{
+    const res=await apiGet('proker_notif_config');const found=(res?.data||[]).find(r=>r.proker_id===pid);
+    btn.disabled=false;btn.textContent='🔍 Load Konfigurasi';
+    if(!found){$('nc-mode-info').innerHTML=`<span style="color:var(--green);font-weight:700;">✅ Belum ada config — isi baru</span>`;return;}
+    _ncMode='update';$('nc-mode-badge').className='mode-badge mode-update';$('nc-mode-badge').textContent='Mode: Update';
+    $('nc-mode-info').innerHTML=`<span style="background:var(--amberl);color:#78350F;padding:4px 10px;border-radius:6px;font-weight:700;">✏️ Konfigurasi ditemukan</span>`;
+    const setR=(name,v)=>{document.querySelectorAll(`input[name="${name}"]`).forEach(r=>{r.checked=r.value===(v||'');});};
+    setR('nc-cd',found.countdown_aktif||'true');setR('nc-aj',found.ajakan||'true');setR('nc-wj',found.wajib_hadir||'false');
+    setVal('nc-ajakan-teks',found.ajakan_teks||'');setVal('nc-ajakan-sub',found.ajakan_sub||'');setVal('nc-wajib-teks',found.wajib_hadir_teks||'');setVal('nc-sanksi',found.wajib_hadir_sanksi||'');
+    toast('Konfigurasi dimuat','info');
+  }catch(e){btn.disabled=false;btn.textContent='🔍 Load Konfigurasi';toast('Gagal: '+e.message,'err');}
+}
+async function submitNotifConfig(){
+  const pid=val('nc-pid');if(!pid){toast('Pilih proker dulu','err');return;}if(!checkApi())return;
+  const gR=name=>document.querySelector(`input[name="${name}"]:checked`)?.value||'';
+  const row={proker_id:pid,countdown_aktif:gR('nc-cd'),ajakan:gR('nc-aj'),ajakan_teks:val('nc-ajakan-teks'),ajakan_sub:val('nc-ajakan-sub'),wajib_hadir:gR('nc-wj'),wajib_hadir_teks:val('nc-wajib-teks'),wajib_hadir_sanksi:val('nc-sanksi')};
+  showLoader('Menyimpan konfigurasi notif…');
+  try{
+    const res=await apiPost({action:'upsert',sheet:'proker_notif_config',key:'proker_id',keyValue:pid,row});
+    hideLoader();if(res.status==='ok')toast(`✅ Notif config ${pid} disimpan`,'ok');else throw new Error(res.message);
+  }catch(e){hideLoader();toast('Gagal: '+e.message,'err');}
+}
+function resetNotifConfig(){setVal('nc-pid','');['nc-ajakan-teks','nc-ajakan-sub','nc-wajib-teks','nc-sanksi'].forEach(id=>setVal(id,''));document.querySelector('input[name="nc-cd"][value="true"]').checked=true;document.querySelector('input[name="nc-aj"][value="true"]').checked=true;document.querySelector('input[name="nc-wj"][value="false"]').checked=true;clearNcMode();}
+
+/* ════════════════════════════════════════
+   PENGURUS
+════════════════════════════════════════ */
+function addPengRow(r={}){
+  const tr=document.createElement('tr');
+  const lvlOpts=['inti','bidang','anggota'].map(v=>`<option value="${v}"${(r.jabatan_level||'inti')===v?' selected':''}>${v}</option>`).join('');
+  tr.appendChild(mkTd(`<select class="pg-lvl">${lvlOpts}</select>`));
+  tr.appendChild(mkTd(`<input type="text" class="pg-jab" placeholder="Ketua Umum, …" value="${escA(r.jabatan||'')}"/>`));
+  tr.appendChild(mkTd(`<input type="text" class="pg-nama" placeholder="Nama lengkap" value="${escA(r.nama||'')}"/>`));
+  tr.appendChild(mkTd(`<input type="text" class="pg-kls" placeholder="XII PPLG 1" value="${escA(r.kelas||'')}"/>`));
+  tr.appendChild(mkTd(`<input type="text" class="pg-foto" placeholder="URL foto" value="${escA(r.foto_url||'')}"/>`));
+  tr.appendChild(mkTd(`<input type="text" class="pg-bid" placeholder="Akademik, Humas…" value="${escA(r.bidang_nama||'')}"/>`));
+  tr.appendChild(mkTd(`<button class="btn-del" onclick="delRowEl(this)">✕</button>`));
+  $('peng-tbody').appendChild(tr);
+}
+async function loadPengurus(){
+  if(!checkApi())return;const btn=$('btn-load-peng');btn.disabled=true;btn.textContent='⌛ Memuat…';
+  try{
+    const res=await apiGet('pengurus');const rows=res?.data||[];
+    $('peng-tbody').innerHTML='';rows.forEach(r=>addPengRow(r));if(!rows.length)addPengRow();
+    $('peng-info').innerHTML=`<span style="color:var(--ink3);">${rows.length} pengurus dimuat</span>`;
+    btn.disabled=false;btn.textContent='🔍 Muat dari Sheets';toast(`${rows.length} pengurus dimuat`,'info');
+  }catch(e){btn.disabled=false;btn.textContent='🔍 Muat dari Sheets';toast('Gagal: '+e.message,'err');}
+}
+async function submitPengurus(){
+  if(!checkApi())return;
+  const rows=[...$('peng-tbody').querySelectorAll('tr')].map(tr=>({jabatan_level:tr.querySelector('.pg-lvl')?.value||'',jabatan:tr.querySelector('.pg-jab')?.value.trim()||'',nama:tr.querySelector('.pg-nama')?.value.trim()||'',kelas:tr.querySelector('.pg-kls')?.value.trim()||'',foto_url:tr.querySelector('.pg-foto')?.value.trim()||'',bidang_nama:tr.querySelector('.pg-bid')?.value.trim()||''})).filter(r=>r.nama);
+  if(!rows.length){toast('Tidak ada data pengurus','err');return;}
+  showLoader('Menyimpan data pengurus…');
+  try{
+    // Delete per level lalu insert semua
+    for(const lvl of['inti','bidang','anggota']){await apiPost({action:'delete',sheet:'pengurus',key:'jabatan_level',keyValue:lvl}).catch(()=>{});}
+    const res=await apiPost({action:'insert',sheet:'pengurus',rows});
+    hideLoader();if(res.status==='ok')toast(`✅ ${rows.length} pengurus disimpan`,'ok');else throw new Error(res.message);
+  }catch(e){hideLoader();toast('Gagal: '+e.message,'err');}
+}
+function resetPengurus(){$('peng-tbody').innerHTML='';addPengRow();}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  initApiUrl();
+  addFotoRow();addBiayaRow();addJadwalRow();addActRow();addRabRow();addPengRow();
+  setVal('dok-tanggal',new Date().toISOString().split('T')[0]);
+});
+</script>
+</body>
+</html>

@@ -70,20 +70,21 @@ const CONTENT = {
       { label: "Pengurus",       href: "#pengurus" },
       { label: "Kontak",         href: "#kontak"   },
       { label: "📊 Dashboard",   href: "proker.html?page=rekap" },
+      { label: "✏️ Input Data",   href: "input.html" },
     ],
   },
 
   /* ── HERO SECTION ─────────────────────────────────── */
   hero: {
     badge:      "Program Kerja · Periode 2026–2027",
-    jp_accent:  "学び、創り、",
+    jp_accent:  "学び、成長し、共に輝く",
     headline:   "Tumbuh Bersama",
     subtitle:   "JCOSASI",
     desc:       "Japanese Community of Satu Bekasi — Ekstrakurikuler bahasa Jepang SMKN 1 Cikarang Barat. Ini adalah ruang belajar, berproses, dan bertumbuh untuk seluruh anggota.",
     highlights: [
       "Berdiri sejak 2013",
       "30+ Anggota Aktif",
-      "15 Program Kerja",
+      "14 Program Kerja",
       "Target JLPT N4",
     ],
     cta_text:   "Lihat Program Kerja",
@@ -92,7 +93,7 @@ const CONTENT = {
 
   /* ── TENTANG ──────────────────────────────────────── */
   tentang: {
-    label:   "アバウト — Tentang Kami",
+    label:   "私たちについて — Tentang Kami",
     heading: "Japanese Community<br/><em>of Satu Bekasi</em>",
     para1:   "JCOSASI berdiri sejak <strong>21 Agustus 2013</strong> di SMKN 1 Cikarang Barat. Selama lebih dari satu dekade, kami menjadi ruang belajar dan berkembang bagi siswa yang punya ketertarikan terhadap bahasa, budaya, dan dunia Jepang.",
     para2:   "Tidak hanya belajar bahasa secara formal bersama sensei, anggota juga diajak mengembangkan kreativitas, bekerja dalam tim, dan membangun pengalaman organisasi yang nyata untuk masa depan.",
@@ -104,7 +105,7 @@ const CONTENT = {
     card: {
       badge:  "Angkatan 12",
       year:   "2026–2027",
-      tags:   ["学習", "創造", "成長", "組織"],
+      tags:   ["学習", "創造", "成長", "絆"],
       motto:  "\"Belajar, Berkarya, Bertumbuh\"",
     },
   },
@@ -129,8 +130,8 @@ const CONTENT = {
 
   /* ── PROGRAM KERJA ────────────────────────────────── */
   proker: {
-    label:   "プログラム — Program Kerja",
-    heading: "15 Program Kerja<br/><em>Periode 2026–2027</em>",
+    label:   "年間活動 — Program Kerja",
+    heading: "14 Program Kerja<br/><em>Periode 2026–2027</em>",
     desc:    "Dijalankan oleh Pengurus JCOSASI Angkatan 12 untuk seluruh anggota aktif.",
     items: [
       {
@@ -376,7 +377,7 @@ const CONTENT = {
    * Untuk mengubah nama/kelas pengurus → edit langsung di Google Sheets.
    */
   pengurus: {
-    label:   "メンバー — Tim Pengurus",
+    label:   "役員紹介 — Tim Pengurus",
     heading: "Struktur Pengurus<br/><em>Angkatan 12</em>",
     desc:    "Periode kepengurusan 2026–2027 dijalankan oleh pengurus JCOSASI Angkatan 12.",
     catatan: "Untuk informasi lengkap struktur kepengurusan, lihat dokumen resmi Program Kerja JCOSASI Angkatan 12.",
@@ -405,11 +406,11 @@ const CONTENT = {
       badge:  "Kepengurusan",
       year:   "2026–2027",
       stats: [
-        { num: "15",  label: "Program Kerja" },
+        { num: "14",  label: "Program Kerja" },
         { num: "6",   label: "Bidang MB"     },
         { num: "30+", label: "Anggota"       },
       ],
-      jp_quote:    "学び、創り、成長する",
+      jp_quote:    "共に学び、共に輝こう",
       id_quote:    "Belajar, Berkarya, Bertumbuh",
     },
   },
