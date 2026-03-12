@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JCOSASI — Editor Laporan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div class="lov" id="lov"><div class="ring"></div><div class="ltx" id="ltx">Mengambil data…</div></div>
+
+<nav class="topbar">
+  <div class="tb-logo"><div class="tb-li">🎌</div><div><div class="tb-lt">JCOSASI</div><div class="tb-ls">Editor Laporan v3</div></div></div>
+  <div class="tb-sp"></div>
+  <div class="tb-st"><div class="tb-d" id="statusDot"></div><span id="statusTxt">Memuat…</span></div>
+  <button class="btn-upload" id="btnUpload" onclick="handleUpload()" disabled>☁️ Upload ke Sheets</button>
+</nav>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-s">Dashboard</div>
+    <div class="sb-i active" onclick="showPage('rekap')" id="nav-rekap"><span class="sb-ic">📊</span><span>Overview</span></div>
+    <div class="sb-i" onclick="showPage('changelog')" id="nav-changelog"><span class="sb-ic">📝</span><span>Log Perubahan</span><span class="sb-b" id="badge-changelog">0</span></div>
+    <div class="sb-d"></div>
+    <div class="sb-s">Edit Data</div>
+    <div class="sb-i" onclick="showPage('dokumentasi')" id="nav-dokumentasi"><span class="sb-ic">📋</span><span>Dokumentasi Sesi</span><span class="sb-b" id="badge-dokumentasi">0</span></div>
+    <div class="sb-i" onclick="showPage('jadwal')" id="nav-jadwal"><span class="sb-ic">📅</span><span>Jadwal Proker</span><span class="sb-b" id="badge-jadwal">0</span></div>
+    <div class="sb-i" onclick="showPage('detail')" id="nav-detail"><span class="sb-ic">📌</span><span>Detail Proker</span><span class="sb-b" id="badge-detail">0</span></div>
+    <div class="sb-i" onclick="showPage('notif')" id="nav-notif"><span class="sb-ic">🔔</span><span>Notif Config</span><span class="sb-b" id="badge-notif">0</span></div>
+    <div class="sb-i" onclick="showPage('anggota')" id="nav-anggota"><span class="sb-ic">👥</span><span>Anggota</span><span class="sb-b" id="badge-anggota">0</span></div>
+    <div class="sb-i" onclick="showPage('pengurus')" id="nav-pengurus"><span class="sb-ic">🎌</span><span>Pengurus</span><span class="sb-b" id="badge-pengurus">0</span></div>
+    <div class="sb-d"></div>
+    <div class="sb-s">Info</div>
+    <div class="sb-i" onclick="showPage('changelog')" id="nav-changelog2"><span class="sb-ic">📝</span><span>Log Perubahan</span></div>
+  </aside>
+
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <div class="ps active" id="page-rekap">
+      <div class="ph">
+        <div class="ph-bg">📊 Dashboard Laporan JCOSASI</div>
+        <div class="ph-t">Editor Laporan <em>2026–2027</em></div>
+        <div class="ph-jp">レポート編集システム — Data Manager</div>
+        <div class="ph-stats">
+          <div class="ph-st"><span class="ph-sn" id="st-sesi">–</span><span class="ph-sl">Total Sesi</span></div>
+          <div class="ph-st"><span class="ph-sn" id="st-biaya">–</span><span class="ph-sl">Biaya Aktual</span></div>
+          <div class="ph-st"><span class="ph-sn" id="st-anggota">–</span><span class="ph-sl">Anggota</span></div>
+          <div class="ph-st"><span class="ph-sn" id="st-jadwal">–</span><span class="ph-sl">Jadwal</span></div>
+          <div class="ph-st alert"><span class="ph-sn" id="st-pending">0</span><span class="ph-sl">Pending ⚠️</span></div>
+          <div class="ph-st"><span class="ph-sn" id="st-changes">0</span><span class="ph-sl">Belum Upload</span></div>
+        </div>
+      </div>
+
+      <div class="panel" id="pendingPanel" style="display:none">
+        <div class="ph2"><span class="ph2-i">⚠️</span><span class="ph2-t">Jadwal Lewat Tanpa Dokumentasi</span><span class="ph2-s">Perlu diisi segera</span></div>
+        <div class="pb"><div id="pendingList"></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="ph2"><span class="ph2-i">📅</span><span class="ph2-t">Activity Log — Semua Proker</span><span class="ph2-s">活動記録</span></div>
+        <div class="pb">
+          <div class="act-leg" id="actLeg"></div>
+          <div class="act-scroll"><div id="actMonths" class="act-months"></div><div id="actGraph" class="act-graph"></div></div>
+          <div class="act-stats" id="actStats"></div>
+        </div>
+      </div>
+
+      <div style="border:1.5px solid var(--gl);border-radius:var(--rs);background:#fff;overflow:hidden;margin-bottom:18px">
+        <div class="ph2"><span class="ph2-i">📂</span><span class="ph2-t">Per Program Kerja</span></div>
+        <div style="padding:13px"><div class="rk-grid" id="rkCards"></div></div>
+      </div>
+    </div>
+
+    <!-- DOKUMENTASI -->
+    <div class="ps" id="page-dokumentasi">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">📋 Dokumentasi Sesi</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-add" onclick="openNewSesiModal()">+ Tambah Sesi</button>
+      </div>
+      <div class="fchips" id="filterChips"></div>
+      <div class="pb-banner" id="dokBanner">✏️ <strong id="dokBannerN">0</strong> perubahan belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div class="sesi-list" id="sesiList"><div class="empty"><div class="ei">📂</div><div class="et">Memuat…</div></div></div>
+    </div>
+
+    <!-- JADWAL -->
+    <div class="ps" id="page-jadwal">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">📅 Jadwal Proker</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-add" onclick="openNewJadwalModal()">+ Tambah Jadwal</button>
+      </div>
+      <div class="pb-banner" id="jadwalBanner">✏️ <strong id="jadwalBannerN">0</strong> perubahan jadwal belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div id="jadwalContent"></div>
+    </div>
+
+    <!-- DETAIL PROKER -->
+    <div class="ps" id="page-detail">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">📌 Detail Program Kerja</strong>
+      </div>
+      <div class="pb-banner" id="detailBanner">✏️ <strong id="detailBannerN">0</strong> perubahan detail belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div id="detailContent"></div>
+    </div>
+
+    <!-- NOTIF CONFIG -->
+    <div class="ps" id="page-notif">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">🔔 Notifikasi Config</strong>
+      </div>
+      <div class="pb-banner" id="notifBanner">✏️ <strong id="notifBannerN">0</strong> perubahan notif belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div class="panel"><div class="pb" style="padding:0;overflow:auto">
+        <table class="ntbl" id="notifTable">
+          <thead><tr><th>#</th><th>Countdown</th><th>Ajakan</th><th>Teks Ajakan</th><th>Sub Teks</th><th>Wajib</th><th>Label Wajib</th><th>Sanksi</th></tr></thead>
+          <tbody id="notifTbody"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ANGGOTA -->
+    <div class="ps" id="page-anggota">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">👥 Data Anggota</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-add" onclick="addAnggotaRow()">+ Tambah Anggota</button>
+      </div>
+      <div class="pb-banner" id="anggotaBanner">✏️ <strong id="anggotaBannerN">0</strong> perubahan anggota belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div class="panel"><div class="pb" style="padding:0"><div class="tbl-wrap">
+        <table class="ang-tbl">
+          <thead><tr><th>Nama</th><th>Kelas</th><th>Angkatan</th><th>Status</th><th>No HP</th><th>Catatan</th><th></th></tr></thead>
+          <tbody id="anggotaTbody"></tbody>
+        </table>
+      </div></div></div>
+    </div>
+
+    <!-- PENGURUS (dapat diedit) -->
+    <div class="ps" id="page-pengurus">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">🎌 Data Pengurus</strong>
+        <span style="font-size:.75rem;color:var(--gm)">(Klik kartu untuk edit)</span>
+      </div>
+      <div class="pb-banner" id="pengurusBanner">✏️ <strong id="pengurusBannerN">0</strong> perubahan pengurus belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div class="peng-grid" id="pengurusGrid">
+        <div class="empty"><div class="ei">👤</div><div class="et">Memuat…</div></div>
+      </div>
+    </div>
+
+    <!-- CHANGELOG -->
+    <div class="ps" id="page-changelog">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">📝 Log Perubahan</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-cancel" style="font-size:.78rem" onclick="if(confirm('Bersihkan log?')){S.changes=[];renderChangelog();updateBadges()}">Bersihkan</button>
+      </div>
+      <div id="changelogContent">
+        <div class="empty"><div class="ei">✅</div><div class="et">Tidak ada perubahan</div><div class="ed">Semua tersinkron</div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="act-tooltip" id="actTip"></div>
+<div class="tw" id="tw"></div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- MODAL SESI -->
+<div class="mov" id="sesiModal">
+  <div class="modal">
+    <div class="m-h"><span>📋</span><span class="m-t" id="sesiMT">Edit Sesi</span><button class="m-x" onclick="closeModal('sesiModal')">✕</button></div>
+    <input type="hidden" id="e_idx"/>
+    <div class="g2">
+      <div class="fg"><div class="fl">Program Kerja</div><select class="fsel" id="e_pid"></select></div>
+      <div class="fg"><div class="fl">Tanggal</div><input type="date" class="fi" id="e_tgl"/></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Waktu Mulai</div><input type="time" class="fi" id="e_mul"/></div>
+      <div class="fg"><div class="fl">Waktu Selesai</div><input type="time" class="fi" id="e_sel"/></div>
+    </div>
+    <div class="fg"><div class="fl">Keterangan / Judul Sesi</div><input type="text" class="fi" id="e_ket" placeholder="Judul sesi…"/></div>
+    <div class="fg"><div class="fl">Materi</div><textarea class="fta" id="e_mat" placeholder="Ringkasan materi…"></textarea></div>
+    <div class="fg">
+      <div class="fl">Peserta Hadir</div>
+      <div class="htags" id="tg-peserta"></div>
+      <div class="hadd"><input type="text" class="fi" id="in-peserta" placeholder="Nama, Enter untuk tambah" onkeydown="if(event.key==='Enter'){addTag('peserta');event.preventDefault()}"/><button class="btn-hadd" onclick="addTag('peserta')">+</button></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Panitia Hadir</div>
+      <div class="htags" id="tg-panitia"></div>
+      <div class="hadd"><input type="text" class="fi" id="in-panitia" placeholder="Nama…" onkeydown="if(event.key==='Enter'){addTag('panitia');event.preventDefault()}"/><button class="btn-hadd" onclick="addTag('panitia')">+</button></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Narasumber</div>
+      <div class="htags" id="tg-narasumber"></div>
+      <div class="hadd"><input type="text" class="fi" id="in-narasumber" placeholder="Nama…" onkeydown="if(event.key==='Enter'){addTag('narasumber');event.preventDefault()}"/><button class="btn-hadd" onclick="addTag('narasumber')">+</button></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Biaya <span class="flb">Opsional</span></div>
+      <table class="btbl"><thead><tr><th>Item</th><th>Est. Biaya (Rp)</th><th>Aktual (Rp)</th><th></th></tr></thead><tbody id="biaya-tbody"></tbody></table>
+      <button class="btn-ar" onclick="addBiayaRow()">+ Tambah Item</button>
+    </div>
+    <div class="fg"><div class="fl">Kendala</div><textarea class="fta" id="e_kend" style="min-height:54px" placeholder="Kendala yang dihadapi…"></textarea></div>
+    <div class="fg">
+      <div class="fl">URL Foto <span class="flb">Google Drive</span></div>
+      <input type="text" class="fi" id="e_foto" placeholder="https://drive.google.com/… (pisah koma)"/>
+      <div class="fhint">Pisahkan beberapa link dengan koma</div>
+    </div>
+    <div class="m-f"><button class="btn-cancel" onclick="closeModal('sesiModal')">Batal</button><button class="btn-save" onclick="saveSesi()">💾 Simpan</button></div>
+  </div>
+</div>
+
+<!-- MODAL JADWAL -->
+<div class="mov" id="jadwalModal">
+  <div class="modal" style="max-width:380px">
+    <div class="m-h"><span>📅</span><span class="m-t" id="jadMT">Jadwal</span><button class="m-x" onclick="closeModal('jadwalModal')">✕</button></div>
+    <input type="hidden" id="ej_idx"/>
+    <div class="fg"><div class="fl">Program Kerja</div><select class="fsel" id="ej_pid"></select></div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Tanggal</div><input type="date" class="fi" id="ej_tgl"/></div>
+      <div class="fg"><div class="fl">Jam</div><input type="time" class="fi" id="ej_jam"/></div>
+    </div>
+    <div class="m-f"><button class="btn-cancel" onclick="closeModal('jadwalModal')">Batal</button><button class="btn-save" onclick="saveJadwal()">💾 Simpan</button></div>
+  </div>
+</div>
+
+<!-- MODAL PENGURUS -->
+<div class="mov" id="pengurusModal">
+  <div class="modal" style="max-width:420px">
+    <div class="m-h"><span>🎌</span><span class="m-t">Edit Pengurus</span><button class="m-x" onclick="closeModal('pengurusModal')">✕</button></div>
+    <input type="hidden" id="ep_idx"/>
+    <div class="g2">
+      <div class="fg"><div class="fl">Jabatan Level</div><select class="fsel" id="ep_level"><option value="ketua">ketua</option><option value="wakil">wakil</option><option value="sekretaris">sekretaris</option><option value="bendahara">bendahara</option><option value="bidang">bidang</option></select></div>
+      <div class="fg"><div class="fl">Nama Jabatan</div><input type="text" class="fi" id="ep_jabatan" placeholder="Ketua Umum…"/></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Nama</div><input type="text" class="fi" id="ep_nama" placeholder="Nama lengkap…"/></div>
+      <div class="fg"><div class="fl">Kelas</div><input type="text" class="fi" id="ep_kelas" placeholder="XI…"/></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Link Foto <span class="flb">Google Drive</span></div>
+      <input type="text" class="fi" id="ep_foto" placeholder="https://drive.google.com/file/d/…"/>
+      <div class="fhint">Paste link Google Drive — thumbnail otomatis diambil</div>
+    </div>
+    <div class="fg"><div class="fl">Deskripsi Jabatan</div><textarea class="fta" id="ep_desc" style="min-height:56px" placeholder="Deskripsi singkat tugas…"></textarea></div>
+    <div class="m-f"><button class="btn-cancel" onclick="closeModal('pengurusModal')">Batal</button><button class="btn-save" onclick="savePengurus()">💾 Simpan</button></div>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD KONFIRMASI -->
+<div class="mov" id="uploadModal">
+  <div class="modal" style="max-width:440px">
+    <div class="m-h"><span>☁️</span><span class="m-t">Konfirmasi Upload</span><button class="m-x" onclick="closeModal('uploadModal')">✕</button></div>
+    <p style="font-size:.84rem;color:var(--gd);margin-bottom:13px;line-height:1.65">Upload akan <strong>menimpa seluruh isi sheet</strong> yang terdampak. Semua baris lama dihapus, lalu data terbaru di-insert sekaligus.</p>
+    <div id="upSummary" style="background:var(--ow);border-radius:var(--rx);padding:12px;font-size:.8rem;margin-bottom:4px"></div>
+    <div class="up-prog" id="upProgress">
+      <div style="font-size:.75rem;font-weight:600;margin-bottom:4px">Progress Upload</div>
+      <div class="up-bar-wrap"><div class="up-bar" id="upBar"></div></div>
+      <div class="up-step" id="upStep">Menunggu…</div>
+    </div>
+    <div class="m-f"><button class="btn-cancel" onclick="closeModal('uploadModal')">Batal</button><button class="btn-save" id="btnCU" onclick="confirmUpload()">🚀 Upload Sekarang</button></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
