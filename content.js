@@ -69,8 +69,7 @@ const CONTENT = {
       { label: "Timeline",       href: "#timeline" },
       { label: "Pengurus",       href: "#pengurus" },
       { label: "Kontak",         href: "#kontak"   },
-      { label: "📊 Dashboard",   href: "proker.html?page=rekap" },
-      { label: "✏️ Input Data",   href: "input.html" },
+      { label: "📊 Dashboard",   href: "proker.html?page=rekap" }
     ],
   },
 
