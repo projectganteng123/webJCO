@@ -1,0 +1,19 @@
+TABEL: proker_dokumentasi
+FORMAT: kolom dipisah |
+CATATAN:
+- 1 baris = 1 unit data (foto ATAU item biaya — boleh gabung jika simple)
+- Baris dengan proker_id + tanggal_sesi yang sama = 1 sesi kegiatan
+- foto_url    : link Google Drive (format: https://drive.google.com/file/d/FILE_ID/view)
+- waktu_mulai & waktu_selesai : format HH:MM — format kolom Plain text di Sheets
+- hadir_peserta / hadir_panitia / hadir_narasumber : nama pisah koma
+- item_biaya + biaya_aktual : pasangan per baris (estimasi_biaya_item opsional)
+- kendala     : catatan kendala/evaluasi sesi
+
+proker_id | tanggal_sesi | foto_url | keterangan | hadir_peserta | hadir_panitia | hadir_narasumber | materi | waktu_mulai | waktu_selesai | item_biaya | estimasi_biaya_item | biaya_aktual | kendala
+
+01 | 2026-03-19 | https://drive.google.com/file/d/CONTOH_ID_1/view | Sesi pembelajaran pertemuan pertama | Andi, Budi, Citra, Dewi, Eko, Fajar, Gina, Hana, Ilham, Joko | Ketua, Sie Akademik | Kak Reza | Perkenalan hiragana dan katakana dasar — menulis dan melafalkan 46 karakter hiragana | 14:00 | 16:00 | Fotokopi materi | 15000 | 12000 | Beberapa anggota terlambat hadir, perlu ditegur lebih awal
+01 | 2026-03-19 | https://drive.google.com/file/d/CONTOH_ID_2/view | Praktik menulis hiragana bersama |  |  |  |  |  |  | Alat tulis tambahan | 5000 | 5000 | 
+01 | 2026-03-26 | https://drive.google.com/file/d/CONTOH_ID_3/view | Sesi kedua — katakana | Andi, Budi, Citra, Dewi, Fajar, Gina, Hana, Ilham, Joko, Kiki, Lusi | Ketua, Sie Akademik | Kak Reza | Review hiragana dan pengenalan katakana — perbedaan penggunaan dalam kalimat | 14:00 | 16:00 |  |  |  | Tidak ada kendala berarti
+03 | 2026-04-02 | https://drive.google.com/file/d/CONTOH_ID_4/view | Sesi origami pertama | Andi, Budi, Citra, Dewi, Eko, Fajar, Gina, Hana | Ketua, Sie Minat Bakat |  | Teknik dasar origami — membuat burung bangau (tsuru) dan bunga sakura | 14:00 | 16:00 | Kertas origami | 30000 | 28000 | Kertas origami kurang, perlu disiapkan lebih banyak untuk sesi berikutnya
+04 | 2026-03-28 | https://drive.google.com/file/d/CONTOH_ID_5/view | Rapat bulanan Maret 2026 | Andi, Budi, Citra, Dewi, Eko, Fajar, Gina, Hana, Ilham, Joko, Kiki, Lusi, Mira, Nanda | Seluruh pengurus |  | Evaluasi program kerja bulan Maret, pembahasan persiapan DIKLAT dan rencana kegiatan April | 10:00 | 12:00 | Konsumsi rapat | 50000 | 45000 | Hadir semua pengurus, rapat berjalan lancar dan kondusif
+13 | 2026-03-29 | https://drive.google.com/file/d/CONTOH_ID_6/view | Kintore perdana Maret 2026 | Andi, Budi, Citra, Dewi, Eko, Fajar, Gina, Hana, Ilham, Joko, Kiki, Lusi | Ketua, Sie Kekompakan |  | Pemanasan bersama, lari keliling lapangan 3x, push-up & sit-up beregu, pendinginan | 07:00 | 08:30 |  |  |  | Cuaca mendukung, semangat anggota sangat tinggi

@@ -1,0 +1,29 @@
+TABEL: proker_notif_config
+FORMAT: kolom dipisah |
+CATATAN:
+- 1 baris per proker_id
+- countdown_aktif     : true/false — tampilkan hitung mundur ke jadwal terdekat
+- ajakan              : true/false — tampilkan teks ajakan/himbauan besar
+- ajakan_teks         : teks utama ajakan (font besar)
+- ajakan_sub          : teks kecil di bawah ajakan (opsional)
+- wajib_hadir         : true/false — tampilkan banner wajib hadir
+- wajib_hadir_teks    : judul banner wajib hadir
+- wajib_hadir_sanksi  : teks sanksi jika tidak hadir
+
+proker_id | countdown_aktif | ajakan | ajakan_teks | ajakan_sub | wajib_hadir | wajib_hadir_teks | wajib_hadir_sanksi
+
+01 | true | true | Jangan sampai ketinggalan pembelajaran minggu ini! | Hadir tepat waktu ya, materi terus berlanjut setiap pekan 🎌 | false |  | 
+02 | true | true | Asah terus kemampuan bahasa Jepangmu! | Latihan soal dan evaluasi rutin — kunci sukses menghadapi lomba 📚 | false |  | 
+03 | true | true | Ekspresikan bakat Jepangmu minggu ini! | Origami, manga, kaligrafi, cosplay — semua disambut! 🎨 | false |  | 
+04 | true | true | Rapat bulanan JCOSASI — wajib dihadiri! | Mari evaluasi bersama dan jaga kekompakan organisasi kita 🤝 | true | Kehadiran Wajib | Tidak hadir tanpa izin = mendapat teguran dari pengurus
+05 | true | true | DIKLAT 2026 — Lahirnya Pemimpin Baru JCOSASI! | Persiapkan dirimu untuk menjadi pengurus terbaik Angkatan 13 🔥 | true | Kehadiran Wajib! | Tidak hadir = gugur dari seleksi calon pengurus
+06 | true | true | JCOSASI hadir di MPLS — Ayo bergabung bersama kami! | Tunjukkan semangat Jepangmu kepada adik-adik kelas yang baru 🌸 | false |  | 
+07 | true | true | 祝 JCOSASI 13周年！ — Tanjoubi & Workshop 2026 | Rayakan bersama, belajar bersama, tumbuh bersama 🎊 | true | Kehadiran Sangat Diharapkan | Ini momen spesial setahun sekali — jangan sampai terlewat!
+08 | true | true | Selamat datang, Anggota Baru JCOSASI Angkatan 13! | Hari ini kalian resmi menjadi bagian dari keluarga besar JCOSASI 🎌 | true | Kehadiran Wajib | Tidak hadir = tidak dapat dilantik pada periode ini
+09 | true | true | JCOSASI ikut meramaikan Class Meeting! | Dukung dan ikuti perlombaan seru bertemakan Jepang 🏆 | false |  | 
+10 | true | true | Serah Terima Jabatan — Estafet Kepemimpinan JCOSASI | Terima kasih Angkatan 12, selamat bertugas Angkatan 13 🙏 | true | Kehadiran Wajib | Seluruh pengurus aktif wajib hadir tanpa terkecuali
+11 | true | true | Maju terus wakili JCOSASI di perlombaan! | Persiapan matang, mental kuat — kita bisa! 💪 | false |  | 
+12 | true | true | Saatnya berkarya untuk media sosial JCOSASI! | Konten yang keren lahir dari ide-ide kalian 🎥 | false |  | 
+13 | true | true | Kintore bareng JCOSASI — Minggu ini! | Sehat bersama, semangat bersama 💪🏃 | false |  | 
+14 | true | true | Sesi Sharing Alumni JCOSASI — Jangan dilewatkan! | Dengar langsung pengalaman para senior yang sudah menapaki jalan lebih jauh 🎓 | false |  | 
+15 | true | false |  |  | false |  | 

@@ -320,3 +320,20 @@
   .rnc-name { font-size: .8rem; }
   .rnc-body { padding: 12px 12px 10px; }
 }
+
+/* ── Tombol cetak sesi ── */
+.dsh-print-btn {
+  background: none;
+  border: 1.5px solid var(--grey-light);
+  border-radius: 6px;
+  color: var(--purple-mid);
+  font-size: .85rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background var(--trans), border-color var(--trans);
+  flex-shrink: 0;
+}
+.dsh-print-btn:hover {
+  background: var(--purple-pale);
+  border-color: var(--purple-mid);
+}

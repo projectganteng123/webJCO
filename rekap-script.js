@@ -99,7 +99,10 @@ function renderRekap(allData) {
   const totalAktual   = new Set(actArr.filter(r => r.status !== 'batal').map(r => r.proker_id + '|' + r.tanggal)).size
                       + new Set(dokArr.map(r => r.proker_id + '|' + r.tanggal_sesi)).size;
   const totalDokSesi  = new Set(dokArr.filter(r=>r.tanggal_sesi).map(r => r.proker_id+'|'+r.tanggal_sesi)).size;
-  const totalBiaya    = dokArr.reduce((s,r) => s + rupiahNum(r.biaya_aktual), 0);
+  const totalBiaya    = dokArr.reduce((s,r) => {
+    if(!r.biaya_aktual) return s;
+    return s + (r.biaya_aktual+'').split(',').reduce((ss,v)=>ss+rupiahNum(v),0);
+  }, 0);
 
   /* ── Event terdekat ── */
   const now    = Date.now();
@@ -345,6 +348,21 @@ function renderRekapNotif(items, notArr, cfgArr, jadArr, actArr, detArr) {
    Semua sesi digabung, diurutkan terbaru di atas,
    masing-masing ditandai nama prokernya
 ══════════════════════════════════════════════ */
+function parseDokRow(d) {
+  const splitCs = v => (v||'').split(',').map(s=>s.trim());
+  const fotos   = splitCs(d.foto_url).filter(Boolean);
+  const items_  = splitCs(d.item_biaya);
+  const ests    = splitCs(d.estimasi_biaya_item);
+  const akts    = splitCs(d.biaya_aktual);
+  const n       = Math.max(items_.length, ests.length, akts.length);
+  const biayaRows = [];
+  for(let i=0;i<n;i++){
+    const item=items_[i]||'',est=ests[i]||'',akt=akts[i]||'';
+    if(item||est||akt) biayaRows.push({item_biaya:item,estimasi_biaya_item:est,biaya_aktual:akt});
+  }
+  return { d, fotos, biayaRows };
+}
+
 function renderRekapDok(items, dokArr) {
   if (!dokArr || !dokArr.length) {
     return `<div class="dok-empty">
@@ -354,50 +372,34 @@ function renderRekapDok(items, dokArr) {
     </div>`;
   }
 
-  /* Gabungkan semua sesi unik: key = proker_id|tanggal_sesi */
-  const sesiMap = {};
-  dokArr.forEach(d => {
-    if (!d.tanggal_sesi) return;
-    const key = d.proker_id + '|' + d.tanggal_sesi;
-    if (!sesiMap[key]) sesiMap[key] = { proker_id: d.proker_id, tanggal_sesi: d.tanggal_sesi, rows: [] };
-    sesiMap[key].rows.push(d);
-  });
-
-  /* Urutkan terbaru di atas */
-  const sesiList = Object.values(sesiMap).sort((a, b) => {
-    const da = a.tanggal_sesi || '', db = b.tanggal_sesi || '';
-    if (da > db) return -1;
-    if (da < db) return 1;
-    return 0;
-  });
+  /* Format baru: 1 baris per sesi — sort terbaru di atas */
+  const sesiList = dokArr.filter(d=>d.tanggal_sesi).sort((a,b) =>
+    a.tanggal_sesi > b.tanggal_sesi ? -1 : a.tanggal_sesi < b.tanggal_sesi ? 1 : 0
+  );
 
   if (!sesiList.length) {
     return `<div class="dok-empty"><div class="de-icon">📷</div><p>Dokumentasi belum tersedia.</p></div>`;
   }
 
   // Simpan ke global agar printLaporanSesi bisa akses per idx
-  window._rekapSesiList = sesiList;
+  window._rekapSesiList = sesiList.map(d => ({ proker_id: d.proker_id, tanggal_sesi: d.tanggal_sesi, rows: [d] }));
 
-  return `<div class="dok-sesi-list">${sesiList.map((sesi, idx) => {
-    const items_rows = sesi.rows;
-    const proker     = getProkerByNum(sesi.proker_id);
-    const d          = items_rows[0];
-    const tglStr     = formatTglPanjang(sesi.tanggal_sesi);
+  return `<div class="dok-sesi-list">${sesiList.map((d, idx) => {
+    const { fotos, biayaRows } = parseDokRow(d);
+    const proker     = getProkerByNum(d.proker_id);
+    const tglStr     = formatTglPanjang(d.tanggal_sesi);
     const jamStr     = (d.waktu_mulai && d.waktu_selesai) ? `${d.waktu_mulai} – ${d.waktu_selesai}` : d.waktu_mulai||'';
     const dur        = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
     const ket        = d.keterangan || '';
 
-    /* Foto */
-    const fotos    = items_rows.filter(i => i.foto_url);
+    /* Foto — array URLs dari parseDokRow */
     const fotoHtml = fotos.length ? `<div class="dsb-section">
       <div class="dsb-label">📷 Foto Kegiatan</div>
-      <div class="dok-foto-grid">${fotos.map(item => {
-        const src = convertGDriveUrl(item.foto_url);
-        const alt = item.keterangan || 'Foto kegiatan';
-        return `<a href="${item.foto_url}" target="_blank" rel="noopener" class="dok-foto-wrap" title="${alt}">
-          <img class="dok-foto" src="${src}" alt="${alt}" loading="lazy"
+      <div class="dok-foto-grid">${fotos.map(url => {
+        const src = convertGDriveUrl(url);
+        return `<a href="${url}" target="_blank" rel="noopener" class="dok-foto-wrap">
+          <img class="dok-foto" src="${src}" alt="Foto kegiatan" loading="lazy"
                onerror="this.closest('.dok-foto-wrap').innerHTML='<div class=\\'dok-foto-err\\'>🖼️</div>'"/>
-          ${item.keterangan ? `<div class="dok-foto-cap">${item.keterangan}</div>` : ''}
         </a>`;
       }).join('')}</div></div>` : '';
 
@@ -427,7 +429,7 @@ function renderRekapDok(items, dokArr) {
 
     /* Biaya */
     let totBiayaSesi = 0;
-    const biayaRows  = items_rows.filter(i => i.item_biaya || i.biaya_aktual);
+    let totBiayaSesi = 0;
     biayaRows.forEach(i => { totBiayaSesi += rupiahNum(i.biaya_aktual); });
     const biayaHtml  = biayaRows.length ? `<div class="dsb-section">
       <div class="dsb-label">💰 Biaya Kegiatan</div>
@@ -460,10 +462,9 @@ function renderRekapDok(items, dokArr) {
     return `<div class="dok-sesi">
       <div class="dok-sesi-header" onclick="toggleRekapSesi(${idx})">
         <div class="dsh-left">
-          <!-- Label nama proker -->
           <div class="dsh-proker-badge">
             <span class="dpb-icon">${proker ? proker.icon : '📌'}</span>
-            <span class="dpb-name">${proker ? '#'+sesi.proker_id+' '+proker.judul.replace(/&amp;/g,'&') : 'Proker '+sesi.proker_id}</span>
+            <span class="dpb-name">${proker ? '#'+d.proker_id+' '+proker.judul.replace(/&amp;/g,'&') : 'Proker '+d.proker_id}</span>
           </div>
           <div class="dsh-info">
             <span class="dsh-tanggal">${tglStr}</span>
@@ -568,28 +569,28 @@ function printLaporanRekap() {
   const now    = new Date();
   const tglCetak = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  // Hitung total keuangan
+  // Hitung total keuangan — biaya_aktual bisa comma-separated
   let grandTotal = 0;
-  dokArr.forEach(d => { grandTotal += rupiahNum(d.biaya_aktual); });
-
-  // Baris keuangan global
-  const keuRows = [];
-  const sesiSeen = new Set();
   dokArr.forEach(d => {
-    if (!d.tanggal_sesi || !d.item_biaya) return;
-    const sesiKey = d.proker_id + '|' + d.tanggal_sesi + '|' + d.item_biaya;
-    if (sesiSeen.has(sesiKey)) return;
-    sesiSeen.add(sesiKey);
+    if(d.biaya_aktual) (d.biaya_aktual+'').split(',').forEach(v=>{ grandTotal += rupiahNum(v); });
+  });
+
+  // Baris keuangan global — expand comma-separated per baris
+  const keuRows = [];
+  dokArr.forEach(d => {
+    if (!d.tanggal_sesi) return;
     const proker = items.find(p => p.num === d.proker_id);
-    keuRows.push({
-      proker: proker ? '#'+d.proker_id+' '+proker.judul.replace(/&amp;/g,'&') : '#'+d.proker_id,
-      tanggal: d.tanggal_sesi,
-      item: d.item_biaya,
-      estimasi: rupiahNum(d.estimasi_biaya_item),
-      aktual: rupiahNum(d.biaya_aktual),
+    const { biayaRows: bRows } = parseDokRow(d);
+    bRows.forEach(b => {
+      keuRows.push({
+        proker: proker ? '#'+d.proker_id+' '+proker.judul.replace(/&amp;/g,'&') : '#'+d.proker_id,
+        tanggal: d.tanggal_sesi,
+        item: b.item_biaya,
+        estimasi: rupiahNum(b.estimasi_biaya_item),
+        aktual: rupiahNum(b.biaya_aktual),
+      });
     });
   });
-  // Urutkan per tanggal
   keuRows.sort((a,b) => (a.tanggal > b.tanggal ? 1 : -1));
 
   const html = `<!DOCTYPE html>
@@ -696,37 +697,31 @@ ${keuRows.length ? `
 <!-- DOKUMENTASI -->
 <h2 class="section-title" style="margin-top:32px">📸 Dokumentasi Kegiatan</h2>
 ${items.map(p => {
-  const sesiMap = {};
-  dokArr.filter(d=>d.proker_id===p.num&&d.tanggal_sesi).forEach(d=>{
-    if(!sesiMap[d.tanggal_sesi]) sesiMap[d.tanggal_sesi]=[];
-    sesiMap[d.tanggal_sesi].push(d);
-  });
-  const sesiKeys = Object.keys(sesiMap).sort();
-  if (!sesiKeys.length) return '';
+  const sesiDok = dokArr.filter(d=>d.proker_id===p.num&&d.tanggal_sesi)
+    .sort((a,b)=>a.tanggal_sesi>b.tanggal_sesi?1:-1);
+  if (!sesiDok.length) return '';
   return `
   <h3 class="proker-title">${p.icon} #${p.num} — ${p.judul.replace(/&amp;/g,'&')}</h3>
-  ${sesiKeys.map((tgl,si) => {
-    const rows = sesiMap[tgl];
-    const d    = rows[0];
-    const biayaSesi = rows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
+  ${sesiDok.map((d,si) => {
+    const { biayaRows: bRows } = parseDokRow(d);
+    const biayaSesi = bRows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
     const dur  = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
     const hadirParts = [
       d.hadir_peserta    ? { label: '👥 Peserta',     val: d.hadir_peserta }    : null,
       d.hadir_panitia    ? { label: '🤝 Panitia',     val: d.hadir_panitia }    : null,
       d.hadir_narasumber ? { label: '🎤 Narasumber',  val: d.hadir_narasumber } : null,
     ].filter(Boolean);
-    const biayaItems = rows.filter(r=>r.item_biaya||r.biaya_aktual);
     return `<div class="dok-sesi">
-      <div class="dok-sesi-header">Sesi ${si+1} — ${formatTglPanjang(tgl)}</div>
+      <div class="dok-sesi-header">Sesi ${si+1} — ${formatTglPanjang(d.tanggal_sesi)}</div>
       ${d.waktu_mulai ? `<div class="dok-sesi-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>` : ''}
       ${hadirParts.map(h=>`<div class="dok-sesi-meta"><strong>${h.label}:</strong> ${h.val}</div>`).join('')}
       ${d.keterangan?`<div class="dok-sesi-ket">${d.keterangan}</div>`:''}
       ${d.materi?`<div class="dok-sesi-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
       ${d.kendala?`<div class="dok-sesi-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}
-      ${biayaItems.length?`<table style="margin-top:6px">
+      ${bRows.length?`<table style="margin-top:6px">
         <thead><tr><th>Item</th><th style="text-align:right">Estimasi</th><th style="text-align:right">Aktual</th></tr></thead>
         <tbody>
-          ${biayaItems.map(r=>`<tr>
+          ${bRows.map(r=>`<tr>
             <td>${r.item_biaya||'–'}</td>
             <td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td>
             <td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td>
@@ -734,6 +729,9 @@ ${items.map(p => {
           <tr class="total-row"><td>Total Sesi</td><td class="num-col">–</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr>
         </tbody>
       </table>`:''}
+    </div>`;
+  }).join('')}`;
+}).join('')}
     </div>`;
   }).join('')}`;
 }).join('')}
@@ -761,12 +759,12 @@ function printLaporanProker(proker, sheetsData) {
 
   const aktualCount = act.filter(r=>r.status!=='batal').length +
     new Set(dok.filter(d=>d.tanggal_sesi).map(d=>d.tanggal_sesi)).size;
-  const sesiMap = {};
-  dok.forEach(d=>{ if(!d.tanggal_sesi){return;} if(!sesiMap[d.tanggal_sesi])sesiMap[d.tanggal_sesi]=[]; sesiMap[d.tanggal_sesi].push(d); });
-  const sesiKeys = Object.keys(sesiMap).sort();
+  const sesiDok = dok.filter(d=>d.tanggal_sesi).sort((a,b)=>a.tanggal_sesi>b.tanggal_sesi?1:-1);
 
   let totalBiaya = 0;
-  dok.forEach(d=>{ totalBiaya += rupiahNum(d.biaya_aktual); });
+  dok.forEach(d=>{
+    if(d.biaya_aktual) (d.biaya_aktual+'').split(',').forEach(v=>{ totalBiaya+=rupiahNum(v); });
+  });
 
   const metaParts = [
     det.waktu_teks ? '⏰ '+det.waktu_teks : null,
@@ -835,7 +833,7 @@ ${metaParts.length?`<div class="meta-grid">${metaParts.map(m=>`<span>${m}</span>
 <div class="stats">
   <div class="stat"><span class="stat-num">${jadwal.length}</span><span class="stat-lbl">Jadwal</span></div>
   <div class="stat"><span class="stat-num">${aktualCount}</span><span class="stat-lbl">Terlaksana</span></div>
-  <div class="stat"><span class="stat-num">${sesiKeys.length}</span><span class="stat-lbl">Terdokumentasi</span></div>
+  <div class="stat"><span class="stat-num">${sesiDok.length}</span><span class="stat-lbl">Terdokumentasi</span></div>
   <div class="stat"><span class="stat-num">${totalBiaya>0?rupiah(totalBiaya):'–'}</span><span class="stat-lbl">Total Biaya</span></div>
 </div>
 
@@ -850,19 +848,17 @@ ${det.rab ? (() => {
 })() : ''}
 
 <h2>📸 Dokumentasi Kegiatan</h2>
-${sesiKeys.length ? sesiKeys.map((tgl,si)=>{
-  const rows = sesiMap[tgl];
-  const d    = rows[0];
-  const biayaSesi = rows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
+${sesiDok.length ? sesiDok.map((d,si)=>{
+  const { biayaRows: bRows } = parseDokRow(d);
+  const biayaSesi = bRows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
   const dur  = hitungDurasi(d.waktu_mulai,d.waktu_selesai);
   const hadirPartsP = [
     d.hadir_peserta    ? { label: '👥 Peserta',    val: d.hadir_peserta }    : null,
     d.hadir_panitia    ? { label: '🤝 Panitia',    val: d.hadir_panitia }    : null,
     d.hadir_narasumber ? { label: '🎤 Narasumber', val: d.hadir_narasumber } : null,
   ].filter(Boolean);
-  const biayaItems = rows.filter(r=>r.item_biaya||r.biaya_aktual);
   return `<div class="dok-sesi">
-    <div class="dok-hdr">Sesi ${si+1} — ${formatTglPanjang(tgl)}</div>
+    <div class="dok-hdr">Sesi ${si+1} — ${formatTglPanjang(d.tanggal_sesi)}</div>
     ${d.waktu_mulai?`<div class="dok-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>`:''}
     ${hadirPartsP.length ? hadirPartsP.map(h =>
       `<div class="dok-meta"><strong>${h.label}:</strong> ${h.val}</div>`
@@ -870,11 +866,13 @@ ${sesiKeys.length ? sesiKeys.map((tgl,si)=>{
     ${d.keterangan?`<div class="dok-ket">${d.keterangan}</div>`:''}
     ${d.materi?`<div class="dok-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
     ${d.kendala?`<div class="dok-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}
-    ${biayaItems.length?`<table style="margin-top:8px">
+    ${bRows.length?`<table style="margin-top:8px">
       <thead><tr><th>Item</th><th class="num-col">Estimasi</th><th class="num-col">Aktual</th></tr></thead>
-      <tbody>${biayaItems.map(r=>`<tr><td>${r.item_biaya||'–'}</td><td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td><td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td></tr>`).join('')}
+      <tbody>${bRows.map(r=>`<tr><td>${r.item_biaya||'–'}</td><td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td><td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td></tr>`).join('')}
       <tr class="total-row"><td>Total Sesi</td><td>–</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr></tbody>
     </table>`:''}
+  </div>`;
+}).join('') : '<p class="no-data">Belum ada dokumentasi.</p>'}
   </div>`;
 }).join('') : '<p class="no-data">Belum ada dokumentasi.</p>'}
 
@@ -894,19 +892,17 @@ function printLaporanSesi(idx) {
   if (!sesiList || !sesiList[idx]) return;
 
   const sesi     = sesiList[idx];
-  const rows     = sesi.rows;
-  const d        = rows[0];
-  const proker   = getProkerByNum(sesi.proker_id);
+  const d        = sesi.rows ? sesi.rows[0] : sesi; // compat: rows[0] or direct d
+  const proker   = getProkerByNum(sesi.proker_id || d.proker_id);
   const org      = CONTENT?.org || {};
   const now      = new Date();
   const tglCetak = now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  const tglSesi  = formatTglPanjang(sesi.tanggal_sesi);
+  const tglSesi  = formatTglPanjang(sesi.tanggal_sesi || d.tanggal_sesi);
   const dur      = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
   const jamStr   = d.waktu_mulai
     ? d.waktu_mulai + (d.waktu_selesai ? ' – ' + d.waktu_selesai : '') + (dur ? ' (' + dur + ')' : '')
     : '–';
 
-  // ── Daftar hadir gabungan: [{no, nama, peran}] ──
   const hadirRows = [];
   const parseNama = (str, peran) =>
     (str||'').split(',').map(n=>n.trim()).filter(Boolean).map(nama => ({ nama, peran }));
@@ -914,19 +910,18 @@ function printLaporanSesi(idx) {
   parseNama(d.hadir_panitia,    'Panitia').forEach(r => hadirRows.push(r));
   parseNama(d.hadir_narasumber, 'Narasumber').forEach(r => hadirRows.push(r));
 
-  // ── Biaya ──
-  const biayaItems = rows.filter(r => r.item_biaya || r.biaya_aktual);
+  // Biaya — parseDokRow handles comma-separated
+  const { fotos: fotosArr, biayaRows: biayaItems } = parseDokRow(d);
   const totalBiaya = biayaItems.reduce((s,r) => s + rupiahNum(r.biaya_aktual), 0);
   const totalEst   = biayaItems.reduce((s,r) => s + rupiahNum(r.estimasi_biaya_item), 0);
 
-  // ── Nomor sesi (urutan ke-N dari proker yang sama, urut tanggal) ──
+  // Nomor sesi
   const sesiProkerSama = sesiList
-    .filter(s => s.proker_id === sesi.proker_id)
-    .sort((a,b) => (a.tanggal_sesi > b.tanggal_sesi ? 1 : -1));
-  const nomorSesi = sesiProkerSama.findIndex(s => s.tanggal_sesi === sesi.tanggal_sesi) + 1;
+    .filter(s => (s.proker_id||s.rows?.[0]?.proker_id) === (sesi.proker_id||d.proker_id))
+    .sort((a,b) => ((a.tanggal_sesi||a.rows?.[0]?.tanggal_sesi) > (b.tanggal_sesi||b.rows?.[0]?.tanggal_sesi) ? 1 : -1));
+  const nomorSesi = sesiProkerSama.findIndex(s => (s.tanggal_sesi||s.rows?.[0]?.tanggal_sesi) === (sesi.tanggal_sesi||d.tanggal_sesi)) + 1;
 
-  // ── Foto ──
-  const fotos = rows.filter(r => r.foto_url);
+  const fotos = fotosArr; // array of URLs
 
   // ── Layout foto adaptif berdasarkan jumlah ──
   // 1 foto  → full width (1 kolom)
@@ -934,7 +929,7 @@ function printLaporanSesi(idx) {
   // 3 foto  → foto pertama full width, 2 lainnya di bawah
   // 4 foto  → 2×2 grid
   // 5+ foto → foto pertama full width, sisanya 2 kolom (max 5 diambil)
-  const fotosCapped = fotos.slice(0, 5);
+  const fotosCapped = fotos.slice(0, 5); // fotos is now array of URL strings
   const n = fotosCapped.length;
   let fotoGridCols, fotoGridClass;
   if      (n === 1) { fotoGridCols = '1fr';         fotoGridClass = 'fg-1'; }
@@ -1258,10 +1253,10 @@ ${fotosCapped.length ? (() => {
   //  3 foto  → baris 1: 1 foto full (200px), baris 2: 2 foto (155px)
   //  4 foto  → 2 baris × 2 foto (165px)
   //  5 foto  → baris 1: 1 foto full (200px), baris 2: 2 foto, baris 3: 2 foto (145px)
-  const imgs = fotosCapped.map(f => ({
-    src: convertGDriveUrl(f.foto_url),
-    cap: f.keterangan || '',
-    url: f.foto_url,
+  const imgs = fotosCapped.map(url => ({
+    src: convertGDriveUrl(url),
+    cap: '',
+    url: url,
   }));
 
   let fotoRows = [];

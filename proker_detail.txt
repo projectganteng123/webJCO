@@ -1,0 +1,41 @@
+TABEL: proker_detail
+FORMAT: kolom dipisah |
+CATATAN:
+- Kolom waktu (lama) = KOSONGKAN / hapus dari sheet
+- waktu_teks = teks bebas untuk ditampilkan
+- estimasi_tanggal = YYYY-MM-DD, hanya untuk event (untuk countdown & status)
+- rab = JSON string, kosongkan jika belum ada anggaran
+- panitia = pisah koma
+- Format kolom proker_id = Plain text di Sheets
+
+proker_id | tujuan | waktu_teks | estimasi_tanggal | lokasi | sasaran | pemateri | panitia | rab
+
+01 | Meningkatkan kemampuan bahasa Jepang anggota baru secara rutin melalui pembelajaran terstruktur setiap minggu, mencakup kosakata, tata bahasa, dan percakapan dasar. | Setiap Kamis, 14:00–16:00 |  | Ruang Kelas SMKN 1 Cikarang Barat | Anggota baru (Angkatan 13) | Pengurus Angkatan 12 | Sie Akademik, Ketua |
+
+02 | Mengembangkan kemampuan akademik bahasa Jepang anggota melalui latihan soal, evaluasi mingguan, dan pembekalan materi lanjutan untuk persiapan lomba maupun ujian. | Setiap minggu |  | Ruang Kelas SMKN 1 Cikarang Barat | Seluruh anggota aktif | Sie Akademik | Sie Akademik, Ketua |
+
+03 | Mewadahi dan mengembangkan minat serta bakat anggota di bidang seni dan budaya Jepang seperti origami, kaligrafi kanji, cosplay, menggambar manga, dan lainnya. | Setiap Kamis, 14:00–16:00 |  | Ruang Kelas SMKN 1 Cikarang Barat | Seluruh anggota aktif |  | Sie Minat Bakat, Ketua |
+
+04 | Mempererat hubungan antar anggota dan pengurus melalui kegiatan organisasi rutin seperti rapat bulanan, evaluasi, dan kegiatan kekompakan internal JCOSASI. | Setiap bulan |  | Ruang Kelas SMKN 1 Cikarang Barat | Seluruh anggota aktif & pengurus | Ketua | Seluruh pengurus |
+
+05 | Membekali calon pengurus baru Angkatan 13 dengan pengetahuan organisasi, kepemimpinan, dan nilai-nilai JCOSASI agar siap menjalankan roda organisasi periode berikutnya. | Sabtu, 25 Juli 2026 | 2026-07-25 | Ruang Kelas SMKN 1 Cikarang Barat | Calon pengurus Angkatan 13 | Pengurus Angkatan 12, Alumni | Ketua, Wakil Ketua, Sie Acara, Sie Konsumsi | [{"item":"Konsumsi peserta","estimasi":"200000","aktual":""},{"item":"Materi & ATK","estimasi":"50000","aktual":""},{"item":"Dokumentasi","estimasi":"30000","aktual":""}]
+
+06 | Memperkenalkan JCOSASI kepada siswa baru melalui kegiatan demo ekstrakurikuler saat MPLS, agar mereka tertarik bergabung dan mengenal budaya serta bahasa Jepang. | Menyesuaikan jadwal MPLS |  | Lapangan / Aula SMKN 1 Cikarang Barat | Siswa baru SMKN 1 Cikarang Barat | Pengurus Angkatan 12 | Ketua, Wakil Ketua, Sie Acara, Sie Humas | [{"item":"Properti demo","estimasi":"100000","aktual":""},{"item":"Konsumsi panitia","estimasi":"50000","aktual":""}]
+
+07 | Merayakan hari ulang tahun JCOSASI ke-13 sekaligus mengadakan workshop budaya Jepang sebagai bentuk apresiasi kepada seluruh anggota dan mempererat kebersamaan. | Sabtu, 22 Agustus 2026 | 2026-08-22 | Ruang Kelas SMKN 1 Cikarang Barat | Seluruh anggota & alumni | Pengurus, Alumni | Ketua, Wakil Ketua, Sie Acara, Sie Konsumsi, Sie Dekorasi, Sie Dokumentasi | [{"item":"Konsumsi","estimasi":"300000","aktual":""},{"item":"Dekorasi","estimasi":"150000","aktual":""},{"item":"Hadiah & doorprize","estimasi":"200000","aktual":""},{"item":"Properti workshop","estimasi":"100000","aktual":""}]
+
+08 | Melantik secara resmi anggota baru Angkatan 13 sebagai bagian dari JCOSASI, disertai pembacaan ikrar dan pengenalan struktur organisasi periode 2026–2027. | Sabtu, 19 September 2026 | 2026-09-19 | Ruang Kelas SMKN 1 Cikarang Barat | Anggota baru Angkatan 13 | Pembina, Ketua Angkatan 12 | Ketua, Wakil Ketua, Sie Acara, Sie Konsumsi, Sie Dokumentasi | [{"item":"Konsumsi","estimasi":"150000","aktual":""},{"item":"Atribut pelantikan","estimasi":"100000","aktual":""},{"item":"Dokumentasi","estimasi":"50000","aktual":""}]
+
+09 | Berkolaborasi dengan kegiatan class meeting sekolah dengan menampilkan pertandingan atau perlombaan bernuansa Jepang, mempererat semangat kebersamaan antar kelas. | Menyesuaikan jadwal class meeting sekolah |  | Lapangan SMKN 1 Cikarang Barat | Seluruh siswa SMKN 1 Cikarang Barat | Pengurus Angkatan 12 | Ketua, Sie Acara, Sie Humas, Sie Konsumsi | [{"item":"Properti lomba","estimasi":"150000","aktual":""},{"item":"Hadiah","estimasi":"200000","aktual":""},{"item":"Konsumsi panitia","estimasi":"50000","aktual":""}]
+
+10 | Melaksanakan serah terima jabatan secara resmi dari pengurus Angkatan 12 kepada pengurus baru Angkatan 13, menandai pergantian kepengurusan JCOSASI periode 2026–2027. | Sabtu, 9 Januari 2027 | 2027-01-09 | Ruang Kelas SMKN 1 Cikarang Barat | Pengurus Angkatan 12 & 13 | Pembina | Seluruh pengurus Angkatan 12 | [{"item":"Konsumsi","estimasi":"200000","aktual":""},{"item":"Kenang-kenangan","estimasi":"150000","aktual":""},{"item":"Dokumentasi","estimasi":"50000","aktual":""}]
+
+11 | Mengikutsertakan anggota JCOSASI dalam perlombaan bahasa Jepang tingkat sekolah, kabupaten, maupun nasional sebagai bentuk pengembangan diri dan representasi organisasi. | Menyesuaikan jadwal lomba |  | Menyesuaikan lokasi lomba | Anggota terpilih | Pembina, Pelatih | Sie Akademik, Ketua |
+
+12 | Mengelola dan mengembangkan konten kreatif di media sosial JCOSASI (Instagram, TikTok, YouTube) untuk meningkatkan eksistensi dan jangkauan organisasi secara digital. | Setelah kegiatan Proyek Minat & Bakat |  | Menyesuaikan | Seluruh anggota aktif |  | Sie Media & Humas, Ketua |
+
+13 | Menjaga kesehatan fisik dan kebersamaan anggota JCOSASI melalui kegiatan latihan fisik bersama (kintore) yang dilakukan secara rutin setiap bulan pada hari Minggu. | Sebulan sekali, Minggu pagi |  | Menyesuaikan (area terbuka) | Seluruh anggota aktif & pengurus |  | Sie Kekompakan, Ketua |
+
+14 | Menambah wawasan dan motivasi anggota melalui sesi berbagi pengalaman bersama alumni JCOSASI, mencakup kehidupan setelah lulus, dunia kerja, dan perjalanan belajar bahasa Jepang. | Menyesuaikan ketersediaan alumni |  | Ruang Kelas SMKN 1 Cikarang Barat | Seluruh anggota aktif | Alumni JCOSASI | Ketua, Sie Humas |
+
+15 | Melaksanakan program kerja tambahan yang disesuaikan dengan kebutuhan organisasi dan anggota pada periode 2026–2027, bersifat fleksibel dan disepakati bersama. | Menyesuaikan |  | Menyesuaikan | Seluruh anggota aktif |  | Seluruh pengurus |

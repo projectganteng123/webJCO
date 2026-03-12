@@ -461,12 +461,9 @@ function buildActivityGraph(containerId, activityRows, jadwalRows, dok, prokerLa
       const [h2,m2]=d.waktu_selesai.split(':').map(Number);
       totDurasiMenit += Math.max(0,(h2*60+m2)-(h1*60+m1));
     }
-    if(d.biaya_aktual) totBiaya += rupiahNum(d.biaya_aktual);
+    // biaya_aktual bisa comma-separated di format baru
+    if(d.biaya_aktual) (d.biaya_aktual+'').split(',').forEach(v=>{ totBiaya+=rupiahNum(v); });
   });
-  // juga biaya dari baris lain sesi yang sama
-  (dok||[]).forEach(d=>{ if(d.biaya_aktual && !dokSesiSeen.has(d.tanggal_sesi+'_biaya')){
-    // sudah dihitung per sesi saja, tambah dari baris biaya
-  }});
 
   /* Month row — 1 div per week, lebar identik dengan .activity-week (13px)
      Label hanya muncul di minggu pertama bulan, teks meluap ke kanan */
@@ -578,6 +575,26 @@ function hideTooltip()  { if(_tip) _tip.style.opacity='0'; }
 function moveTooltip(e) { if(!_tip)return; _tip.style.left=(e.clientX+14)+'px'; _tip.style.top=(e.clientY-50)+'px'; }
 
 /* ══════════════════════════════════════════════
+   DOKUMENTASI — PARSER FORMAT BARU (1 baris per sesi)
+   foto_url, item_biaya, estimasi_biaya_item, biaya_aktual = comma-separated
+══════════════════════════════════════════════ */
+function parseDokRow(d) {
+  /* Expand comma-separated kolom menjadi array items biaya dan array foto */
+  const splitCs = v => (v||'').split(',').map(s=>s.trim());
+  const fotos   = splitCs(d.foto_url).filter(Boolean);
+  const items   = splitCs(d.item_biaya);
+  const ests    = splitCs(d.estimasi_biaya_item);
+  const akts    = splitCs(d.biaya_aktual);
+  const n       = Math.max(items.length, ests.length, akts.length);
+  const biayaRows = [];
+  for(let i=0; i<n; i++){
+    const item=items[i]||'', est=ests[i]||'', akt=akts[i]||'';
+    if(item||est||akt) biayaRows.push({item_biaya:item, estimasi_biaya_item:est, biaya_aktual:akt});
+  }
+  return { d, fotos, biayaRows };
+}
+
+/* ══════════════════════════════════════════════
    DOKUMENTASI MULTI-SESI
 ══════════════════════════════════════════════ */
 function renderDok(dok) {
@@ -587,32 +604,28 @@ function renderDok(dok) {
     <p class="de-sub">Akan diperbarui setelah kegiatan berlangsung.</p>
   </div>`;
 
-  /* Grup per tanggal_sesi, terbaru dulu */
-  const sesiMap={};
-  dok.forEach(d=>{ const k=d.tanggal_sesi||'unknown'; if(!sesiMap[k])sesiMap[k]=[]; sesiMap[k].push(d); });
-  const sesiKeys = Object.keys(sesiMap).filter(k=>k!=='unknown').sort().reverse();
-  if(sesiMap['unknown']) sesiKeys.push('unknown');
+  /* Format baru: 1 baris per sesi — sort terbaru dulu */
+  const sesiList = (dok||[]).filter(d=>d.tanggal_sesi).sort((a,b)=>
+    a.tanggal_sesi>b.tanggal_sesi ? -1 : a.tanggal_sesi<b.tanggal_sesi ? 1 : 0);
+  if(!sesiList.length) return `<div class="dok-empty"><div class="de-icon">📷</div><p>Dokumentasi belum tersedia.</p></div>`;
 
-  return `<div class="dok-sesi-list">${sesiKeys.map((key,idx)=>{
-    const items = sesiMap[key];
-    const d     = items[0];
+  return `<div class="dok-sesi-list">${sesiList.map((d,idx)=>{
+    const { fotos, biayaRows } = parseDokRow(d);
+    const items = [d]; /* compat — d is the single row */
 
-    const tglStr = key!=='unknown' ? formatTglPanjang(key) : 'Tanggal tidak diketahui';
+    const tglStr = d.tanggal_sesi ? formatTglPanjang(d.tanggal_sesi) : 'Tanggal tidak diketahui';
     const jamStr = (d.waktu_mulai&&d.waktu_selesai) ? `${d.waktu_mulai} – ${d.waktu_selesai}` : d.waktu_mulai||'';
     const dur    = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
     const ket    = d.keterangan||'';
 
-    /* Foto */
-    const fotos = items.filter(i=>i.foto_url);
+    /* Foto — fotos = array URL dari comma-separated foto_url */
     const fotoHtml = fotos.length ? `<div class="dsb-section">
       <div class="dsb-label">📷 Foto Kegiatan</div>
-      <div class="dok-foto-grid">${fotos.map(item=>{
-        const src = convertGDriveUrl(item.foto_url);
-        const alt = item.keterangan||'Foto kegiatan';
-        return `<a href="${item.foto_url}" target="_blank" rel="noopener" class="dok-foto-wrap" title="${alt}">
-          <img class="dok-foto" src="${src}" alt="${alt}" loading="lazy"
+      <div class="dok-foto-grid">${fotos.map(url=>{
+        const src = convertGDriveUrl(url);
+        return `<a href="${url}" target="_blank" rel="noopener" class="dok-foto-wrap">
+          <img class="dok-foto" src="${src}" alt="Foto kegiatan" loading="lazy"
                onerror="this.closest('.dok-foto-wrap').innerHTML='<div class=\\'dok-foto-err\\'>🖼️</div>'"/>
-          ${item.keterangan?`<div class="dok-foto-cap">${item.keterangan}</div>`:''}
         </a>`;
       }).join('')}</div></div>` : '';
 
@@ -641,9 +654,8 @@ function renderDok(dok) {
       <div class="hadir-grid">${hadirParts.join('')}</div>
     </div>` : '';
 
-    /* Biaya */
+    /* Biaya — biayaRows dari parseDokRow */
     let totBiayaSesi=0;
-    const biayaRows = items.filter(i=>i.item_biaya||i.biaya_aktual);
     biayaRows.forEach(i=>{ totBiayaSesi+=rupiahNum(i.biaya_aktual); });
     const biayaHtml = biayaRows.length ? `<div class="dsb-section">
       <div class="dsb-label">💰 Biaya Kegiatan</div>
@@ -674,7 +686,7 @@ function renderDok(dok) {
     return `<div class="dok-sesi">
       <div class="dok-sesi-header" onclick="toggleSesi(${idx})">
         <div class="dsh-left">
-          <span class="dsh-num">Sesi ${sesiKeys.length-idx}</span>
+          <span class="dsh-num">Sesi ${sesiList.length-idx}</span>
           <div class="dsh-info">
             <span class="dsh-tanggal">${tglStr}</span>
             ${jamStr ? `<span class="dsh-jam">${jamStr}${dur?` · ${dur}`:''}</span>` : ''}
