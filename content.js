@@ -356,12 +356,19 @@ const CONTENT = {
 
   /* ── GOOGLE SHEETS API ────────────────────────────── */
   /**
-   * Setelah deploy Google Apps Script sebagai Web App:
-   * 1. Salin URL deployment (bentuk: https://script.google.com/macros/s/.../exec)
-   * 2. Tempel di bawah menggantikan teks "PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI"
+   * url → deployment READ-ONLY (gas_readonly.js)
+   *        Dipakai oleh: index.html, proker.html, rekap.html
+   *        Hanya bisa membaca data — tidak bisa write sama sekali.
+   *
+   * Setelah deploy gas_readonly.js sebagai Web App:
+   * 1. Salin URL deployment-nya (bentuk: https://script.google.com/macros/s/.../exec)
+   * 2. Tempel di bawah menggantikan "PASTE_URL_READONLY_DI_SINI"
+   *
+   * JANGAN isi URL gas_v7.js (write) di sini — file ini bisa dilihat publik!
+   * URL write + token hanya boleh ada di app.js (editor internal).
    */
   api: {
-    url: "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
+    url: "https://script.google.com/macros/s/AAKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
   },
 
   /* ── PENGURUS ─────────────────────────────────────── */

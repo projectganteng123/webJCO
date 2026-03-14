@@ -336,7 +336,9 @@ function renderRekapNotif(items, notArr, cfgArr, jadArr, actArr, detArr) {
   /* Jalankan countdown setelah DOM ready */
   setTimeout(() => {
     cards.forEach((c, idx) => {
-      if (c.estDate && (idx === 0)) startCountdown(c.estDate, c.cdId);
+      // Jalankan countdown untuk semua card yang punya estDate
+      // Card pertama langsung, card lain akan diinit saat accordion dibuka (via toggleRncAccordion)
+      if (c.hasCountdown && c.estDate) startCountdown(c.estDate, c.cdId);
     });
   }, 0);
 
@@ -428,9 +430,8 @@ function renderRekapDok(items, dokArr) {
     </div>` : '';
 
     /* Biaya */
-    let totBiayaSesi = 0;
-    let totBiayaSesi = 0;
-    biayaRows.forEach(i => { totBiayaSesi += rupiahNum(i.biaya_aktual); });
+    let totBiayaSesi = 0, totEstSesi = 0;
+    biayaRows.forEach(i => { totBiayaSesi += rupiahNum(i.biaya_aktual); totEstSesi += rupiahNum(i.estimasi_biaya_item); });
     const biayaHtml  = biayaRows.length ? `<div class="dsb-section">
       <div class="dsb-label">💰 Biaya Kegiatan</div>
       <table class="rab-table sesi-rab">
@@ -442,7 +443,7 @@ function renderRekapDok(items, dokArr) {
             <td class="rab-num ${akt>est&&est?'rab-over':akt?'rab-ok':''}">${akt?rupiah(akt):'<span class="rab-nil">–</span>'}</td>
           </tr>`;
         }).join('')}</tbody>
-        <tfoot><tr class="rab-total"><td>Total Sesi</td><td>–</td><td>${rupiah(totBiayaSesi)||'–'}</td></tr></tfoot>
+        <tfoot><tr class="rab-total"><td>Total Sesi</td><td>${totEstSesi?rupiah(totEstSesi):'–'}</td><td>${rupiah(totBiayaSesi)||'–'}</td></tr></tfoot>
       </table>
     </div>` : '';
 
@@ -569,10 +570,11 @@ function printLaporanRekap() {
   const now    = new Date();
   const tglCetak = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  // Hitung total keuangan — biaya_aktual bisa comma-separated
-  let grandTotal = 0;
+  // Hitung total keuangan — biaya_aktual dan estimasi bisa comma-separated
+  let grandTotal = 0, grandEst = 0;
   dokArr.forEach(d => {
     if(d.biaya_aktual) (d.biaya_aktual+'').split(',').forEach(v=>{ grandTotal += rupiahNum(v); });
+    if(d.estimasi_biaya_item) (d.estimasi_biaya_item+'').split(',').forEach(v=>{ grandEst += rupiahNum(v); });
   });
 
   // Baris keuangan global — expand comma-separated per baris
@@ -657,7 +659,26 @@ ${items.map(p => {
   const det = detArr.find(d => d.proker_id === p.num) || {};
   const aktual  = actArr.filter(r => r.proker_id === p.num && r.status !== 'batal').length;
   const jadwals = jadArr.filter(r => r.proker_id === p.num);
-  const dokSesi = [...new Set(dokArr.filter(d=>d.proker_id===p.num&&d.tanggal_sesi).map(d=>d.tanggal_sesi))];
+  const dokSesiRows = dokArr.filter(d=>d.proker_id===p.num&&d.tanggal_sesi);
+  const dokSesi = [...new Set(dokSesiRows.map(d=>d.tanggal_sesi))];
+
+  // Total durasi
+  let totMenitProker = 0;
+  dokSesiRows.forEach(d => {
+    if (!d.waktu_mulai || !d.waktu_selesai) return;
+    const [h1,m1] = d.waktu_mulai.split(':').map(Number);
+    const [h2,m2] = d.waktu_selesai.split(':').map(Number);
+    if (!isNaN(h1)&&!isNaN(h2)) { const mnt=(h2*60+m2)-(h1*60+m1); if(mnt>0) totMenitProker+=mnt; }
+  });
+  const totDurasiProker = totMenitProker >= 60
+    ? Math.floor(totMenitProker/60)+'j '+(totMenitProker%60>0?totMenitProker%60+'mnt':'')
+    : totMenitProker > 0 ? totMenitProker+'mnt' : '0';
+
+  // Total biaya aktual proker ini
+  let totBiayaProker = 0;
+  dokSesiRows.forEach(d => {
+    if(d.biaya_aktual) (d.biaya_aktual+'').split(',').forEach(v=>{ totBiayaProker+=rupiahNum(v); });
+  });
 
   const metaParts = [
     det.waktu_teks ? '⏰ '+det.waktu_teks : null,
@@ -670,10 +691,10 @@ ${items.map(p => {
   <h3 class="proker-title">${p.icon} #${p.num} — ${p.judul.replace(/&amp;/g,'&')} <span style="font-size:9pt;font-weight:400;color:#777">(${p.tag})</span></h3>
   <div class="tujuan">${det.tujuan || p.desc?.replace(/<[^>]*>/g,'') || '–'}</div>
   ${metaParts.length ? `<div class="proker-meta">${metaParts.map(m=>`<span>${m}</span>`).join('')}</div>` : ''}
-  <div style="font-size:9pt;color:#555;margin-bottom:4px">
+  <div style="font-size:9pt;color:#555;margin-bottom:14px">
     Jadwal direncanakan: <strong>${jadwals.length}</strong> sesi &nbsp;|&nbsp;
     Terlaksana: <strong>${aktual}</strong> &nbsp;|&nbsp;
-    Terdokumentasi: <strong>${dokSesi.length}</strong> sesi
+    Terdokumentasi: <strong>${dokSesi.length}</strong> sesi &nbsp;|&nbsp; Total durasi: <strong>${totDurasiProker}</strong> &nbsp;|&nbsp; Total biaya: <strong>${totBiayaProker>0?rupiah(totBiayaProker):'Rp 0'}</strong>
   </div>`;
 }).join('')}
 
@@ -690,7 +711,7 @@ ${keuRows.length ? `
       <td class="num-col">${r.estimasi ? rupiah(r.estimasi) : '–'}</td>
       <td class="num-col">${r.aktual ? rupiah(r.aktual) : '–'}</td>
     </tr>`).join('')}
-    <tr class="total-row"><td colspan="4">Total Keseluruhan</td><td class="num-col">${rupiah(grandTotal)||'–'}</td></tr>
+    <tr class="total-row"><td colspan="3">Total Keseluruhan</td><td class="num-col">${grandEst?rupiah(grandEst):'–'}</td><td class="num-col">${rupiah(grandTotal)||'–'}</td></tr>
   </tbody>
 </table>` : '<p class="no-data">Belum ada data keuangan.</p>'}
 
@@ -705,6 +726,7 @@ ${items.map(p => {
   ${sesiDok.map((d,si) => {
     const { biayaRows: bRows } = parseDokRow(d);
     const biayaSesi = bRows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
+    const estSesi   = bRows.reduce((s,r)=>s+rupiahNum(r.estimasi_biaya_item),0);
     const dur  = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
     const hadirParts = [
       d.hadir_peserta    ? { label: '👥 Peserta',     val: d.hadir_peserta }    : null,
@@ -726,12 +748,9 @@ ${items.map(p => {
             <td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td>
             <td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td>
           </tr>`).join('')}
-          <tr class="total-row"><td>Total Sesi</td><td class="num-col">–</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr>
+          <tr class="total-row"><td>Total Sesi</td><td class="num-col">${estSesi?rupiah(estSesi):'–'}</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr>
         </tbody>
       </table>`:''}
-    </div>`;
-  }).join('')}`;
-}).join('')}
     </div>`;
   }).join('')}`;
 }).join('')}
@@ -740,6 +759,7 @@ ${items.map(p => {
 </body></html>`;
 
   const win = window.open('', '_blank');
+  if (!win) { alert('Pop-up diblokir browser. Izinkan pop-up untuk situs ini.'); return; }
   win.document.write(html);
   win.document.close();
 }
@@ -757,14 +777,26 @@ function printLaporanProker(proker, sheetsData) {
   const now      = new Date();
   const tglCetak = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  const aktualCount = act.filter(r=>r.status!=='batal').length +
-    new Set(dok.filter(d=>d.tanggal_sesi).map(d=>d.tanggal_sesi)).size;
+  const aktualCount = act.filter(r=>r.status!=='batal').length;
   const sesiDok = dok.filter(d=>d.tanggal_sesi).sort((a,b)=>a.tanggal_sesi>b.tanggal_sesi?1:-1);
+  const dokSesiUniq = [...new Set(sesiDok.map(d=>d.tanggal_sesi))];
 
   let totalBiaya = 0;
   dok.forEach(d=>{
     if(d.biaya_aktual) (d.biaya_aktual+'').split(',').forEach(v=>{ totalBiaya+=rupiahNum(v); });
   });
+
+  // Hitung total durasi dari sesi terdokumentasi
+  let totMenitProker = 0;
+  sesiDok.forEach(d => {
+    if (!d.waktu_mulai || !d.waktu_selesai) return;
+    const [h1,m1] = d.waktu_mulai.split(':').map(Number);
+    const [h2,m2] = d.waktu_selesai.split(':').map(Number);
+    if (!isNaN(h1)&&!isNaN(h2)) { const mnt=(h2*60+m2)-(h1*60+m1); if(mnt>0) totMenitProker+=mnt; }
+  });
+  const totDurasiProker = totMenitProker >= 60
+    ? Math.floor(totMenitProker/60)+'j '+(totMenitProker%60>0?totMenitProker%60+'mnt':'')
+    : totMenitProker > 0 ? totMenitProker+'mnt' : null;
 
   const metaParts = [
     det.waktu_teks ? '⏰ '+det.waktu_teks : null,
@@ -830,11 +862,10 @@ function printLaporanProker(proker, sheetsData) {
 <div class="tujuan">${det.tujuan||'–'}</div>
 ${metaParts.length?`<div class="meta-grid">${metaParts.map(m=>`<span>${m}</span>`).join('')}</div>`:''}
 
-<div class="stats">
-  <div class="stat"><span class="stat-num">${jadwal.length}</span><span class="stat-lbl">Jadwal</span></div>
-  <div class="stat"><span class="stat-num">${aktualCount}</span><span class="stat-lbl">Terlaksana</span></div>
-  <div class="stat"><span class="stat-num">${sesiDok.length}</span><span class="stat-lbl">Terdokumentasi</span></div>
-  <div class="stat"><span class="stat-num">${totalBiaya>0?rupiah(totalBiaya):'–'}</span><span class="stat-lbl">Total Biaya</span></div>
+<div style="font-size:9pt;color:#555;margin-bottom:14px">
+  Jadwal direncanakan: <strong>${jadwal.length}</strong> sesi &nbsp;|&nbsp;
+  Terlaksana: <strong>${aktualCount}</strong> &nbsp;|&nbsp;
+  Terdokumentasi: <strong>${dokSesiUniq.length}</strong> sesi &nbsp;|&nbsp; Total durasi: <strong>${totDurasiProker||'0'}</strong> &nbsp;|&nbsp; Total biaya: <strong>${totalBiaya>0?rupiah(totalBiaya):'Rp 0'}</strong>
 </div>
 
 ${det.rab ? (() => {
@@ -851,6 +882,7 @@ ${det.rab ? (() => {
 ${sesiDok.length ? sesiDok.map((d,si)=>{
   const { biayaRows: bRows } = parseDokRow(d);
   const biayaSesi = bRows.reduce((s,r)=>s+rupiahNum(r.biaya_aktual),0);
+  const estSesiP  = bRows.reduce((s,r)=>s+rupiahNum(r.estimasi_biaya_item),0);
   const dur  = hitungDurasi(d.waktu_mulai,d.waktu_selesai);
   const hadirPartsP = [
     d.hadir_peserta    ? { label: '👥 Peserta',    val: d.hadir_peserta }    : null,
@@ -869,10 +901,8 @@ ${sesiDok.length ? sesiDok.map((d,si)=>{
     ${bRows.length?`<table style="margin-top:8px">
       <thead><tr><th>Item</th><th class="num-col">Estimasi</th><th class="num-col">Aktual</th></tr></thead>
       <tbody>${bRows.map(r=>`<tr><td>${r.item_biaya||'–'}</td><td class="num-col">${r.estimasi_biaya_item?rupiah(rupiahNum(r.estimasi_biaya_item)):'–'}</td><td class="num-col">${r.biaya_aktual?rupiah(rupiahNum(r.biaya_aktual)):'–'}</td></tr>`).join('')}
-      <tr class="total-row"><td>Total Sesi</td><td>–</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr></tbody>
+      <tr class="total-row"><td>Total Sesi</td><td class="num-col">${estSesiP?rupiah(estSesiP):'–'}</td><td class="num-col">${rupiah(biayaSesi)||'–'}</td></tr></tbody>
     </table>`:''}
-  </div>`;
-}).join('') : '<p class="no-data">Belum ada dokumentasi.</p>'}
   </div>`;
 }).join('') : '<p class="no-data">Belum ada dokumentasi.</p>'}
 
@@ -880,6 +910,7 @@ ${sesiDok.length ? sesiDok.map((d,si)=>{
 </body></html>`;
 
   const win = window.open('', '_blank');
+  if (!win) { alert('Pop-up diblokir browser. Izinkan pop-up untuk situs ini.'); return; }
   win.document.write(html);
   win.document.close();
 }

@@ -313,8 +313,24 @@ function renderDeskripsi(proker, detail) {
   const pemateri= D.pemateri || '';
   const panitia = D.panitia  || '';
 
+  /* ── Parse RAB dari format baru (3 kolom CSV) ──
+     item_biaya       : "Konsumsi,Dekorasi,Hadiah"
+     estimasi_biaya_item : "300000,150000,200000"
+     biaya_aktual     : "300000,,200000"
+     Fallback ke format lama (rab JSON) jika kolom baru tidak ada. */
   let rabItems = [];
-  if (D.rab) { try { rabItems = JSON.parse(D.rab); } catch(e) {} }
+  if (D.item_biaya) {
+    const items   = D.item_biaya.split(',').map(s => s.trim());
+    const estList = (D.estimasi_biaya_item || '').split(',').map(s => s.trim());
+    const aktList = (D.biaya_aktual || '').split(',').map(s => s.trim());
+    rabItems = items.filter(Boolean).map((item, i) => ({
+      item,
+      estimasi: estList[i] || '',
+      aktual:   aktList[i] || '',
+    }));
+  } else if (D.rab) {
+    try { rabItems = JSON.parse(D.rab); } catch(e) {}
+  }
 
   function listAccordion(str, satuanLabel) {
     if (!str) return `<span class="val-empty">Belum diisi</span>`;
@@ -609,6 +625,9 @@ function renderDok(dok) {
     a.tanggal_sesi>b.tanggal_sesi ? -1 : a.tanggal_sesi<b.tanggal_sesi ? 1 : 0);
   if(!sesiList.length) return `<div class="dok-empty"><div class="de-icon">📷</div><p>Dokumentasi belum tersedia.</p></div>`;
 
+  // Simpan ke global agar printProkerSesi bisa akses per idx
+  window._prokerSesiList = sesiList.map(d => ({ proker_id: d.proker_id, tanggal_sesi: d.tanggal_sesi, rows: [d] }));
+
   return `<div class="dok-sesi-list">${sesiList.map((d,idx)=>{
     const { fotos, biayaRows } = parseDokRow(d);
     const items = [d]; /* compat — d is the single row */
@@ -655,8 +674,8 @@ function renderDok(dok) {
     </div>` : '';
 
     /* Biaya — biayaRows dari parseDokRow */
-    let totBiayaSesi=0;
-    biayaRows.forEach(i=>{ totBiayaSesi+=rupiahNum(i.biaya_aktual); });
+    let totBiayaSesi=0, totEstSesi=0;
+    biayaRows.forEach(i=>{ totBiayaSesi+=rupiahNum(i.biaya_aktual); totEstSesi+=rupiahNum(i.estimasi_biaya_item); });
     const biayaHtml = biayaRows.length ? `<div class="dsb-section">
       <div class="dsb-label">💰 Biaya Kegiatan</div>
       <table class="rab-table sesi-rab">
@@ -669,7 +688,7 @@ function renderDok(dok) {
             <td class="rab-num ${akt>est&&est?'rab-over':akt?'rab-ok':''}">${akt?rupiah(akt):'<span class="rab-nil">–</span>'}</td>
           </tr>`;
         }).join('')}</tbody>
-        <tfoot><tr class="rab-total"><td>Total Sesi</td><td>–</td><td>${rupiah(totBiayaSesi)||'–'}</td></tr></tfoot>
+        <tfoot><tr class="rab-total"><td>Total Sesi</td><td>${totEstSesi?rupiah(totEstSesi):'–'}</td><td>${rupiah(totBiayaSesi)||'–'}</td></tr></tfoot>
       </table>
     </div>` : '';
 
@@ -695,6 +714,9 @@ function renderDok(dok) {
         </div>
         <div class="dsh-right">
           ${totBiayaSesi>0?`<span class="dsh-biaya">${rupiah(totBiayaSesi)}</span>`:''}
+          <button class="dsh-print-btn" title="Cetak laporan sesi ini"
+            onclick="event.stopPropagation(); printProkerSesi(${idx})"
+          >🖨️</button>
           <span class="dsh-toggle" id="toggle-icon-${idx}">▾</span>
         </div>
       </div>
@@ -710,6 +732,21 @@ function convertGDriveUrl(url) {
   const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if(m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`;
   return url;
+}
+
+/* ══════════════════════════════════════════════
+   CETAK SESI — dari halaman proker
+   Pakai printLaporanSesi dari rekap-script.js
+   dengan menyesuaikan window._rekapSesiList
+══════════════════════════════════════════════ */
+function printProkerSesi(idx) {
+  // printLaporanSesi (rekap-script.js) membaca window._rekapSesiList
+  // Salin _prokerSesiList ke _rekapSesiList agar fungsi yang sama bisa dipakai
+  if (!window._prokerSesiList || !window._prokerSesiList[idx]) return;
+  window._rekapSesiList = window._prokerSesiList;
+  if (typeof printLaporanSesi === 'function') {
+    printLaporanSesi(idx);
+  }
 }
 
 function toggleSesi(idx) {
@@ -841,15 +878,17 @@ function renderPage(proker, sheetsData) {
       <div class="pcard-body">${renderDok(dok)}</div>
     </div>
 
-    <div class="proker-nav">
-      <a class="pnav-card ${prev?'':'disabled'}" href="${prev?'proker.html?id='+prev.num:'#'}">
-        <div class="pnav-dir">← Sebelumnya</div>
-        <div class="pnav-name">${prev?prev.icon+' '+prev.judul.replace(/&amp;/g,'&'):'–'}</div>
-      </a>
-      <a class="pnav-card next ${next?'':'disabled'}" href="${next?'proker.html?id='+next.num:'#'}">
-        <div class="pnav-dir">Berikutnya →</div>
-        <div class="pnav-name">${next?next.judul.replace(/&amp;/g,'&')+' '+next.icon:'–'}</div>
-      </a>
+    <div class="proker-numpad">
+      <div class="pnp-label">Navigasi Program Kerja</div>
+      <div class="pnp-grid">
+        ${items.map((p,i) => {
+          const isActive = p.num === id;
+          const title = p.icon + ' #' + p.num + ' ' + p.judul.replace(/&amp;/g,'&');
+          return '<a href="proker.html?id=' + p.num + '" class="pnp-btn' + (isActive ? ' pnp-active' : '') + '" title="' + title.replace(/"/g,'&quot;') + '">'
+            + (i+1)
+            + '</a>';
+        }).join('')}
+      </div>
     </div>`;
 
   if(estDate) startCountdown(estDate,'countdownBox');
@@ -940,7 +979,7 @@ function cacheInvalidate() {
 
 async function fetchAllSheets(prokerId) {
   const api = CONTENT?.api?.url;
-  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
+  if (!api || api.includes('PASTE_URL')) return null;
 
   /* ── Coba cache dulu ── */
   let allData = cacheLoad();
@@ -994,7 +1033,7 @@ async function fetchAllSheets(prokerId) {
    Dipakai oleh rekap-script.js. Hasil disimpan ke cache yang sama. */
 async function fetchAllSheetsRaw() {
   const api = CONTENT?.api?.url;
-  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return null;
+  if (!api || api.includes('PASTE_URL')) return null;
 
   const sheetNames = ['proker_detail','proker_notif','proker_notif_config',
                       'proker_activity','proker_jadwal','proker_dokumentasi'];

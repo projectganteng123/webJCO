@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
      Tidak ada lagi invalidate-on-reload — user tidak perlu refresh untuk update data ── */
   (async () => {
     const api = CONTENT && CONTENT.api && CONTENT.api.url;
-    if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') return;
+    if (!api || api.includes('PASTE_URL')) return;
 
     const CACHE_TTL = 15 * 60 * 1000;
     const cacheKey  = _jcosasiCacheKey(api);
@@ -514,7 +514,7 @@ async function loadPengurusFromSheets() {
   const api = C.api && C.api.url;
 
   // Jika URL belum diisi → langsung pakai fallback
-  if (!api || api === 'PASTE_URL_APPS_SCRIPT_KAMU_DI_SINI') {
+  if (!api || api.includes('PASTE_URL')) {
     console.warn('[JCOSASI] API URL belum diisi di content.js → pakai data fallback');
     renderPengurus(P.struktur, P.bidang, 'fallback');
     return;
