@@ -68,30 +68,6 @@ function _jcosasiJSONP(url) {
   });
 }
 
-/* Wrapper retry — coba hingga maxRetry kali dengan jeda antar percobaan */
-function _jcosasiJSONPWithRetry(url, maxRetry, delayMs) {
-  maxRetry = maxRetry || 3;
-  delayMs  = delayMs  || 1500;
-  return new Promise(function(resolve, reject) {
-    var attempt = 0;
-    function tryOnce() {
-      attempt++;
-      _jcosasiJSONP(url)
-        .then(resolve)
-        .catch(function(err) {
-          if (attempt < maxRetry) {
-            console.warn('[JCOSASI] Fetch gagal (percobaan ' + attempt + '/' + maxRetry + '): ' + err.message + ' — coba lagi dalam ' + delayMs + 'ms…');
-            setTimeout(tryOnce, delayMs);
-          } else {
-            console.error('[JCOSASI] Fetch gagal setelah ' + maxRetry + ' percobaan: ' + err.message);
-            reject(err);
-          }
-        });
-    }
-    tryOnce();
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const C = CONTENT, O = C.org, L = C.logo, KT = C.kontak;
 
@@ -219,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'proker_activity','proker_jadwal','proker_dokumentasi'];
     try {
       const results = await Promise.allSettled(
-        sheets.map(sh => _jcosasiJSONPWithRetry(api + '?sheet=' + sh))
+        sheets.map(sh => _jcosasiJSONP(api + '?sheet=' + sh))
       );
       const safe = r => r.status === 'fulfilled' && r.value && r.value.status === 'ok' ? r.value.data : [];
       const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
@@ -513,7 +489,7 @@ function sheetsToStruktur(rows) {
       jabatan: row.jabatan || '',
       nama:    row.nama    || '–',
       kelas:   row.kelas   || '–',
-      photo:   row.photo   || '',
+      photo:   row.foto_url || row.photo || '',
       icon:    row.icon    || '👤',
       desc:    row.desc    || '',
     };
@@ -545,7 +521,7 @@ async function loadPengurusFromSheets() {
   }
 
   try {
-    const data = await _jcosasiJSONPWithRetry(api + '?sheet=pengurus');
+    const data = await _jcosasiJSONP(api + '?sheet=pengurus');
 
     if (!data || data.status !== 'ok' || !data.data || data.data.length === 0) {
       throw new Error('Data kosong atau status error');
