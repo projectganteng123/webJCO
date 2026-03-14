@@ -610,6 +610,9 @@ function printLaporanRekap() {
   .cover .org { font-size: 12pt; color: #3D1A5E; font-weight: 600; }
   .cover .meta { font-size: 10pt; color: #888; margin-top: 8px; }
   .cover .tgl { margin-top: 40px; font-size: 10pt; color: #aaa; }
+  .cover-logo-wrap { margin-bottom: 24px; }
+  .cover-logo { width: 110px; height: 110px; object-fit: contain; filter: drop-shadow(0 4px 16px rgba(61,26,94,.2)); }
+  .cover-logo-fallback { font-size: 72pt; line-height: 1; }
   h2.section-title { font-size: 13pt; color: #3D1A5E; border-bottom: 2px solid #3D1A5E; padding-bottom: 6px; margin: 24px 0 14px; }
   h3.proker-title { font-size: 11pt; color: #2c0a4a; background: #f5eeff; padding: 8px 12px; border-left: 4px solid #3D1A5E; margin: 20px 0 10px; page-break-before: auto; }
   .proker-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 10px; font-size: 9.5pt; color: #444; }
@@ -638,13 +641,39 @@ function printLaporanRekap() {
     border: none; border-radius: 99px; padding: 12px 24px; font-size: 11pt; cursor: pointer;
     box-shadow: 0 4px 16px rgba(61,26,94,.35); z-index: 999; }
   .print-btn:hover { background: #6B34AF; }
+
+  /* ── SAVE GUIDE OVERLAY ── */
+  .save-guide-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(20,10,40,.72); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    animation: sgFadeIn .25s ease;
+  }
+  @keyframes sgFadeIn { from { opacity:0; } to { opacity:1; } }
+  .save-guide-box {
+    background: #fff; border-radius: 16px; padding: 28px 32px;
+    max-width: 440px; width: 100%;
+    box-shadow: 0 20px 60px rgba(20,10,40,.35); text-align: center;
+  }
+  .save-guide-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .save-guide-title { font-family: 'Segoe UI',Arial,sans-serif; font-size: 15pt; font-weight: 700; color: #3D1A5E; margin-bottom: 6px; }
+  .save-guide-fname { display: inline-block; background: #f5eeff; color: #3D1A5E; border-radius: 7px; padding: 4px 14px; font-family: 'Courier New',monospace; font-size: 9pt; margin-bottom: 18px; word-break: break-all; }
+  .save-guide-steps { text-align: left; margin: 0 0 16px; font-family: 'Segoe UI',Arial,sans-serif; font-size: 9.5pt; color: #333; line-height: 1.9; padding-left: 18px; }
+  .save-guide-steps li strong { color: #3D1A5E; }
+  .save-guide-tip { font-size: 8.5pt; color: #777; background: #fffbea; border: 1px solid #ffe082; border-radius: 7px; padding: 7px 12px; margin-bottom: 18px; font-family: 'Segoe UI',Arial,sans-serif; }
+  .save-guide-btn { background: #3D1A5E; color: #fff; border: none; border-radius: 99px; padding: 11px 30px; font-size: 10.5pt; font-weight: 600; cursor: pointer; font-family: 'Segoe UI',Arial,sans-serif; box-shadow: 0 4px 16px rgba(61,26,94,.3); transition: background .2s; }
+  .save-guide-btn:hover { background: #6B34AF; }
+  @media print { .save-guide-overlay { display: none !important; } }
 </style>
 </head>
 <body>
 
 <!-- COVER -->
 <div class="cover">
-  <div style="font-size:40pt;margin-bottom:16px">🌸</div>
+  <div class="cover-logo-wrap">
+    <img src="${window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/logo-jcosasi.png')}" alt="JCOSASI" class="cover-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+    <div class="cover-logo-fallback" style="display:none">🌸</div>
+  </div>
   <h1>Laporan Program Kerja</h1>
   <h2>Periode 2026–2027</h2>
   <div class="org">${org.nama_lengkap||'JCOSASI'} (${org.nama_singkat||'JCOSASI'})</div>
@@ -755,7 +784,39 @@ ${items.map(p => {
   }).join('')}`;
 }).join('')}
 
-<button class="print-btn no-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+<button class="print-btn no-print" onclick="showPrintGuide('Laporan-Proker-JCOSASI-'+new Date().toLocaleDateString('id-ID').replace(/\\//g,'-')+'.pdf')">🖨️ Cetak / Simpan PDF</button>
+
+<script>
+function showPrintGuide(fileName) {
+  var old = document.getElementById('saveGuideOverlay');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'saveGuideOverlay';
+  overlay.className = 'save-guide-overlay';
+  overlay.innerHTML =
+    '<div class="save-guide-box">'
+    + '<div class="save-guide-icon">🖨️</div>'
+    + '<div class="save-guide-title">Simpan sebagai PDF ke Google Drive</div>'
+    + '<div class="save-guide-fname">' + fileName + '</div>'
+    + '<ol class="save-guide-steps">'
+    + '<li>Klik <strong>Lanjut Cetak</strong> di bawah</li>'
+    + '<li>Di dialog print, ubah <strong>Destination / Tujuan</strong></li>'
+    + '<li>Pilih <strong>Save to Google Drive</strong> atau <strong>Save as PDF</strong></li>'
+    + '<li>Ubah nama file sesuai nama di atas ↑</li>'
+    + '<li>Klik <strong>Save / Simpan</strong></li>'
+    + '</ol>'
+    + '<div class="save-guide-tip">💡 Jika "Save to Google Drive" tidak muncul, pilih "Save as PDF" lalu upload ke folder <strong>Laporan JCOSASI</strong> di Drive</div>'
+    + '<button class="save-guide-btn" onclick="doActualPrint()">🖨️ Lanjut Cetak</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+function doActualPrint() {
+  var el = document.getElementById('saveGuideOverlay');
+  if (el) el.remove();
+  setTimeout(function() { window.print(); }, 150);
+}
+</script>
 </body></html>`;
 
   const win = window.open('', '_blank');
@@ -822,6 +883,7 @@ function printLaporanProker(proker, sheetsData) {
   .cover .desc { font-size:10pt; color:#555; margin-bottom:12px; }
   .cover .org { font-size:9.5pt; color:#888; }
   .cover .tgl { margin-top:16px; font-size:9pt; color:#bbb; }
+  .cover-logo { width: 80px; height: 80px; object-fit: contain; margin-bottom: 16px; filter: drop-shadow(0 3px 10px rgba(61,26,94,.2)); }
   h2 { font-size:12pt; color:#3D1A5E; border-bottom:2px solid #3D1A5E; padding-bottom:5px; margin:22px 0 12px; }
   .meta-grid { display:flex; flex-wrap:wrap; gap:6px 20px; margin-bottom:12px; font-size:9.5pt; color:#444; }
   .meta-grid span::before { content:'• '; color:#9B59D4; }
@@ -846,10 +908,24 @@ function printLaporanProker(proker, sheetsData) {
     box-shadow:0 4px 16px rgba(61,26,94,.35); }
   .print-btn:hover { background:#6B34AF; }
   @media print { .print-btn { display:none; } }
+
+  .save-guide-overlay{position:fixed;inset:0;z-index:9999;background:rgba(20,10,40,.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;animation:sgFadeIn .25s ease}
+  @keyframes sgFadeIn{from{opacity:0}to{opacity:1}}
+  .save-guide-box{background:#fff;border-radius:16px;padding:28px 32px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(20,10,40,.35);text-align:center}
+  .save-guide-icon{font-size:2.5rem;margin-bottom:10px}
+  .save-guide-title{font-family:'Segoe UI',Arial,sans-serif;font-size:15pt;font-weight:700;color:#3D1A5E;margin-bottom:6px}
+  .save-guide-fname{display:inline-block;background:#f5eeff;color:#3D1A5E;border-radius:7px;padding:4px 14px;font-family:'Courier New',monospace;font-size:9pt;margin-bottom:18px;word-break:break-all}
+  .save-guide-steps{text-align:left;margin:0 0 16px;font-family:'Segoe UI',Arial,sans-serif;font-size:9.5pt;color:#333;line-height:1.9;padding-left:18px}
+  .save-guide-steps li strong{color:#3D1A5E}
+  .save-guide-tip{font-size:8.5pt;color:#777;background:#fffbea;border:1px solid #ffe082;border-radius:7px;padding:7px 12px;margin-bottom:18px;font-family:'Segoe UI',Arial,sans-serif}
+  .save-guide-btn{background:#3D1A5E;color:#fff;border:none;border-radius:99px;padding:11px 30px;font-size:10.5pt;font-weight:600;cursor:pointer;font-family:'Segoe UI',Arial,sans-serif;box-shadow:0 4px 16px rgba(61,26,94,.3);transition:background .2s}
+  .save-guide-btn:hover{background:#6B34AF}
+  @media print{.save-guide-overlay{display:none!important}}
 </style>
 </head>
 <body>
 <div class="cover">
+  <img src="${window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/logo-jcosasi.png')}" alt="JCOSASI" class="cover-logo" onerror="this.style.display='none'"/>
   <div class="num">${proker.icon} #${proker.num}</div>
   <h1>${proker.judul.replace(/&amp;/g,'&')}</h1>
   <span class="tag">${proker.tag}</span>
@@ -906,7 +982,39 @@ ${sesiDok.length ? sesiDok.map((d,si)=>{
   </div>`;
 }).join('') : '<p class="no-data">Belum ada dokumentasi.</p>'}
 
-<button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+<button class="print-btn" onclick="showPrintGuide((document.title||'Laporan-JCOSASI').replace(/ /g,'-')+'.pdf')">🖨️ Cetak / Simpan PDF</button>
+
+<script>
+function showPrintGuide(fileName) {
+  var old = document.getElementById('saveGuideOverlay');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'saveGuideOverlay';
+  overlay.className = 'save-guide-overlay';
+  overlay.innerHTML =
+    '<div class="save-guide-box">'
+    + '<div class="save-guide-icon">🖨️</div>'
+    + '<div class="save-guide-title">Simpan sebagai PDF ke Google Drive</div>'
+    + '<div class="save-guide-fname">' + fileName + '</div>'
+    + '<ol class="save-guide-steps">'
+    + '<li>Klik <strong>Lanjut Cetak</strong> di bawah</li>'
+    + '<li>Di dialog print, ubah <strong>Destination / Tujuan</strong></li>'
+    + '<li>Pilih <strong>Save to Google Drive</strong> atau <strong>Save as PDF</strong></li>'
+    + '<li>Ubah nama file sesuai nama di atas ↑</li>'
+    + '<li>Klik <strong>Save / Simpan</strong></li>'
+    + '</ol>'
+    + '<div class="save-guide-tip">💡 Jika tidak ada opsi Drive, pilih "Save as PDF" lalu upload ke folder <strong>Laporan JCOSASI</strong> di Drive</div>'
+    + '<button class="save-guide-btn" onclick="doActualPrint()">🖨️ Lanjut Cetak</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+function doActualPrint() {
+  var el = document.getElementById('saveGuideOverlay');
+  if (el) el.remove();
+  setTimeout(function() { window.print(); }, 150);
+}
+</script>
 </body></html>`;
 
   const win = window.open('', '_blank');
@@ -1000,10 +1108,9 @@ body {
 }
 .kop-logo {
   width: 52px; height: 52px; flex-shrink: 0;
-  background: #3D1A5E;
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 24pt; color: #fff;
+  font-size: 24pt; overflow: hidden;
 }
 .kop-text { flex: 1; }
 .kop-org   { font-size: 13pt; font-weight: 800; color: #3D1A5E; letter-spacing: .3px; }
@@ -1160,13 +1267,28 @@ h3.foto-h3 {
   .foto-section { break-inside: avoid !important; page-break-inside: avoid !important; }
   h3.foto-h3 { break-after: avoid !important; page-break-after: avoid !important; }
 }
+
+  .save-guide-overlay{position:fixed;inset:0;z-index:9999;background:rgba(20,10,40,.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;animation:sgFadeIn .25s ease}
+  @keyframes sgFadeIn{from{opacity:0}to{opacity:1}}
+  .save-guide-box{background:#fff;border-radius:16px;padding:28px 32px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(20,10,40,.35);text-align:center}
+  .save-guide-icon{font-size:2.5rem;margin-bottom:10px}
+  .save-guide-title{font-family:'Segoe UI',Arial,sans-serif;font-size:15pt;font-weight:700;color:#3D1A5E;margin-bottom:6px}
+  .save-guide-fname{display:inline-block;background:#f5eeff;color:#3D1A5E;border-radius:7px;padding:4px 14px;font-family:'Courier New',monospace;font-size:9pt;margin-bottom:18px;word-break:break-all}
+  .save-guide-steps{text-align:left;margin:0 0 16px;font-family:'Segoe UI',Arial,sans-serif;font-size:9.5pt;color:#333;line-height:1.9;padding-left:18px}
+  .save-guide-steps li strong{color:#3D1A5E}
+  .save-guide-tip{font-size:8.5pt;color:#777;background:#fffbea;border:1px solid #ffe082;border-radius:7px;padding:7px 12px;margin-bottom:18px;font-family:'Segoe UI',Arial,sans-serif}
+  .save-guide-btn{background:#3D1A5E;color:#fff;border:none;border-radius:99px;padding:11px 30px;font-size:10.5pt;font-weight:600;cursor:pointer;font-family:'Segoe UI',Arial,sans-serif;box-shadow:0 4px 16px rgba(61,26,94,.3);transition:background .2s}
+  .save-guide-btn:hover{background:#6B34AF}
+  @media print{.save-guide-overlay{display:none!important}}
 </style>
 </head>
 <body>
 
 <!-- KOP -->
 <div class="kop">
-  <div class="kop-logo">${proker ? proker.icon : '🌸'}</div>
+  <div class="kop-logo">
+    <img src="${window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/logo-jcosasi.png')}" alt="J" style="width:100%;height:100%;object-fit:contain;border-radius:6px" onerror="this.style.display='none';this.parentElement.innerHTML='${proker ? proker.icon : '&#127800;'}'"/>
+  </div>
   <div class="kop-text">
     <div class="kop-org">${org.nama_lengkap || 'JCOSASI'}</div>
     <div class="kop-sub">${org.sekolah || 'SMKN 1 Cikarang Barat'} · ${org.angkatan_aktif || 'Angkatan 12'} · Periode 2026–2027</div>
@@ -1349,7 +1471,39 @@ ${fotosCapped.length ? (() => {
   </div>
 </div>
 
-<button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+<button class="print-btn" onclick="showPrintGuide((document.title||'Laporan-Sesi-JCOSASI').replace(/ /g,'-').replace(/[·—]/g,'-')+'.pdf')">🖨️ Cetak / Simpan PDF</button>
+
+<script>
+function showPrintGuide(fileName) {
+  var old = document.getElementById('saveGuideOverlay');
+  if (old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'saveGuideOverlay';
+  overlay.className = 'save-guide-overlay';
+  overlay.innerHTML =
+    '<div class="save-guide-box">'
+    + '<div class="save-guide-icon">🖨️</div>'
+    + '<div class="save-guide-title">Simpan sebagai PDF ke Google Drive</div>'
+    + '<div class="save-guide-fname">' + fileName + '</div>'
+    + '<ol class="save-guide-steps">'
+    + '<li>Klik <strong>Lanjut Cetak</strong> di bawah</li>'
+    + '<li>Di dialog print, ubah <strong>Destination / Tujuan</strong></li>'
+    + '<li>Pilih <strong>Save to Google Drive</strong> atau <strong>Save as PDF</strong></li>'
+    + '<li>Ubah nama file sesuai nama di atas ↑</li>'
+    + '<li>Klik <strong>Save / Simpan</strong></li>'
+    + '</ol>'
+    + '<div class="save-guide-tip">💡 Jika "Save to Google Drive" tidak muncul, pilih "Save as PDF" lalu upload ke folder <strong>Laporan JCOSASI</strong> di Drive</div>'
+    + '<button class="save-guide-btn" onclick="doActualPrint()">🖨️ Lanjut Cetak</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+function doActualPrint() {
+  var el = document.getElementById('saveGuideOverlay');
+  if (el) el.remove();
+  setTimeout(function() { window.print(); }, 150);
+}
+</script>
 </body>
 </html>`;
 

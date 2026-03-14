@@ -68,6 +68,30 @@ function _jcosasiJSONP(url) {
   });
 }
 
+/* Wrapper retry — coba hingga maxRetry kali dengan jeda antar percobaan */
+function _jcosasiJSONPWithRetry(url, maxRetry, delayMs) {
+  maxRetry = maxRetry || 3;
+  delayMs  = delayMs  || 1500;
+  return new Promise(function(resolve, reject) {
+    var attempt = 0;
+    function tryOnce() {
+      attempt++;
+      _jcosasiJSONP(url)
+        .then(resolve)
+        .catch(function(err) {
+          if (attempt < maxRetry) {
+            console.warn('[JCOSASI] Fetch gagal (percobaan ' + attempt + '/' + maxRetry + '): ' + err.message + ' — coba lagi dalam ' + delayMs + 'ms…');
+            setTimeout(tryOnce, delayMs);
+          } else {
+            console.error('[JCOSASI] Fetch gagal setelah ' + maxRetry + ' percobaan: ' + err.message);
+            reject(err);
+          }
+        });
+    }
+    tryOnce();
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const C = CONTENT, O = C.org, L = C.logo, KT = C.kontak;
 
@@ -195,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'proker_activity','proker_jadwal','proker_dokumentasi'];
     try {
       const results = await Promise.allSettled(
-        sheets.map(sh => _jcosasiJSONP(api + '?sheet=' + sh))
+        sheets.map(sh => _jcosasiJSONPWithRetry(api + '?sheet=' + sh))
       );
       const safe = r => r.status === 'fulfilled' && r.value && r.value.status === 'ok' ? r.value.data : [];
       const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
@@ -521,7 +545,7 @@ async function loadPengurusFromSheets() {
   }
 
   try {
-    const data = await fetchJSONP(api + '?sheet=pengurus');
+    const data = await _jcosasiJSONPWithRetry(api + '?sheet=pengurus');
 
     if (!data || data.status !== 'ok' || !data.data || data.data.length === 0) {
       throw new Error('Data kosong atau status error');
@@ -534,44 +558,6 @@ async function loadPengurusFromSheets() {
     console.error('[JCOSASI] Gagal fetch dari Sheets:', err.message);
     renderPengurus(P.struktur, P.bidang, 'fallback');
   }
-}
-
-/**
- * JSONP helper — menghindari CORS dengan inject <script> tag
- * Google Apps Script mendukung callback parameter secara native
- */
-function fetchJSONP(url) {
-  return new Promise(function(resolve, reject) {
-    // Nama callback unik agar tidak tabrakan jika dipanggil berkali-kali
-    const callbackName = '_jcosasi_cb_' + Date.now();
-    const timeout = setTimeout(function() {
-      cleanup();
-      reject(new Error('Request timeout setelah 10 detik'));
-    }, 10000);
-
-    // Google Apps Script akan memanggil fungsi ini dengan data JSON
-    window[callbackName] = function(data) {
-      cleanup();
-      resolve(data);
-    };
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[callbackName];
-      const el = document.getElementById('jsonp-pengurus');
-      if (el) el.remove();
-    }
-
-    // Inject script tag — ini yang bypass CORS
-    const script = document.createElement('script');
-    script.id  = 'jsonp-pengurus';
-    script.src = url + '&callback=' + callbackName;
-    script.onerror = function() {
-      cleanup();
-      reject(new Error('Script gagal dimuat — cek URL Apps Script'));
-    };
-    document.head.appendChild(script);
-  });
 }
 
 /**
