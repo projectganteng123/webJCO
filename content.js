@@ -368,7 +368,7 @@ const CONTENT = {
    * URL write + token hanya boleh ada di app.js (editor internal).
    */
   api: {
-    url: "https://script.google.com/macros/s/AAKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
+    url: "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
   },
 
   /* ── PENGURUS ─────────────────────────────────────── */
