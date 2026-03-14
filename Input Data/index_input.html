@@ -2,55 +2,72 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="logo-jcosasi.png" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>JCOSASI — Editor Laporan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <!-- Font hero landing page untuk loading screen -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Serif+JP:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style_input.css"/>
 </head>
 <body>
 
 <div class="lov" id="lov">
-  <!-- Sakura petals container -->
+  <!-- Layer 1: hero-bg gradients -->
+  <div class="lov-bg"></div>
+  <!-- Layer 2: grid overlay garis tipis -->
+  <div class="lov-grid"></div>
+  <!-- Layer 3: sakura static dots -->
+  <div class="lov-sakura-static"></div>
+  <!-- Layer 4: animated sakura petals -->
   <div class="lov-sakura" id="lovSakura"></div>
-  <!-- Konten utama -->
+  <!-- Layer 5: circle decos -->
+  <div class="lov-circle-1"></div>
+  <div class="lov-circle-2"></div>
+  <!-- Konten -->
   <div class="lov-content">
     <div class="lov-logo">
-      <img src="logo-jcosasi.png" alt="JCOSASI" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <img src="logo-jcosasi.png" alt="JCOSASI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
       <span class="lov-logo-fallback" style="display:none">🎌</span>
     </div>
-    <div>
+    <div style="text-align:center">
       <div class="lov-title">JCOSASI</div>
       <div class="lov-subtitle">Editor Laporan</div>
     </div>
     <div class="lov-bar-wrap"><div class="lov-bar"></div></div>
-    <div class="ltx" id="ltx">Mengambil data…</div>
+    <div class="ltx" id="ltx">Memuat data…</div>
   </div>
 </div>
 
 <nav class="topbar">
+  <button class="tb-ham" id="btnHam" onclick="toggleSidebar()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
   <div class="tb-logo"><div class="tb-li"><img src="logo-jcosasi.png" alt="J" onerror="this.style.display='none';this.parentElement.innerHTML='🎌'"/></div><div><div class="tb-lt">JCOSASI</div><div class="tb-ls">Editor Laporan v3</div></div></div>
   <div class="tb-sp"></div>
   <div class="tb-st"><div class="tb-d" id="statusDot"></div><span id="statusTxt">Memuat…</span></div>
-  <button class="btn-upload" id="btnUpload" onclick="handleUpload()" disabled>☁️ Upload ke Sheets</button>
+  <button class="btn-upload" id="btnUpload" onclick="handleUpload()" disabled>☁️ Upload</button>
 </nav>
 
 <div class="app">
-  <aside class="sidebar">
+  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-close-row"><button class="sb-close-btn" onclick="closeSidebar()">✕ Tutup</button></div>
     <div class="sb-s">Dashboard</div>
-    <div class="sb-i active" onclick="showPage('rekap')" id="nav-rekap"><span class="sb-ic">📊</span><span>Overview</span></div>
-    <div class="sb-i" onclick="showPage('changelog')" id="nav-changelog"><span class="sb-ic">📝</span><span>Log Perubahan</span><span class="sb-b" id="badge-changelog">0</span></div>
+    <div class="sb-i active" onclick="showPage('rekap');closeSidebar()" id="nav-rekap"><span class="sb-ic">📊</span><span>Overview</span></div>
+    <div class="sb-i" onclick="showPage('changelog');closeSidebar()" id="nav-changelog"><span class="sb-ic">📝</span><span>Log Perubahan</span><span class="sb-b" id="badge-changelog">0</span></div>
     <div class="sb-d"></div>
     <div class="sb-s">Edit Data</div>
-    <div class="sb-i" onclick="showPage('dokumentasi')" id="nav-dokumentasi"><span class="sb-ic">📋</span><span>Dokumentasi Sesi</span><span class="sb-b" id="badge-dokumentasi">0</span></div>
-    <div class="sb-i" onclick="showPage('jadwal')" id="nav-jadwal"><span class="sb-ic">📅</span><span>Jadwal Proker</span><span class="sb-b" id="badge-jadwal">0</span></div>
-    <div class="sb-i" onclick="showPage('detail')" id="nav-detail"><span class="sb-ic">📌</span><span>Detail Proker</span><span class="sb-b" id="badge-detail">0</span></div>
-    <div class="sb-i" onclick="showPage('notif')" id="nav-notif"><span class="sb-ic">🔔</span><span>Notif Config</span><span class="sb-b" id="badge-notif">0</span></div>
-    <div class="sb-i" onclick="showPage('anggota')" id="nav-anggota"><span class="sb-ic">👥</span><span>Anggota</span><span class="sb-b" id="badge-anggota">0</span></div>
-    <div class="sb-i" onclick="showPage('pengurus')" id="nav-pengurus"><span class="sb-ic">🎌</span><span>Pengurus</span><span class="sb-b" id="badge-pengurus">0</span></div>
+    <div class="sb-i" onclick="showPage('dokumentasi');closeSidebar()" id="nav-dokumentasi"><span class="sb-ic">📋</span><span>Dokumentasi Sesi</span><span class="sb-b" id="badge-dokumentasi">0</span></div>
+    <div class="sb-i" onclick="showPage('jadwal');closeSidebar()" id="nav-jadwal"><span class="sb-ic">📅</span><span>Jadwal Proker</span><span class="sb-b" id="badge-jadwal">0</span></div>
+    <div class="sb-i" onclick="showPage('detail');closeSidebar()" id="nav-detail"><span class="sb-ic">📌</span><span>Detail Proker</span><span class="sb-b" id="badge-detail">0</span></div>
+    <div class="sb-i" onclick="showPage('notif');closeSidebar()" id="nav-notif"><span class="sb-ic">🔔</span><span>Notif Config</span><span class="sb-b" id="badge-notif">0</span></div>
+    <div class="sb-i" onclick="showPage('anggota');closeSidebar()" id="nav-anggota"><span class="sb-ic">👥</span><span>Anggota</span><span class="sb-b" id="badge-anggota">0</span></div>
+    <div class="sb-i" onclick="showPage('pengurus');closeSidebar()" id="nav-pengurus"><span class="sb-ic">🎌</span><span>Pengurus</span><span class="sb-b" id="badge-pengurus">0</span></div>
     <div class="sb-d"></div>
     <div class="sb-s">Info</div>
-    <div class="sb-i" onclick="showPage('changelog')" id="nav-changelog2"><span class="sb-ic">📝</span><span>Log Perubahan</span></div>
+    <div class="sb-i" onclick="showPage('changelog');closeSidebar()" id="nav-changelog2"><span class="sb-ic">📝</span><span>Log Perubahan</span></div>
   </aside>
 
   <main class="main">

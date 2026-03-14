@@ -232,61 +232,115 @@ body{font-family:var(--fb);background:var(--ow);color:var(--ch);min-height:100vh
 .toast.show{transform:none}.toast.success{background:#14532D}.toast.error{background:#7F1D1D}.toast.warning{background:#78350F}
 
 /* LOADING */
-/* ── LOADING OVERLAY ── */
+/* ════════════════════════════════════════════════════
+   LOADING OVERLAY — layer-by-layer identik hero landing
+   ════════════════════════════════════════════════════ */
 .lov {
   position: fixed; inset: 0; z-index: 500;
-  background: linear-gradient(135deg, #3D1A5E 0%, #6B34AF 60%, #9B59D4 100%);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0; overflow: hidden;
+  /* Layer 0: warna dasar — persis #hero background */
+  background: #3D1A5E;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
   transition: opacity .5s ease, visibility .5s ease;
+  /* Font identik hero */
+  font-family: 'Playfair Display', 'Noto Serif JP', 'DM Sans', serif;
 }
 .lov.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
-/* Sakura container */
-.lov-sakura { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-
-/* Konten loading */
-.lov-content {
-  position: relative; z-index: 2;
-  display: flex; flex-direction: column; align-items: center; gap: 20px;
-  animation: lovFadeIn .6s ease both;
+/* Layer 1: .hero-bg — radial gradients + linear-gradient */
+.lov-bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 70% 50%, rgba(140,70,210,.25) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 10% 80%, rgba(192,57,43,.15) 0%, transparent 60%),
+    linear-gradient(135deg, #2a1040 0%, #3D1A5E 50%, #1e0e30 100%);
 }
-@keyframes lovFadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+
+/* Layer 2: .hero-grid-overlay — garis vertikal & horizontal tipis */
+.lov-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Layer 3: .sakura-layer — static pink dots */
+.lov-sakura-static {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(circle 3px at 15% 20%, rgba(255,180,200,.4), transparent),
+    radial-gradient(circle 2px at 75% 15%, rgba(255,180,200,.3), transparent),
+    radial-gradient(circle 4px at 85% 60%, rgba(255,180,200,.25), transparent),
+    radial-gradient(circle 2px at 40% 75%, rgba(255,180,200,.35), transparent),
+    radial-gradient(circle 3px at 60% 35%, rgba(255,180,200,.2), transparent);
+}
+
+/* Layer 4: animated sakura petals */
+.lov-sakura { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+
+/* Layer 5: circle decos — identik .c1 .c2 hero */
+.lov-circle-1 {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.06);
+  width: clamp(280px, 48vw, 480px); height: clamp(280px, 48vw, 480px);
+  top: 50%; right: -80px; transform: translateY(-50%);
+  pointer-events: none; z-index: 1;
+}
+.lov-circle-2 {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(192,57,43,.15);
+  background: rgba(192,57,43,.04);
+  width: clamp(180px, 32vw, 320px); height: clamp(180px, 32vw, 320px);
+  top: 50%; right: 40px; transform: translateY(-50%);
+  pointer-events: none; z-index: 1;
+}
+
+/* ── Konten ── */
+.lov-content {
+  position: relative; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  animation: lovFadeIn .7s ease both;
+}
+@keyframes lovFadeIn { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
 
 /* Logo */
 .lov-logo {
-  width: clamp(110px, 32vmin, 200px);
-  height: clamp(110px, 32vmin, 200px);
+  width: clamp(100px, 28vmin, 180px);
+  height: clamp(100px, 28vmin, 180px);
   display: flex; align-items: center; justify-content: center;
-  /* Tidak ada background/border — logo tampil telanjang */
 }
 .lov-logo img {
   width: 100%; height: 100%; object-fit: contain;
-  filter: drop-shadow(0 6px 24px rgba(0,0,0,.3));
+  filter: drop-shadow(0 8px 28px rgba(0,0,0,.4));
 }
 .lov-logo-fallback { font-size: clamp(3rem, 10vmin, 6rem); }
 
-/* Teks */
+/* Teks — font Playfair Display identik hero */
 .lov-title {
-  font-weight: 800;
-  font-size: clamp(1.3rem, 5vw, 2rem);
-  color: #fff; letter-spacing: .5px; text-align: center; line-height: 1.2;
+  font-family: 'Playfair Display', 'Noto Serif JP', serif;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 5vw, 2.8rem);
+  color: #fff; letter-spacing: -.02em; text-align: center; line-height: 1.05;
 }
 .lov-subtitle {
-  font-size: clamp(.75rem, 2.5vw, .95rem);
-  color: rgba(255,255,255,.7);
-  letter-spacing: .05em; text-align: center; margin-top: 4px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(.72rem, 2vw, .88rem);
+  color: rgba(255,255,255,.65);
+  letter-spacing: .14em; text-align: center;
+  text-transform: uppercase; margin-top: 2px;
 }
 
-/* Spinner bar */
+/* Progress bar — warna merah aksen identik hero CTA */
 .lov-bar-wrap {
-  width: clamp(140px, 40vw, 220px); height: 4px;
-  background: rgba(255,255,255,.2);
+  width: clamp(120px, 35vw, 200px); height: 2px;
+  background: rgba(255,255,255,.12);
   border-radius: 99px; overflow: hidden;
 }
 .lov-bar {
-  height: 100%; background: #fff; border-radius: 99px;
-  animation: lovBar 1.4s ease-in-out infinite;
+  height: 100%; border-radius: 99px;
+  background: #C0392B;
+  animation: lovBar 1.6s ease-in-out infinite;
 }
 @keyframes lovBar {
   0%   { width: 0%;   margin-left: 0; }
@@ -294,21 +348,23 @@ body{font-family:var(--fb);background:var(--ow);color:var(--ch);min-height:100vh
   100% { width: 0%;   margin-left: 100%; }
 }
 
-/* Teks status */
+/* Status text */
 .ltx {
-  font-size: .76rem; font-weight: 600; color: rgba(255,255,255,.7);
-  letter-spacing: .03em; text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .7rem; font-weight: 400;
+  color: rgba(255,255,255,.45);
+  letter-spacing: .12em; text-align: center;
+  text-transform: uppercase;
 }
 
-/* Sakura petal */
+/* Sakura keyframe identik hero */
 @keyframes sakuraFall {
-  0%   { transform: translateY(-20px) rotate(0deg);   opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: .6; }
-  100% { transform: translateY(110vh) rotate(720deg) translateX(40px); opacity: 0; }
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  50%  { transform: translateY(40vh) rotate(180deg) translateX(20px); opacity: .7; }
+  100% { transform: translateY(100vh) rotate(360deg) translateX(-20px); opacity: 0; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.ring { display: none; } /* legacy — tidak dipakai lagi */
+.ring { display: none; }
 
 /* EMPTY */
 .empty{text-align:center;padding:34px 16px;color:var(--gm)}.ei{font-size:2.6rem;margin-bottom:9px}.et{font-weight:700;font-size:.94rem;margin-bottom:4px;color:var(--gd)}.ed{font-size:.78rem}
@@ -320,7 +376,161 @@ body{font-family:var(--fb);background:var(--ow);color:var(--ch);min-height:100vh
 .up-bar{height:100%;background:linear-gradient(90deg,var(--pd),var(--pl));border-radius:99px;transition:width .3s ease;width:0%}
 .up-step{font-size:.7rem;color:var(--gm)}
 
-@media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{display:none}.main{padding:13px}.g2,.g3,.det-g{grid-template-columns:1fr}.ph-stats{gap:7px}}
+
+/* ════════════════════════════════
+   HAMBURGER BUTTON
+════════════════════════════════ */
+.tb-ham {
+  display: none;
+  flex-direction: column; justify-content: center; align-items: center;
+  gap: 5px; width: 36px; height: 36px;
+  background: none; border: none; cursor: pointer;
+  padding: 4px; border-radius: 8px;
+  transition: background var(--t); flex-shrink: 0;
+}
+.tb-ham:hover { background: var(--pg); }
+.tb-ham span {
+  display: block; width: 20px; height: 2px;
+  background: var(--ch); border-radius: 99px;
+  transition: transform .25s ease, opacity .2s;
+  transform-origin: center;
+}
+.tb-ham.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.tb-ham.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.tb-ham.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Sidebar overlay */
+.sb-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 89;
+  background: rgba(30,26,46,.5);
+  backdrop-filter: blur(2px);
+  -webkit-tap-highlight-color: transparent;
+}
+.sb-overlay.show { display: block; }
+
+/* Sidebar close row (hanya mobile) */
+.sb-close-row { display: none; }
+
+/* ════════════════════════════════
+   TABLET — max 768px
+════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Hamburger muncul */
+  .tb-ham { display: flex; }
+
+  /* Upload button — singkat */
+  .btn-upload { padding: 6px 12px; font-size: .74rem; }
+
+  /* Layout — sidebar disembunyikan secara default */
+  .app { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; top: 56px; left: 0; bottom: 0;
+    width: 260px; z-index: 90;
+    transform: translateX(-100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(74,30,140,.18);
+  }
+  .sb-close-row {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 8px 12px 4px;
+  }
+  .sb-close-btn {
+    background: none; border: 1.5px solid var(--gl); border-radius: 7px;
+    padding: 4px 10px; font-size: .72rem; font-weight: 600;
+    color: var(--gm); cursor: pointer; font-family: var(--fb);
+    transition: background var(--t), color var(--t);
+  }
+  .sb-close-btn:hover { background: var(--pg); color: var(--pd); }
+
+  /* Main area */
+  .main { padding: 14px 13px; }
+
+  /* Grid forms */
+  .g2, .g3, .det-g { grid-template-columns: 1fr; }
+
+  /* Hero stats */
+  .ph { padding: 16px 14px 14px; }
+  .ph-stats { gap: 6px; }
+  .ph-st { padding: 7px 10px; min-width: 52px; }
+  .ph-sn { font-size: .95rem; }
+  .ph-sl { font-size: .55rem; }
+
+  /* Activity graph scroll */
+  .act-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Rekap cards */
+  .rk-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 9px; }
+
+  /* Pengurus cards */
+  .peng-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 9px; }
+
+  /* Modal full-width */
+  .mov { padding: 10px 8px; align-items: flex-end; }
+  .modal {
+    max-width: 100%; border-radius: var(--r) var(--r) 0 0;
+    padding: 18px 16px; max-height: 88vh;
+  }
+
+  /* Biaya tabel — scroll horizontal */
+  .btbl { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .btbl td, .btbl th { white-space: nowrap; }
+
+  /* Picker — full width */
+  .pck-classes { max-height: 160px; }
+
+  /* Toast — full width */
+  .tw { right: 8px; left: 8px; bottom: 12px; }
+  .toast { min-width: 0; width: 100%; }
+
+  /* Upload progress */
+  .up-prog { font-size: .74rem; }
+}
+
+/* ════════════════════════════════
+   MOBILE — max 480px
+════════════════════════════════ */
+@media (max-width: 480px) {
+  .topbar { padding: 0 12px; gap: 8px; height: 52px; }
+  .sidebar { top: 52px; width: min(280px, 85vw); }
+  .tb-lt { font-size: .82rem; }
+  .tb-ls { display: none; }
+  .tb-st span { display: none; }
+  .tb-st { padding: 3px 8px; }
+  .btn-upload { padding: 5px 10px; font-size: .7rem; }
+  .main { padding: 10px; }
+
+  /* Stats strip — 3 kolom */
+  .ph-stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+
+  /* Sesi cards */
+  .ss-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Modal */
+  .mov { padding: 0; align-items: flex-end; }
+  .modal {
+    padding: 16px 13px;
+    border-radius: 16px 16px 0 0;
+    max-height: 92vh;
+  }
+  .m-h { margin-bottom: 14px; }
+
+  /* Picker manual row */
+  .pck-manual-row { flex-direction: column; }
+  .pck-footer { gap: 8px; }
+
+  /* Anggota tabel scroll */
+  .tbl-wrap { max-height: 360px; }
+  .ang-tbl { font-size: .74rem; }
+  .ang-tbl .fi { font-size: .72rem; padding: 2px 5px; }
+
+  /* Notif tabel */
+  .ntbl { font-size: .74rem; }
+}
 /* ── PEOPLE PICKER (checkbox + angkatan accordion) ── */
 .pck-wrap{border:1.5px solid var(--gl);border-radius:var(--rx);overflow:hidden;margin-top:6px;background:#fff}
 .pck-search{padding:7px 10px;border-bottom:1px solid var(--gl);display:flex;align-items:center;gap:7px;background:var(--ow)}

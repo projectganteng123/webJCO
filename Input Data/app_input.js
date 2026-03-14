@@ -75,6 +75,37 @@ function readSh(s) {
   });
 }
 
+
+/* ═══════ MOBILE SIDEBAR ═══════ */
+function toggleSidebar() {
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sbOverlay');
+  const btn      = document.getElementById('btnHam');
+  const isOpen   = sidebar && sidebar.classList.contains('open');
+  if (isOpen) closeSidebar();
+  else {
+    if (sidebar)  sidebar.classList.add('open');
+    if (overlay)  overlay.classList.add('show');
+    if (btn)      btn.classList.add('open');
+  }
+}
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sbOverlay');
+  const btn     = document.getElementById('btnHam');
+  if (sidebar)  sidebar.classList.remove('open');
+  if (overlay)  overlay.classList.remove('show');
+  if (btn)      btn.classList.remove('open');
+}
+// Tutup sidebar saat swipe kiri (touch)
+(function initSwipeClose() {
+  let startX = 0;
+  document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (dx < -60) closeSidebar(); // swipe kiri
+  }, { passive: true });
+})();
 /* ═══════ INIT ═══════ */
 async function init() {
   setS('loading', 'Memuat…');
@@ -998,6 +1029,103 @@ async function waitForLockFree(step) {
   return false; // timeout — lock tidak pernah bebas
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MERGE HELPER
+   Setelah mendapatkan lock, fetch ulang data terbaru dari Sheets
+   lalu gabungkan dengan perubahan lokal:
+   - Data yang DIUBAH/DITAMBAH/DIHAPUS lokal (_m/_n/_d) → pakai lokal
+   - Data yang TIDAK disentuh → pakai versi terbaru dari Sheets
+   Hasilnya disimpan ke S.* sebelum upload
+================================================================ */
+async function fetchAndMerge(sheets, onStep) {
+  // Map sheet name (internal) → gas sheet name → S key
+  const shMap = {
+    dokumentasi:   { gas: 'proker_dokumentasi', key: 'dok',   idField: '_i' },
+    jadwal:        { gas: 'proker_jadwal',       key: 'jad',   idField: '_i' },
+    proker_detail: { gas: 'proker_detail',       key: 'det',   idField: '_i' },
+    notif_config:  { gas: 'proker_notif_config', key: 'notif', idField: '_i' },
+    anggota:       { gas: 'anggota',             key: 'ang',   idField: '_i' },
+    pengurus:      { gas: 'pengurus',            key: 'peng',  idField: '_i' },
+  };
+
+  for (const sh of sheets) {
+    const info = shMap[sh];
+    if (!info) continue;
+
+    if (onStep) onStep('Sinkronisasi data terbaru: ' + sh + '…');
+
+    // Fetch data terbaru dari Sheets (read-only endpoint)
+    let remoteRows = [];
+    try {
+      remoteRows = await readSh(info.gas);
+    } catch(e) {
+      console.warn('[MERGE] Gagal fetch ' + sh + ', skip merge:', e.message);
+      continue; // jika fetch gagal, pakai data lokal apa adanya
+    }
+
+    const local = S[info.key];
+
+    // Kumpulkan index lokal yang DISENTUH (modified/new/deleted)
+    // Untuk dok/jad/ang: ada _n, _m, _d
+    // Untuk det/notif/peng: ada _m saja
+    const touchedIdx = new Set(
+      local
+        .filter(r => r._m || r._n || r._d)
+        .map(r => r._i)
+    );
+
+    if (touchedIdx.size === 0) {
+      // Tidak ada yang disentuh — ambil seluruhnya dari remote
+      S[info.key] = remoteRows.map((r, i) => ({
+        ...r, _i: i, _m: false, _n: false, _d: false
+      }));
+      continue;
+    }
+
+    // Ada yang disentuh — merge:
+    // 1. Ambil semua remote rows yang TIDAK ada di lokal yang disentuh
+    //    (identifikasi berdasarkan urutan asli, karena tidak ada UUID)
+    //    Strategi: mapping berdasarkan posisi original (_i)
+    const remoteByOrigI = {};
+    remoteRows.forEach((r, pos) => {
+      // _i lokal awal = posisi array saat init (0, 1, 2, ...)
+      remoteByOrigI[pos] = r;
+    });
+
+    // 2. Bangun array hasil merge:
+    //    - Baris remote yang tidak di-touch → pakai remote (update silent)
+    //    - Baris lokal yang di-touch → pertahankan
+    //    - Baris lokal baru (_n=true) → selalu ikut (tidak ada di remote)
+    const newRows = [];
+
+    // Iterasi berdasarkan posisi original remote
+    remoteRows.forEach((remoteR, pos) => {
+      const localMatch = local.find(l => l._i === pos);
+      if (!localMatch) {
+        // Baris remote yang tidak ada di lokal (mungkin ditambah oleh sesi lain)
+        newRows.push({ ...remoteR, _i: pos, _m: false, _n: false, _d: false });
+      } else if (touchedIdx.has(localMatch._i)) {
+        // Baris ini disentuh secara lokal → pakai data lokal
+        newRows.push(localMatch);
+      } else {
+        // Baris ini tidak disentuh → pakai data terbaru dari remote
+        newRows.push({ ...remoteR, _i: pos, _m: false, _n: false, _d: false });
+      }
+    });
+
+    // Tambahkan baris baru (_n=true) yang tidak ada di remote
+    local.filter(l => l._n).forEach(newRow => {
+      if (!newRows.find(r => r._i === newRow._i)) {
+        newRows.push(newRow);
+      }
+    });
+
+    S[info.key] = newRows;
+    console.log('[MERGE] ' + sh + ': ' + remoteRows.length + ' remote, '
+      + touchedIdx.size + ' lokal disentuh → ' + newRows.length + ' hasil merge');
+  }
+}
+
 async function confirmUpload() {
   closeModal('uploadModal');
   const btn  = document.getElementById('btnCU'); btn.disabled = true;
@@ -1007,65 +1135,76 @@ async function confirmUpload() {
   prog.classList.add('show'); bar.style.width = '0%';
   setS('loading', 'Memeriksa…');
 
-  /* ── LANGKAH 1: Cek version (apakah ada upload lain yang sudah selesai?) ── */
-  step.textContent = 'Memeriksa konflik…';
-  let lockRow;
-  try {
-    lockRow = await fetchLockRow();
-  } catch(e) {
-    // Jika sheet belum ada atau gagal baca, lanjutkan saja
-    lockRow = null;
-  }
+  const sheets = [...new Set(S.changes.map(c => c.sh))];
+
+  /* ── LANGKAH 1: Cek dan tunggu lock ── */
+  step.textContent = 'Memeriksa lock…';
+  let lockRow = null;
+  try { lockRow = await fetchLockRow(); } catch(e) { /* degraded mode */ }
 
   const remoteVersion = lockRow ? lockRow.version : null;
-  if (remoteVersion && _localVersion && remoteVersion !== _localVersion) {
-    // Version berbeda → ada upload lain yang sudah selesai sejak kita buka web
-    prog.classList.remove('show');
-    btn.disabled = false;
-    setS('error', 'Konflik versi');
-    const msg = '⚠️ Data di Google Sheets telah diubah oleh sesi lain sejak halaman ini dibuka.\n\n'
-      + 'Upload dibatalkan untuk mencegah menimpa perubahan orang lain.\n\n'
-      + 'Silakan reload halaman, lakukan perubahan kembali, lalu upload ulang.';
-    if (confirm(msg + '\n\nReload sekarang?')) location.reload();
-    return;
+
+  // Jika ada lock aktif → tunggu sampai bebas
+  const isLocked = lockRow && lockRow.status === 'uploading'
+    && lockRow.lock_expires
+    && Date.now() < new Date(lockRow.lock_expires).getTime();
+
+  if (isLocked) {
+    step.textContent = '⏳ Menunggu giliran upload…';
+    let canProceed = false;
+    try {
+      canProceed = await waitForLockFree(msg => { step.textContent = msg; });
+    } catch(e) { canProceed = true; }
+
+    if (!canProceed) {
+      prog.classList.remove('show'); btn.disabled = false;
+      setS('error', 'Timeout lock');
+      toast('❌ Upload lain tidak kunjung selesai. Coba lagi nanti.', 'error');
+      return;
+    }
+
+    // Setelah lock bebas, baca ulang version terbaru
+    try { lockRow = await fetchLockRow(); } catch(e) {}
   }
 
-  /* ── LANGKAH 2: Tunggu jika sedang ada upload lain ── */
-  step.textContent = 'Menunggu giliran…';
-  let canProceed;
-  try {
-    canProceed = await waitForLockFree(msg => { step.textContent = msg; });
-  } catch(e) {
-    canProceed = true; // jika gagal cek lock, lanjutkan (degraded mode)
-  }
-
-  if (!canProceed) {
-    prog.classList.remove('show');
-    btn.disabled = false;
-    setS('error', 'Timeout lock');
-    toast('❌ Upload lain tidak kunjung selesai. Coba lagi nanti.', 'error');
-    return;
-  }
-
-  /* ── LANGKAH 3: Set lock UPLOADING ── */
+  /* ── LANGKAH 2: Ambil lock (set UPLOADING) ── */
+  step.textContent = 'Mengambil giliran…';
   const newVersion  = new Date().toLocaleString('id-ID');
   const lockExpires = new Date(Date.now() + LOCK_TTL_MS).toISOString();
   try {
     await setLockRow(newVersion, 'uploading', SESSION_ID, lockExpires);
   } catch(e) {
-    // Jika gagal set lock, tetap lanjutkan (jangan blokir user)
     console.warn('[LOCK] Gagal set lock:', e.message);
+    // Lanjutkan meskipun lock gagal (degraded mode)
+  }
+
+  /* ── LANGKAH 3: MERGE — fetch terbaru dari Sheets, gabungkan dengan lokal ── */
+  // Hanya lakukan merge jika version remote berbeda dari version lokal kita
+  // (artinya ada data baru di Sheets sejak kita buka halaman)
+  const currentRemoteVersion = lockRow ? lockRow.version : null;
+  const needsMerge = currentRemoteVersion && _localVersion
+    && currentRemoteVersion !== _localVersion;
+
+  if (needsMerge) {
+    step.textContent = 'Menggabungkan data…';
+    bar.style.width = '10%';
+    try {
+      await fetchAndMerge(sheets, msg => { step.textContent = msg; });
+      toast('🔀 Data digabungkan dengan versi terbaru', 'warning');
+    } catch(e) {
+      console.warn('[MERGE] Gagal merge:', e.message);
+      // Jika merge gagal, tetap lanjutkan upload dengan data lokal
+    }
   }
 
   /* ── LANGKAH 4: Upload data ── */
   setS('loading', 'Mengupload…');
-  const sheets = [...new Set(S.changes.map(c => c.sh))];
   let ok = 0, fail = 0;
 
   for (let si = 0; si < sheets.length; si++) {
     const sh = sheets[si];
-    step.textContent = `Mengupload ${sh} (${si+1}/${sheets.length})…`;
-    bar.style.width  = Math.round((si / sheets.length) * 100) + '%';
+    step.textContent = 'Mengupload ' + sh + ' (' + (si+1) + '/' + sheets.length + ')…';
+    bar.style.width  = Math.round(10 + (si / sheets.length) * 85) + '%';
     try {
       await uploadShFull(sh, (msg) => { step.textContent = msg; });
       ok++;
@@ -1078,13 +1217,12 @@ async function confirmUpload() {
 
   bar.style.width = '100%';
 
-  /* ── LANGKAH 5: Lepas lock (set FREE dengan version baru) ── */
+  /* ── LANGKAH 5: Lepas lock dengan version baru ── */
   try {
     await setLockRow(newVersion, 'free', '', '');
-    _localVersion = newVersion; // update version lokal agar sinkron
+    _localVersion = newVersion;
   } catch(e) {
     console.warn('[LOCK] Gagal release lock:', e.message);
-    // Paksa release dengan version lama jika baru gagal
     try { await setLockRow(_localVersion || newVersion, 'free', '', ''); } catch(_) {}
   }
 
@@ -1102,13 +1240,11 @@ async function confirmUpload() {
     setS('ok', 'Tersinkron ✓');
     toast('🎉 Upload berhasil!', 'success');
     renderAll(); renderChangelog();
-    // Silent reload di background — sinkronkan data terbaru dari Sheets
     setTimeout(() => silentReload(), 1500);
   } else {
-    // Upload gagal sebagian → paksa lepas lock agar tidak stuck
     try { await setLockRow(_localVersion || newVersion, 'free', '', ''); } catch(_) {}
     setS('error', 'Sebagian gagal');
-    toast(`⚠️ ${ok} berhasil, ${fail} gagal`, 'error');
+    toast('⚠️ ' + ok + ' berhasil, ' + fail + ' gagal', 'error');
   }
   btn.disabled = false;
 }
@@ -1385,46 +1521,44 @@ function initPhSakura() {
     spawnPhPetal();
   }, 500);
 }
-/* ═══════ LOADING SAKURA ═══════ */
+/* ═══════ LOADING SAKURA — identik dengan hero landing page ═══════ */
 (function initLoadingSakura() {
   const container = document.getElementById('lovSakura');
   if (!container) return;
 
-  // Spawn satu kelopak sakura
-  function spawnPetal() {
-    const el = document.createElement('div');
-    const sz = 5 + Math.random() * 7;
-    const dur = 4 + Math.random() * 5;
-    const delay = Math.random() * 2;
-    const drift = (Math.random() - .5) * 80;
-    el.style.cssText = [
-      'position:absolute',
-      'width:' + sz + 'px',
-      'height:' + sz + 'px',
-      'background:rgba(255,180,210,' + (.25 + Math.random() * .35) + ')',
-      'border-radius:50% 0 50% 0',
-      'left:' + Math.random() * 100 + '%',
-      'top:-10px',
-      'pointer-events:none',
-      'transform-origin:center',
-      'animation:sakuraFall ' + dur + 's ' + delay + 's linear forwards',
-    ].join(';');
-    container.appendChild(el);
-    el.addEventListener('animationend', () => el.remove());
+  // Keyframe identik landing page (inject sekali)
+  if (!document.getElementById('lov-sakura-style')) {
+    const ss = document.createElement('style');
+    ss.id = 'lov-sakura-style';
+    ss.textContent = '@keyframes sakuraFall{0%{transform:translateY(0) rotate(0deg);opacity:1}50%{transform:translateY(40vh) rotate(180deg) translateX(20px);opacity:.7}100%{transform:translateY(100vh) rotate(360deg) translateX(-20px);opacity:0}}';
+    document.head.appendChild(ss);
   }
 
-  // Spawn kelopak secara berkala selama loading masih tampil
+  function spawnPetal() {
+    const lov = document.getElementById('lov');
+    if (!lov || lov.classList.contains('hidden')) return;
+    const p = document.createElement('div');
+    const sz = 4 + Math.random() * 6;
+    p.style.cssText = 'position:absolute;width:' + sz + 'px;height:' + sz + 'px;'
+      + 'background:rgba(255,180,210,' + (.2 + Math.random() * .3) + ');'
+      + 'border-radius:50% 0 50% 0;'
+      + 'left:' + Math.random() * 100 + '%;top:-10px;'
+      + 'pointer-events:none;z-index:1;'
+      + 'animation:sakuraFall ' + (4 + Math.random() * 5) + 's linear forwards;';
+    container.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  }
+
+  // Interval identik landing page: 1000ms — tapi spawn awal diperbanyak
   const iv = setInterval(() => {
     if (document.getElementById('lov').classList.contains('hidden')) {
       clearInterval(iv); return;
     }
     spawnPetal();
-  }, 200);
+  }, 1000);
 
-  // Langsung spawn lebih banyak untuk kesan awal yang penuh
-  for (let i = 0; i < 14; i++) {
-    setTimeout(spawnPetal, i * 80);
-  }
+  // Spawn awal agar langsung terlihat saat halaman terbuka
+  for (let i = 0; i < 8; i++) setTimeout(spawnPetal, i * 200);
 })();
 
 
