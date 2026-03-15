@@ -1,0 +1,1800 @@
+<!DOCTYPE html><html><head>
+      <title>JCOSASI_Checklist</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="file:///c:\Users\Rosikha\.vscode\extensions\shd101wyy.markdown-preview-enhanced-0.8.20\crossnote\dependencies\katex\katex.min.css">
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <!-- The content below will be included at the end of the <head> element. --><script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script></head><body for="html-export">
+    
+    
+      <div class="crossnote markdown-preview  ">
+      
+<h1 id="-jcosasi--checklist-fitur--test-lengkap">✅ JCOSASI — Checklist Fitur &amp; Test Lengkap </h1>
+<blockquote>
+<p><strong>Cara pakai:</strong> Tandai <code>[x]</code> saat sudah dicek/ditest. Kolom STATUS: ✅ OK · ❌ Error · ⚠️ Partial · 🔲 Belum dicek</p>
+</blockquote>
+<hr>
+<h2 id="-file-yang-ada-di-proyek">📁 FILE YANG ADA DI PROYEK </h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Fungsi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>index.html</code></td>
+<td>Landing page publik</td>
+</tr>
+<tr>
+<td><code>style.css</code></td>
+<td>CSS landing page</td>
+</tr>
+<tr>
+<td><code>script.js</code></td>
+<td>JS landing page (fetch data + render)</td>
+</tr>
+<tr>
+<td><code>content.js</code></td>
+<td>Konten statis + config API URL</td>
+</tr>
+<tr>
+<td><code>proker.html</code></td>
+<td>Halaman detail per proker</td>
+</tr>
+<tr>
+<td><code>proker-script.js</code></td>
+<td>JS halaman proker</td>
+</tr>
+<tr>
+<td><code>proker-style.css</code></td>
+<td>CSS halaman proker</td>
+</tr>
+<tr>
+<td><code>rekap.html</code></td>
+<td>Halaman rekap &amp; cetak laporan</td>
+</tr>
+<tr>
+<td><code>rekap-script.js</code></td>
+<td>JS halaman rekap + fungsi print</td>
+</tr>
+<tr>
+<td><code>index_input.html</code></td>
+<td>Halaman editor data (internal)</td>
+</tr>
+<tr>
+<td><code>style_input.css</code></td>
+<td>CSS editor</td>
+</tr>
+<tr>
+<td><code>app_input.js</code></td>
+<td>JS editor (CRUD + upload)</td>
+</tr>
+<tr>
+<td><code>gas_v7.js</code></td>
+<td>Google Apps Script write deployment</td>
+</tr>
+<tr>
+<td><code>gas_readonly.js</code></td>
+<td>Google Apps Script read-only deployment</td>
+</tr>
+<tr>
+<td><code>logo-jcosasi.png</code></td>
+<td>Logo organisasi</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-1-landing-page-indexhtml">🌐 1. LANDING PAGE (<code>index.html</code>) </h2>
+<h3 id="11-navbar">1.1 Navbar </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>[ ] Logo dan nama JCOSASI tampil di navbar</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>2</td>
+<td>[ ] Link navigasi (Tentang, Visi Misi, Proker, dll) berfungsi scroll ke section</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>3</td>
+<td>[ ] Navbar sticky saat scroll</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>4</td>
+<td>[ ] Hamburger menu muncul di mobile (≤768px)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>5</td>
+<td>[ ] Mobile menu terbuka/tutup saat klik hamburger</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>6</td>
+<td>[ ] Navbar background berubah saat di-scroll (transparent → solid)</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-hero-section">1.2 Hero Section </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7</td>
+<td>[ ] Teks hero (judul, deskripsi, badge) tampil dari <code>content.js</code></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>8</td>
+<td>[ ] Animasi bunga sakura berjatuhan aktif</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>9</td>
+<td>[ ] Grid overlay tipis (garis vertikal &amp; horizontal) terlihat</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>10</td>
+<td>[ ] Dekorasi lingkaran (<code>c1</code>, <code>c2</code>) tampil di kanan</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>11</td>
+<td>[ ] Tombol CTA (hero-cta) berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>12</td>
+<td>[ ] Efek fade-up pada elemen saat pertama load</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-section-tentang">1.3 Section Tentang </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13</td>
+<td>[ ] Teks tentang organisasi tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>14</td>
+<td>[ ] Stats (jumlah anggota, tahun berdiri, dll) tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>15</td>
+<td>[ ] Visual card kanan tampil dengan logo/badge</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="14-visi-misi">1.4 Visi Misi </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td>[ ] Visi tampil dalam card</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>17</td>
+<td>[ ] Misi tampil sebagai list</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="15-section-program-kerja-proker">1.5 Section Program Kerja (Proker) </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>18</td>
+<td>[ ] Semua 14 card proker tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>19</td>
+<td>[ ] Filter kategori (Semua/Rutin/Akademik/Event/Organisasi/Lain) berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>20</td>
+<td>[ ] Search proker berfungsi (filter nama)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>21</td>
+<td>[ ] Tombol clear (✕) search berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>22</td>
+<td>[ ] Pesan "tidak ada proker cocok" muncul jika tidak ada hasil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>23</td>
+<td>[ ] Notif badge (🔔) muncul pada proker yang ada jadwal dekat</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>24</td>
+<td>[ ] Tombol "Lihat Detail →" membuka <code>proker.html?id=XX</code></td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="16-timeline">1.6 Timeline </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>25</td>
+<td>[ ] Item timeline tampil dengan urutan benar</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>26</td>
+<td>[ ] Item soft (abu-abu) tampil berbeda dari item aktif</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="17-section-pengurus">1.7 Section Pengurus </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>27</td>
+<td>[ ] Skeleton loading tampil saat fetch</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>28</td>
+<td>[ ] Data pengurus berhasil load dari Google Sheets</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>29</td>
+<td>[ ] Jika fetch gagal, retry otomatis hingga 3x</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>30</td>
+<td>[ ] Jika semua retry gagal, fallback ke data <code>content.js</code></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>31</td>
+<td>[ ] Foto pengurus tampil (atau placeholder jika gagal)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>32</td>
+<td>[ ] Struktur org chart: Ketua → Inti → Bidang tampil benar</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="18-section-kontak--footer">1.8 Section Kontak &amp; Footer </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>33</td>
+<td>[ ] Info kontak (sekolah, email, sosmed) tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>34</td>
+<td>[ ] Link sosmed berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>35</td>
+<td>[ ] Footer tampil dengan copyright</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="19-umum-landing-page">1.9 Umum Landing Page </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>36</td>
+<td>[ ] Favicon tampil logo di browser tab</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>37</td>
+<td>[ ] Data proker (notif badge) load dari Sheets dengan retry 3x</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>38</td>
+<td>[ ] Cache sessionStorage berfungsi (reload cepat)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>39</td>
+<td>[ ] Responsive di mobile 375px (iPhone SE)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>40</td>
+<td>[ ] Responsive di tablet 768px (iPad)</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-2-halaman-proker-prokerhtml">📄 2. HALAMAN PROKER (<code>proker.html</code>) </h2>
+<h3 id="21-load--tampilan">2.1 Load &amp; Tampilan </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>41</td>
+<td>[ ] Halaman load dengan <code>?id=01</code> sampai <code>?id=14</code></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>42</td>
+<td>[ ] Hero proker: nomor, ikon, nama, tag kategori tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>43</td>
+<td>[ ] Countdown muncul jika ada <code>estimasi_tanggal</code></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>44</td>
+<td>[ ] Detail proker (tujuan, lokasi, sasaran, pemateri, panitia) tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>45</td>
+<td>[ ] RAB/biaya tampil jika ada data</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>46</td>
+<td>[ ] Jadwal sesi tampil sebagai chip</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>47</td>
+<td>[ ] Aktivitas (sesi terlaksana/batal) tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>48</td>
+<td>[ ] Dokumentasi sesi tampil dengan foto</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-navigasi-proker">2.2 Navigasi Proker </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>49</td>
+<td>[ ] Numpad navigasi (angka 1–14) tampil di bawah</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>50</td>
+<td>[ ] Proker aktif ditandai warna berbeda (gelap)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>51</td>
+<td>[ ] Hover angka menampilkan tooltip nama proker</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>52</td>
+<td>[ ] Klik angka navigasi ke proker tersebut</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>53</td>
+<td>[ ] Numpad tersebar merata di container</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>54</td>
+<td>[ ] Tombol "← Kembali" berfungsi</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-print-laporan-per-proker">2.3 Print Laporan Per Proker </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>55</td>
+<td>[ ] Tombol 🖨️ cetak muncul di header halaman</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>56</td>
+<td>[ ] Dialog print terbuka</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>57</td>
+<td>[ ] Logo tampil di cover laporan cetak</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>58</td>
+<td>[ ] Data lengkap proker ada di laporan</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24-umum">2.4 Umum </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>59</td>
+<td>[ ] Favicon tampil logo</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>60</td>
+<td>[ ] Responsive mobile</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-3-halaman-rekap-rekaphtml">📊 3. HALAMAN REKAP (<code>rekap.html</code>) </h2>
+<h3 id="31-overview--filter">3.1 Overview &amp; Filter </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>61</td>
+<td>[ ] Card ringkasan per proker tampil (jumlah sesi, biaya, dll)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>62</td>
+<td>[ ] Klik card proker membuka detail proker tersebut</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>63</td>
+<td>[ ] Filter proker berfungsi</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-detail-per-proker">3.2 Detail Per Proker </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>64</td>
+<td>[ ] Notif/countdown tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>65</td>
+<td>[ ] Activity graph tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>66</td>
+<td>[ ] Daftar sesi dokumentasi tampil sebagai akordion</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>67</td>
+<td>[ ] Foto di dalam sesi tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>68</td>
+<td>[ ] Data hadir (peserta, panitia, narasumber) tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>69</td>
+<td>[ ] Biaya per sesi tampil</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-cetak-laporan">3.3 Cetak Laporan </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>70</td>
+<td>[ ] Tombol 🖨️ Cetak Laporan PDF (semua proker) berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>71</td>
+<td>[ ] Tombol 🖨️ per sesi (di header sesi) berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>72</td>
+<td>[ ] <strong>Logo tampil di cover laporan rekap</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>73</td>
+<td>[ ] <strong>Logo tampil di cover laporan per proker</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>74</td>
+<td>[ ] <strong>Logo tampil di kop laporan per sesi</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>75</td>
+<td>[ ] Data lengkap: judul, org, tanggal cetak ada di laporan</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>76</td>
+<td>[ ] Tabel keuangan tampil di laporan rekap</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>77</td>
+<td>[ ] Foto dokumentasi tampil di laporan sesi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>78</td>
+<td>[ ] Format cetak rapi (page break benar)</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-umum">3.4 Umum </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>79</td>
+<td>[ ] Favicon tampil logo</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>80</td>
+<td>[ ] Responsive mobile</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="️-4-halaman-editor-index_inputhtml">✏️ 4. HALAMAN EDITOR (<code>index_input.html</code>) </h2>
+<h3 id="41-loading-screen">4.1 Loading Screen </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>81</td>
+<td>[ ] <strong>Loading screen tampil dengan background hero (ungu pekat + grid + sakura)</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>82</td>
+<td>[ ] <strong>Logo JCOSASI tampil di loading screen (tanpa kotak)</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>83</td>
+<td>[ ] <strong>Efek bunga sakura berjatuhan aktif saat loading</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>84</td>
+<td>[ ] Font "JCOSASI" menggunakan Playfair Display</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>85</td>
+<td>[ ] Progress bar animasi tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>86</td>
+<td>[ ] Teks status berubah saat loading ("Memuat data…" dll)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>87</td>
+<td>[ ] Loading hilang setelah data berhasil dimuat</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-topbar--navigasi">4.2 Topbar &amp; Navigasi </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>88</td>
+<td>[ ] <strong>Logo tampil di topbar (tanpa kotak, telanjang)</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>89</td>
+<td>[ ] <strong>Hamburger muncul di mobile (≤768px)</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>90</td>
+<td>[ ] <strong>Sidebar slide masuk dari kiri saat hamburger diklik</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>91</td>
+<td>[ ] <strong>Overlay gelap muncul di belakang sidebar</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>92</td>
+<td>[ ] <strong>Klik overlay menutup sidebar</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>93</td>
+<td>[ ] <strong>Swipe kiri menutup sidebar</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>94</td>
+<td>[ ] <strong>Klik item nav menutup sidebar otomatis</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>95</td>
+<td>[ ] Status dot (hijau/merah/loading) berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>96</td>
+<td>[ ] Tombol "☁️ Upload ke Sheets" aktif saat ada perubahan</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>97</td>
+<td>[ ] Favicon tampil logo</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-overview-dashboard">4.3 Overview (Dashboard) </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>98</td>
+<td>[ ] Stats (total sesi, biaya, anggota, jadwal, pending) tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>99</td>
+<td>[ ] <strong>Efek bunga sakura di ph hero overview berjalan</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>100</td>
+<td>[ ] Activity graph tampil dan bisa discroll horizontal</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>101</td>
+<td>[ ] Card rekap per proker tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>102</td>
+<td>[ ] Filter proker (chip) di overview berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>103</td>
+<td>[ ] Panel "Jadwal Lewat Tanpa Dokumentasi" muncul jika ada</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-dokumentasi-sesi">4.4 Dokumentasi Sesi </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>104</td>
+<td>[ ] Daftar sesi tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>105</td>
+<td>[ ] Filter per proker berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>106</td>
+<td>[ ] Klik sesi membuka detail (akordion)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>107</td>
+<td>[ ] Tombol ✏️ Edit membuka modal edit sesi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>108</td>
+<td>[ ] Tombol 🗑️ Hapus berfungsi (tandai deleted)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>109</td>
+<td>[ ] Tombol ↩ Batalkan Hapus berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>110</td>
+<td>[ ] Tombol "+ Tambah Sesi Baru" membuka modal</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h4 id="modal-sesi">Modal Sesi </h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>111</td>
+<td>[ ] Semua field input berfungsi (tanggal, waktu, keterangan, materi, foto, kendala)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>112</td>
+<td>[ ] <strong>Picker Peserta Hadir tampil checkbox dari data anggota</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>113</td>
+<td>[ ] <strong>Anggota dikelompokkan per angkatan (akordion)</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>114</td>
+<td>[ ] <strong>Search/filter nama di picker berfungsi</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>115</td>
+<td>[ ] <strong>Centang nama = tambah tag, uncentang = hapus tag</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>116</td>
+<td>[ ] <strong>Tag nama bisa dihapus dengan tombol ×</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>117</td>
+<td>[ ] <strong>Input manual (pisah koma) berfungsi untuk peserta</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>118</td>
+<td>[ ] Picker Panitia Hadir — semua fitur sama</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>119</td>
+<td>[ ] Picker Narasumber — semua fitur sama</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>120</td>
+<td>[ ] <strong>Tabel biaya: tambah baris, isi item/estimasi/aktual</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>121</td>
+<td>[ ] <strong>Tabel biaya: tombol ✕ hapus baris berfungsi</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>122</td>
+<td>[ ] <strong>Tombol 📋 Paste Tabel biaya membuka dialog paste</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>123</td>
+<td>[ ] <strong>Paste dari Excel/Sheets (tab-separated) ke biaya berhasil</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>124</td>
+<td>[ ] <strong>Paste dari CSV (comma-separated) ke biaya berhasil</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>125</td>
+<td>[ ] Tombol Simpan menyimpan data dan menutup modal</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>126</td>
+<td>[ ] Tombol Batal menutup modal tanpa simpan</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="45-jadwal-proker">4.5 Jadwal Proker </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>127</td>
+<td>[ ] Jadwal tampil per proker sebagai chip</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>128</td>
+<td>[ ] <strong>Chip jadwal punya tombol ×</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>129</td>
+<td>[ ] <strong>Klik × pada chip menghapus jadwal</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>130</td>
+<td>[ ] Klik chip (area teks) membuka modal edit</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>131</td>
+<td>[ ] Tombol + di header panel membuka modal tambah jadwal baru</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>132</td>
+<td>[ ] <strong>Tombol 📋 Paste di header panel membuka dialog paste jadwal</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>133</td>
+<td>[ ] <strong>Paste jadwal massal (YYYY-MM-DD + jam) berhasil ditambahkan</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>134</td>
+<td>[ ] <strong>Format DD/MM/YYYY otomatis dinormalisasi ke YYYY-MM-DD</strong></td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="46-detail-proker">4.6 Detail Proker </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>135</td>
+<td>[ ] Semua 14 proker tampil sebagai panel</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>136</td>
+<td>[ ] Edit field (tujuan, waktu, lokasi, sasaran, pemateri, panitia) berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>137</td>
+<td>[ ] Panel berubah warna kuning saat diedit</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>138</td>
+<td>[ ] <strong>Tabel biaya RAB per proker: tambah/hapus baris</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>139</td>
+<td>[ ] <strong>Kolom Selisih (est-aktual) dihitung otomatis</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>140</td>
+<td>[ ] <strong>Total footer muncul di tabel biaya</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>141</td>
+<td>[ ] <strong>Tombol 📋 Paste Tabel RAB membuka dialog paste</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>142</td>
+<td>[ ] <strong>Paste RAB dari Excel/Sheets berhasil</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>143</td>
+<td>[ ] Badge estimasi biaya di header panel tampil</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="47-notif-config">4.7 Notif Config </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>144</td>
+<td>[ ] Tabel notif config tampil per proker</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>145</td>
+<td>[ ] Toggle countdown_aktif berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>146</td>
+<td>[ ] Toggle ajakan, wajib_hadir berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>147</td>
+<td>[ ] Edit teks notif berfungsi</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="48-anggota">4.8 Anggota </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>148</td>
+<td>[ ] Tabel anggota tampil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>149</td>
+<td>[ ] Tambah baris anggota baru berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>150</td>
+<td>[ ] Edit field anggota (nama, kelas, angkatan, dll) berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>151</td>
+<td>[ ] Tombol 🗑️ hapus anggota berfungsi (tandai deleted)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>152</td>
+<td>[ ] Tombol ↩ batalkan hapus berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>153</td>
+<td>[ ] <strong>Tombol 📋 Paste Tabel anggota membuka dialog paste</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>154</td>
+<td>[ ] <strong>Paste data anggota dari Excel (6 kolom) berhasil</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>155</td>
+<td>[ ] <strong>Baris tanpa nama dilewati otomatis saat paste</strong></td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="49-pengurus">4.9 Pengurus </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>156</td>
+<td>[ ] Card pengurus tampil dalam grid</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>157</td>
+<td>[ ] Tombol ✏️ Edit membuka modal edit pengurus</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>158</td>
+<td>[ ] Edit semua field pengurus berfungsi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>159</td>
+<td>[ ] Preview foto dari link Google Drive</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="410-log-perubahan">4.10 Log Perubahan </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>160</td>
+<td>[ ] Log tampil dengan warna berbeda (add/edit/del/upload)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>161</td>
+<td>[ ] Jumlah perubahan di badge sidebar terupdate</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="411-upload-ke-sheets-sistem-lock--merge">4.11 Upload ke Sheets (Sistem Lock &amp; Merge) </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>162</td>
+<td>[ ] Tombol Upload aktif hanya saat ada perubahan</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>163</td>
+<td>[ ] Modal konfirmasi upload tampil dengan daftar sheet</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>164</td>
+<td>[ ] <strong>Lock cek: jika status free → langsung ambil lock</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>165</td>
+<td>[ ] <strong>Lock cek: jika uploading → tampilkan "Menunggu giliran…"</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>166</td>
+<td>[ ] <strong>Lock polling tiap 5 detik, max 50 detik</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>167</td>
+<td>[ ] <strong>Setelah lock diambil → fetch data terbaru dari Sheets</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>168</td>
+<td>[ ] <strong>Merge: baris yang diedit lokal tetap pakai data lokal</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>169</td>
+<td>[ ] <strong>Merge: baris tidak diedit diperbarui dari data remote</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>170</td>
+<td>[ ] <strong>Merge: baris baru dari sesi lain ikut masuk</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>171</td>
+<td>[ ] Progress bar upload berjalan</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>172</td>
+<td>[ ] Toast "🎉 Upload berhasil!" muncul</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>173</td>
+<td>[ ] <strong>Setelah upload: status lock diset free</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>174</td>
+<td>[ ] <strong>Setelah upload: silent reload data berjalan di background</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>175</td>
+<td>[ ] Perubahan direset setelah upload berhasil</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="412-paste-dialog-universal">4.12 Paste Dialog (Universal) </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>176</td>
+<td>[ ] <strong>Dialog paste muncul saat klik tombol 📋</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>177</td>
+<td>[ ] <strong>Textarea di dialog bisa menerima paste Ctrl+V</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>178</td>
+<td>[ ] <strong>Tombol 🚀 Proses memproses data paste</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>179</td>
+<td>[ ] <strong>Klik di luar dialog menutupnya</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>180</td>
+<td>[ ] <strong>Tombol ✕ menutup dialog</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>181</td>
+<td>[ ] <strong>Paste tab-separated (Excel/Sheets) berhasil diparse</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>182</td>
+<td>[ ] <strong>Paste comma-separated (CSV) berhasil diparse</strong></td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="413-responsive-mobile-editor">4.13 Responsive Mobile Editor </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>183</td>
+<td>[ ] <strong>Tampilan tablet (768px): layout 1 kolom</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>184</td>
+<td>[ ] <strong>Tampilan mobile (480px): topbar kompak</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>185</td>
+<td>[ ] <strong>Modal jadi bottom sheet di mobile</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>186</td>
+<td>[ ] <strong>Tabel biaya bisa scroll horizontal</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>187</td>
+<td>[ ] <strong>Stats grid 3 kolom di mobile</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>188</td>
+<td>[ ] <strong>Toast full width di mobile</strong></td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-5-backend-google-apps-script">🔧 5. BACKEND (Google Apps Script) </h2>
+<h3 id="51-gas_v7js-write-deployment">5.1 gas_v7.js (Write Deployment) </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>189</td>
+<td>[ ] <code>action=read</code> berhasil tanpa token</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>190</td>
+<td>[ ] <code>action=read</code> dengan token yang salah tetap berhasil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>191</td>
+<td>[ ] <code>action=replaceAll</code> tanpa token → return error Unauthorized</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>192</td>
+<td>[ ] <code>action=replaceAll</code> dengan token benar → data tersimpan</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>193</td>
+<td>[ ] <code>action=insert</code> berfungsi menambah baris</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>194</td>
+<td>[ ] <code>action=upsert</code> berfungsi update/insert</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>195</td>
+<td>[ ] Sheet <code>upload_confirm</code> terbaca dan bisa ditulis</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>196</td>
+<td>[ ] Chunking upload besar (&gt;3200 char) berfungsi</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-gas_readonlyjs-read-only-deployment">5.2 gas_readonly.js (Read-Only Deployment) </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>197</td>
+<td>[ ] <code>action=read</code> berhasil</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>198</td>
+<td>[ ] <code>action=replaceAll</code> → diabaikan/error (tidak bisa write)</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-upload-confirm-sheet">5.3 Upload Confirm Sheet </h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>199</td>
+<td>[ ] Sheet <code>upload_confirm</code> ada di Google Sheets</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>200</td>
+<td>[ ] Header: version, status, locked_by, lock_expires</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>201</td>
+<td>[ ] Status awal: free (baris pertama data)</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-6-integrasi--data">🌐 6. INTEGRASI &amp; DATA </h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>202</td>
+<td>[ ] Data anggota dari Sheets tampil di tabel anggota editor</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>203</td>
+<td>[ ] Data anggota muncul sebagai opsi di picker hadir sesi</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>204</td>
+<td>[ ] Edit di editor → upload → data tampil di halaman publik</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>205</td>
+<td>[ ] Hapus sesi di editor → upload → hilang dari halaman rekap</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>206</td>
+<td>[ ] Tambah jadwal di editor → muncul di halaman proker</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>207</td>
+<td>[ ] Edit detail proker di editor → tampil di halaman proker</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>208</td>
+<td>[ ] Notif badge (🔔) di landing page muncul sesuai data jadwal</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>209</td>
+<td>[ ] Countdown di halaman proker akurat sesuai estimasi_tanggal</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="️-7-cetak-laporan">🖨️ 7. CETAK LAPORAN </h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>210</td>
+<td>[ ] Cetak laporan rekap (semua proker) dari rekap.html</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>211</td>
+<td>[ ] Cetak laporan per proker dari rekap.html</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>212</td>
+<td>[ ] Cetak laporan per sesi dari rekap.html</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>213</td>
+<td>[ ] <strong>Logo tampil di cover laporan rekap</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>214</td>
+<td>[ ] <strong>Logo tampil di cover laporan per proker</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>215</td>
+<td>[ ] <strong>Logo tampil di kop laporan per sesi</strong></td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>216</td>
+<td>[ ] Popup tidak diblokir browser</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>217</td>
+<td>[ ] Halaman cetak tampil rapi di Preview Print</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>218</td>
+<td>[ ] Page break benar (cover sendiri, lalu konten)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>219</td>
+<td>[ ] Tabel keuangan dengan total tampil benar</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>220</td>
+<td>[ ] Foto dokumentasi tampil di laporan sesi</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-8-browser--device-compatibility">📱 8. BROWSER &amp; DEVICE COMPATIBILITY </h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>221</td>
+<td>[ ] Chrome desktop — semua halaman</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>222</td>
+<td>[ ] Firefox desktop — semua halaman</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>223</td>
+<td>[ ] Chrome mobile Android</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>224</td>
+<td>[ ] Safari mobile iOS</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>225</td>
+<td>[ ] Layar 1920px (desktop besar)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>226</td>
+<td>[ ] Layar 1366px (laptop standar)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>227</td>
+<td>[ ] Layar 768px (tablet)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>228</td>
+<td>[ ] Layar 375px (iPhone SE)</td>
+<td>🔲</td>
+</tr>
+<tr>
+<td>229</td>
+<td>[ ] Layar 360px (Android kecil)</td>
+<td>🔲</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-ringkasan-progress">📋 RINGKASAN PROGRESS </h2>
+<table>
+<thead>
+<tr>
+<th>Kategori</th>
+<th>Total</th>
+<th>Selesai</th>
+<th>Sisa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Landing Page</td>
+<td>40</td>
+<td>0</td>
+<td>40</td>
+</tr>
+<tr>
+<td>Halaman Proker</td>
+<td>20</td>
+<td>0</td>
+<td>20</td>
+</tr>
+<tr>
+<td>Halaman Rekap</td>
+<td>20</td>
+<td>0</td>
+<td>20</td>
+</tr>
+<tr>
+<td>Editor - UI/UX</td>
+<td>30</td>
+<td>0</td>
+<td>30</td>
+</tr>
+<tr>
+<td>Editor - Fitur Edit</td>
+<td>50</td>
+<td>0</td>
+<td>50</td>
+</tr>
+<tr>
+<td>Editor - Upload/Lock</td>
+<td>14</td>
+<td>0</td>
+<td>14</td>
+</tr>
+<tr>
+<td>Backend GAS</td>
+<td>13</td>
+<td>0</td>
+<td>13</td>
+</tr>
+<tr>
+<td>Integrasi End-to-End</td>
+<td>8</td>
+<td>0</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Cetak Laporan</td>
+<td>11</td>
+<td>0</td>
+<td>11</td>
+</tr>
+<tr>
+<td>Compatibility</td>
+<td>9</td>
+<td>0</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>TOTAL</strong></td>
+<td><strong>215</strong></td>
+<td><strong>0</strong></td>
+<td><strong>215</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><em>Dibuat: 15 Maret 2026 — JCOSASI Internal Documentation</em></p>
+
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>
