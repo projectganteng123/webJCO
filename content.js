@@ -44,19 +44,22 @@ const CONTENT = {
     width_hero: "120px",
   },
 
-  /* ── KONTAK & SOSMED ──────────────────────────────── */
-  kontak: {
-    email:     "jcosasi@email.com",         // ← ganti email resmi
-    instagram: "https://instagram.com/jcosasi",  // ← ganti link Instagram
-    tiktok:    "https://tiktok.com/@jcosasi",    // ← ganti link TikTok
-    youtube:   "https://youtube.com/@jcosasi",   // ← ganti link YouTube
-    /**
-     * Untuk menyembunyikan sosmed yang belum ada, ubah show menjadi false
-     */
-    show_instagram: true,
-    show_tiktok:    true,
-    show_youtube:   true,
-  },
+/* ── KONTAK & SOSMED ──────────────────────────────── */
+kontak: {
+  email:     "jcosasi@email.com",             // ← ganti email resmi
+  whatsapp:  "https://wa.me/6285760003526",   // ← ganti nomor WA (format internasional)
+  instagram: "https://instagram.com/jcosasi", // ← ganti link Instagram
+  tiktok:    "https://tiktok.com/@jcosasi",   // ← ganti link TikTok
+  youtube:   "https://youtube.com/@jcosasi",  // ← ganti link YouTube
+
+  /**
+   * Untuk menyembunyikan sosmed yang belum ada, ubah show menjadi false
+   */
+  show_instagram: true,
+  show_tiktok:    true,
+  show_youtube:   true,
+  show_whatsapp:  true
+},
 
   /* ── NAVBAR ───────────────────────────────────────── */
   nav: {
