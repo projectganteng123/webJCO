@@ -37,6 +37,29 @@
     </div>
     <div class="lov-bar-wrap"><div class="lov-bar"></div></div>
     <div class="ltx" id="ltx">Memuat data…</div>
+
+    <!-- Token Input Card — glassmorphism -->
+    <div class="lov-token-card" id="lovTokenCard">
+      <div class="lov-token-icon">🔑</div>
+      <div class="lov-token-label">Write Token</div>
+      <div class="lov-token-hint">Masukkan token akses untuk melanjutkan</div>
+      <div class="lov-token-row">
+        <input
+          type="password"
+          id="lovTokenInput"
+          class="lov-token-input"
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="lov-token-eye" id="lovTokenEye" type="button" onclick="toggleTokenVisibility()" title="Tampilkan/sembunyikan token">👁</button>
+      </div>
+      <button class="lov-token-btn" id="lovTokenBtn" type="button" onclick="submitToken()">
+        <span>Konfirmasi</span>
+        <span class="lov-token-arr">→</span>
+      </button>
+      <div class="lov-token-status" id="lovTokenStatus"></div>
+    </div>
   </div>
 </div>
 
@@ -65,7 +88,6 @@
     <div class="sb-i" onclick="showPage('notif');closeSidebar()" id="nav-notif"><span class="sb-ic">🔔</span><span>Notif Config</span><span class="sb-b" id="badge-notif">0</span></div>
     <div class="sb-i" onclick="showPage('anggota');closeSidebar()" id="nav-anggota"><span class="sb-ic">👥</span><span>Anggota</span><span class="sb-b" id="badge-anggota">0</span></div>
     <div class="sb-i" onclick="showPage('pengurus');closeSidebar()" id="nav-pengurus"><span class="sb-ic">🎌</span><span>Pengurus</span><span class="sb-b" id="badge-pengurus">0</span></div>
-
   </aside>
 
   <main class="main">

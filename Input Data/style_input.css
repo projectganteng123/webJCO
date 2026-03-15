@@ -357,6 +357,105 @@ body{font-family:var(--fb);background:var(--ow);color:var(--ch);min-height:100vh
   text-transform: uppercase;
 }
 
+/* ── TOKEN INPUT CARD — glassmorphism identik .ph-st hero ── */
+.lov-token-card {
+  position: relative; z-index: 3;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 18px;
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  padding: 22px 26px 20px;
+  width: clamp(260px, 80vw, 360px);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.18);
+  animation: lovFadeIn .7s .15s ease both;
+  transition: opacity .35s ease, transform .35s ease;
+}
+.lov-token-card.ready {
+  /* Saat data selesai & token belum diisi — glow subtle */
+  box-shadow: 0 8px 40px rgba(0,0,0,.32), 0 0 0 1.5px rgba(192,57,43,.55), inset 0 1px 0 rgba(255,255,255,.2);
+}
+.lov-token-card.confirmed {
+  opacity: 0; transform: translateY(-10px) scale(.96); pointer-events: none;
+}
+.lov-token-icon {
+  font-size: 1.5rem; line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.4));
+}
+.lov-token-label {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700; font-size: .92rem;
+  color: rgba(255,255,255,.95);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.lov-token-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .68rem;
+  color: rgba(255,255,255,.48);
+  letter-spacing: .04em; text-align: center;
+  margin-top: -4px;
+}
+.lov-token-row {
+  width: 100%;
+  display: flex; align-items: center; gap: 0;
+  background: rgba(0,0,0,.25);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow .2s, border-color .2s;
+}
+.lov-token-row:focus-within {
+  border-color: rgba(192,57,43,.7);
+  box-shadow: 0 0 0 3px rgba(192,57,43,.18);
+}
+.lov-token-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: 'Space Mono', monospace;
+  font-size: .72rem; color: rgba(255,255,255,.9);
+  padding: 9px 12px;
+  letter-spacing: .04em;
+}
+.lov-token-input::placeholder { color: rgba(255,255,255,.28); }
+/* Sembunyikan ikon mata native browser (Edge, Chrome, IE) */
+.lov-token-input::-ms-reveal,
+.lov-token-input::-ms-clear { display: none; }
+.lov-token-input::-webkit-credentials-auto-fill-button { display: none; visibility: hidden; }
+.lov-token-input::-webkit-textfield-decoration-container { display: none; }
+.lov-token-eye {
+  background: none; border: none; cursor: pointer;
+  padding: 0 10px; font-size: .85rem; line-height: 1;
+  color: rgba(255,255,255,.45);
+  transition: color .2s;
+}
+.lov-token-eye:hover { color: rgba(255,255,255,.85); }
+.lov-token-btn {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, #C0392B, #9B2335);
+  border: none; border-radius: 10px;
+  padding: 10px 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .82rem; font-weight: 700;
+  color: #fff; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(192,57,43,.35);
+  transition: transform .18s, box-shadow .18s, opacity .2s;
+}
+.lov-token-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(192,57,43,.45); }
+.lov-token-btn:active { transform: translateY(0); }
+.lov-token-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.lov-token-arr { font-size: 1rem; transition: transform .18s; }
+.lov-token-btn:hover .lov-token-arr { transform: translateX(3px); }
+.lov-token-status {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .67rem; font-weight: 600;
+  min-height: 1em; text-align: center;
+  transition: color .2s;
+}
+.lov-token-status.ok  { color: #6EE7B7; }
+.lov-token-status.err { color: #FCA5A5; }
+.lov-token-status.wait { color: rgba(255,255,255,.45); }
+
 /* Sakura keyframe identik hero */
 @keyframes sakuraFall {
   0%   { transform: translateY(0) rotate(0deg); opacity: 1; }

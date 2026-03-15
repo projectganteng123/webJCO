@@ -4,7 +4,7 @@
 // WRITE_TOKEN → harus sama persis dengan WRITE_TOKEN di gas_v7.js
 const API_READ   = 'https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec';
 const API_WRITE  = 'https://script.google.com/macros/s/AKfycbzuzMPxoEuCDOW6LwixAWGNbadC9cpzkDYpru8R2sr-Ia4fCrZuTW85xvcXeqppxjAL/exec';
-const WRITE_TOKEN = '8d3e2619-feab-4268-9081-896e659a3ecb';
+let WRITE_TOKEN = null; // diisi user saat loading screen
 const API = API_WRITE; // alias untuk kompatibilitas
 
 /* ═══════ UPLOAD LOCK CONFIG ═══════ */
@@ -76,6 +76,139 @@ function readSh(s) {
 }
 
 
+/* ═══════ TOKEN GATE ═══════ */
+// Tidak ada token tersimpan di client.
+// Validasi dilakukan dengan mencoba write ke sheet 'login_confirm'.
+// Jika GAS menerima request (token cocok di server) → akses diberikan.
+// Jika GAS menolak (token salah / error) → akses ditolak.
+
+// State: apakah data sudah selesai dimuat & token sudah dikonfirmasi
+let _dataReady   = false;
+let _tokenReady  = false;
+
+// Cek apakah overlay boleh ditutup (keduanya harus true)
+function _checkCanDismiss() {
+  if (_dataReady && _tokenReady) {
+    document.getElementById('lov').classList.add('hidden');
+  }
+}
+
+// Update status teks di loading text area
+function _setLtx(msg) {
+  const el = document.getElementById('ltx');
+  if (el) el.textContent = msg;
+}
+
+// Animasi goyang card (feedback error)
+function _shakeCard() {
+  const card = document.getElementById('lovTokenCard');
+  if (!card) return;
+  card.style.transition = 'transform .08s ease';
+  card.style.transform = 'translateX(-7px)';
+  setTimeout(() => { card.style.transform = 'translateX(7px)'; }, 80);
+  setTimeout(() => { card.style.transform = 'translateX(-4px)'; }, 160);
+  setTimeout(() => { card.style.transform = ''; card.style.transition = ''; }, 240);
+}
+
+// Dipanggil saat user klik Konfirmasi / tekan Enter
+async function submitToken() {
+  const inp  = document.getElementById('lovTokenInput');
+  const btn  = document.getElementById('lovTokenBtn');
+  const stat = document.getElementById('lovTokenStatus');
+  const card = document.getElementById('lovTokenCard');
+  if (!inp || !btn) return;
+
+  const val = inp.value.trim();
+  if (!val) {
+    stat.className = 'lov-token-status err';
+    stat.textContent = 'Token tidak boleh kosong';
+    inp.focus();
+    return;
+  }
+
+  // UI: loading state
+  btn.disabled = true;
+  stat.className = 'lov-token-status wait';
+  stat.textContent = 'Memverifikasi…';
+
+  try {
+    // Validasi token dengan mencoba write ke sheet 'login_confirm'
+    // menggunakan action 'replaceAll' yang sudah ada di GAS.
+    // GAS menolak dengan "Unauthorized" jika token salah → akses ditolak.
+    // GAS menerima jika token benar → status: 'ok' → akses diberikan.
+    // Tidak ada token yang disimpan di client-side.
+    const payload = JSON.stringify({
+      headers: ['write_confirm', 'session', 'ts'],
+      rows:    [['1', SESSION_ID, new Date().toISOString()]]
+    });
+    await new Promise((res, rej) => {
+      const cb  = '__jcb_lc_' + Date.now();
+      const tid = setTimeout(() => {
+        delete window[cb];
+        const sc = document.getElementById(cb); if (sc) sc.remove();
+        rej(new Error('Timeout — cek koneksi internet'));
+      }, 20000);
+      window[cb] = d => {
+        clearTimeout(tid);
+        delete window[cb];
+        const sc = document.getElementById(cb); if (sc) sc.remove();
+        d.status === 'ok' ? res(d) : rej(new Error(d.message || 'Token ditolak'));
+      };
+      const params = {
+        action:   'replaceAll',
+        sheet:    'login_confirm',
+        payload:  payload,
+        token:    val,
+        callback: cb
+      };
+      const qs = Object.entries(params)
+        .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
+        .join('&');
+      const sc = document.createElement('script');
+      sc.id  = cb;
+      sc.src = API_WRITE + '?' + qs;
+      sc.onerror = () => {
+        clearTimeout(tid);
+        delete window[cb]; if (sc) sc.remove();
+        rej(new Error('Gagal terhubung ke server'));
+      };
+      document.head.appendChild(sc);
+    });
+
+    // Write berhasil → token valid
+    WRITE_TOKEN = val;
+    _tokenReady = true;
+    stat.className = 'lov-token-status ok';
+    stat.textContent = '✓  Akses diberikan';
+    card.classList.add('confirmed');
+    _checkCanDismiss();
+
+  } catch (e) {
+    // Write ditolak → token salah atau error jaringan
+    btn.disabled = false;
+    stat.className = 'lov-token-status err';
+    const msg = e.message || 'Token tidak valid';
+    stat.textContent = '✕  ' + (msg === 'Unauthorized' ? 'Token salah, coba lagi' : msg);
+    inp.value = '';
+    inp.focus();
+    _shakeCard();
+  }
+}
+
+// Toggle password visibility
+function toggleTokenVisibility() {
+  const inp = document.getElementById('lovTokenInput');
+  const eye = document.getElementById('lovTokenEye');
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (eye) eye.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    if (eye) eye.textContent = '👁';
+  }
+}
+
 /* ═══════ MOBILE SIDEBAR ═══════ */
 function toggleSidebar() {
   const sidebar  = document.getElementById('sidebar');
@@ -109,7 +242,20 @@ function closeSidebar() {
 /* ═══════ INIT ═══════ */
 async function init() {
   setS('loading', 'Memuat…');
+  // Aktifkan glow pada card setelah sebentar agar user tahu bisa input
+  setTimeout(() => {
+    const card = document.getElementById('lovTokenCard');
+    if (card) card.classList.add('ready');
+    const inp = document.getElementById('lovTokenInput');
+    if (inp) inp.focus();
+  }, 600);
+
+  // Allow Enter key to submit token
+  const inp = document.getElementById('lovTokenInput');
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitToken(); });
+
   try {
+    _setLtx('Memuat data dari server…');
     const [dok, jad, det, notif, ang, peng, lockData] = await Promise.all([
       readSh('proker_dokumentasi'), readSh('proker_jadwal'), readSh('proker_detail'),
       readSh('proker_notif_config'), readSh('anggota').catch(() => []), readSh('pengurus'),
@@ -128,11 +274,15 @@ async function init() {
       .filter(p => p.jabatan_level && !['Note:', ''].includes((p.jabatan_level||'').trim()))
       .map((d,i) => ({...d, _i:i, _m:false}));
     setS('ok', 'Tersinkron');
-    document.getElementById('lov').classList.add('hidden');
+    _dataReady = true;
+    _setLtx('Data siap — masukkan token untuk melanjutkan');
+    _checkCanDismiss();
     renderAll();
   } catch(e) {
     setS('error', 'Gagal');
-    document.getElementById('lov').classList.add('hidden');
+    _dataReady = true; // tetap buka overlay agar user bisa coba lagi
+    _setLtx('Gagal memuat data — ' + e.message);
+    _checkCanDismiss();
     toast('❌ Gagal: ' + e.message, 'error');
     console.error(e);
   }
@@ -1476,21 +1626,26 @@ async function silentReload() {
 }
 
 /* ═══════ PH SAKURA (Overview Hero) ═══════ */
+// Interval disimpan di luar fungsi agar tidak pernah dibuat dua kali
+let _phSakuraIv = null;
+
 function initPhSakura() {
   const ph = document.querySelector('.ph');
-  if (!ph || ph.querySelector('.ph-sakura-wrap')) return;
+  if (!ph) return;
 
-  // Container hanya sebagai marker — kelopak di-append ke ph langsung
-  // agar tidak dibatasi overflow:hidden dari wrap
-  const marker = document.createElement('div');
-  marker.className = 'ph-sakura-wrap';
-  ph.insertBefore(marker, ph.firstChild);
+  // Buat marker sekali saja
+  if (!ph.querySelector('.ph-sakura-wrap')) {
+    const marker = document.createElement('div');
+    marker.className = 'ph-sakura-wrap';
+    ph.insertBefore(marker, ph.firstChild);
+  }
 
   function spawnPhPetal() {
+    // Skip spawn jika halaman rekap tidak aktif, tapi JANGAN stop interval
+    if (!document.querySelector('#page-rekap.active')) return;
     const el = document.createElement('div');
     const sz = 4 + Math.random() * 7;
-    const phH = ph.offsetHeight;
-    // Jarak jatuh: dari atas (-sz) sampai keluar bawah (phH + sz)
+    const phH = ph.offsetHeight || 160;
     const fallDist = phH + sz * 2;
     const dur = 2.5 + Math.random() * 3;
     const driftX = (Math.random() - .5) * 60;
@@ -1504,7 +1659,6 @@ function initPhSakura() {
       'top:-' + (sz + 2) + 'px',
       'pointer-events:none',
       'z-index:0',
-      // Gunakan CSS custom property untuk animasi inline
       '--fd:' + fallDist + 'px',
       '--dx:' + driftX + 'px',
       'animation:phSakuraFall ' + dur + 's linear forwards',
@@ -1513,13 +1667,15 @@ function initPhSakura() {
     el.addEventListener('animationend', () => el.remove());
   }
 
-  // Spawn awal lebih banyak agar langsung terlihat
+  // Spawn burst awal agar langsung terlihat
   for (let i = 0; i < 10; i++) setTimeout(spawnPhPetal, i * 100);
-  // Lanjut berkala
-  const iv = setInterval(() => {
-    if (!document.querySelector('#page-rekap.active')) { clearInterval(iv); return; }
-    spawnPhPetal();
-  }, 500);
+
+  // Mulai interval SEKALI saja seumur halaman.
+  // Tidak pernah di-clear — hanya di-skip saat halaman tidak aktif,
+  // sehingga sakura langsung muncul kembali saat user kembali ke Overview.
+  if (!_phSakuraIv) {
+    _phSakuraIv = setInterval(spawnPhPetal, 500);
+  }
 }
 /* ═══════ LOADING SAKURA — identik dengan hero landing page ═══════ */
 (function initLoadingSakura() {
