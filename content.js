@@ -78,7 +78,7 @@ const CONTENT = {
     badge:      "Program Kerja · Periode 2026–2027",
     jp_accent:  "学び、成長し、共に輝く",
     headline:   "Tumbuh Bersama",
-    subtitle:   "JCOSASI",
+    subtitle:   "J-COSASI",
     desc:       "Japanese Community of Satu Bekasi — Ekstrakurikuler bahasa Jepang SMKN 1 Cikarang Barat. Ini adalah ruang belajar, berproses, dan bertumbuh untuk seluruh anggota.",
     highlights: [
       "Berdiri sejak 2013",
