@@ -22,7 +22,7 @@ const SH = {
   proker_detail:       ['proker_id','tujuan','waktu_teks','estimasi_tanggal','lokasi','sasaran','pemateri','panitia','item_biaya','estimasi_biaya_item','biaya_aktual'],
   proker_notif_config: ['proker_id','countdown_aktif','ajakan','ajakan_teks','ajakan_sub','wajib_hadir','wajib_hadir_teks','wajib_hadir_sanksi'],
   anggota:             ['nama','kelas','angkatan','status','no_hp','catatan'],
-  pengurus:            ['jabatan_level','jabatan','nama','kelas','foto_url','bidang_nama'],
+  pengurus:            ['jabatan_level','jabatan','nama','kelas','foto_url','bidang_nama','deskripsi_jabatan'],
 };
 
 const PK = {
@@ -885,7 +885,7 @@ function openPengModal(i) {
   document.getElementById('ep_nama').value = p.nama||'';
   document.getElementById('ep_kelas').value = p.kelas||'';
   document.getElementById('ep_foto').value = p['link photo']||p.foto_url||p.photo||'';
-  document.getElementById('ep_desc').value = p.desc||'';
+  document.getElementById('ep_desc').value = p.deskripsi_jabatan||p.desc||'';
   openModal('pengurusModal');
 }
 function savePengurus() {
@@ -902,7 +902,7 @@ function savePengurus() {
     'link photo':  fotoRaw,
     foto_url:      fotoThumb,
     photo:         fotoThumb,
-    desc:          document.getElementById('ep_desc').value,
+    deskripsi_jabatan: document.getElementById('ep_desc').value,
     _m: true
   };
   if(!S.changes.find(c=>c.sh==='pengurus'&&c.idx===i))
