@@ -1539,3 +1539,78 @@ footer {
   .proker-search:focus { width: 100%; }
   .filter-btn { flex-shrink: 0; }
 }
+/* =============================================
+   JCOSASI — Music Player Button
+   Tambahkan CSS ini ke bagian bawah style.css
+   ============================================= */
+
+/* ── Tombol toggle musik ── */
+.music-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+
+  /* Warna mengikuti tema JCOSASI */
+  background: rgba(61, 26, 94, 0.82);   /* --purple-deep semi-transparan */
+  color: #FAFAF8;                         /* --white */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(61, 26, 94, 0.30);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+
+  /* Agar tidak menghalangi konten yang di-scroll */
+  pointer-events: auto;
+}
+
+.music-toggle svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.music-toggle:hover {
+  background: rgba(92, 45, 138, 0.92);  /* --purple-mid */
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(61, 26, 94, 0.40);
+}
+
+.music-toggle:active {
+  transform: scale(0.96);
+}
+
+/* Animasi denyut halus saat musik sedang diputar */
+@keyframes musicPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(61, 26, 94, 0.30); }
+  50%       { box-shadow: 0 4px 28px rgba(192, 57, 43, 0.35); }
+}
+
+/* Class ini ditambahkan via JS saat musik playing & tidak muted */
+.music-toggle.is-playing {
+  animation: musicPulse 2.4s ease-in-out infinite;
+}
+
+/* Responsif — sedikit lebih kecil di layar kecil */
+@media (max-width: 480px) {
+  .music-toggle {
+    bottom: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+  }
+  .music-toggle svg {
+    width: 18px;
+    height: 18px;
+  }
+}
