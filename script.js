@@ -462,7 +462,6 @@ function renderPengurusSkeleton() {
     <div class="skeleton-line sk-medium"></div>
     <div class="skeleton-line sk-long"></div>`;
 
-  const $=id=>document.getElementById(id);
   $('orgKetua')      && ($('orgKetua').innerHTML      = skeletonCard);
   $('orgWakil')      && ($('orgWakil').innerHTML      = skeletonCard);
   $('orgSekretaris') && ($('orgSekretaris').innerHTML = skeletonCard);
@@ -493,7 +492,7 @@ function sheetsToStruktur(rows) {
       kelas:   row.kelas   || '–',
       photo:   row.foto_url || row.photo || '',
       icon:    row.icon    || '👤',
-      desc:    row.desc    || '',
+      desc:    row.deskripsi_jabatan || row.desc || '',
     };
 
     if (levelMap[level]) {
@@ -543,7 +542,6 @@ async function loadPengurusFromSheets() {
  * source: 'sheets' | 'fallback'
  */
 function renderPengurus(struktur, bidang, source) {
-  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   const P   = CONTENT.pengurus;
 
   // Update catatan — sembunyikan jika dari Sheets berhasil
