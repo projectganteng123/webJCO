@@ -17,13 +17,28 @@ let _localVersion = null;
 
 // Sheet headers — harus sama persis dengan GAS SHEET_HEADERS
 const SH = {
-  proker_dokumentasi:  ['proker_id','tanggal_sesi','foto_url','keterangan','hadir_peserta','hadir_panitia','hadir_narasumber','materi','waktu_mulai','waktu_selesai','item_biaya','estimasi_biaya_item','biaya_aktual','kendala'],
-  proker_jadwal:       ['proker_id','tanggal','jam'],
-  proker_detail:       ['proker_id','tujuan','waktu_teks','estimasi_tanggal','lokasi','sasaran','pemateri','panitia','item_biaya','estimasi_biaya_item','biaya_aktual'],
-  proker_notif_config: ['proker_id','countdown_aktif','ajakan','ajakan_teks','ajakan_sub','wajib_hadir','wajib_hadir_teks','wajib_hadir_sanksi'],
-  anggota:             ['nama','kelas','angkatan','status','no_hp','catatan'],
+  // id & delete_flag adalah kolom manajemen — tidak ditampilkan di UI
+  // id = key unik per baris; delete_flag = 'TRUE' artinya baris mati
+  proker_dokumentasi:  ['id','proker_id','tanggal_sesi','foto_url','keterangan','hadir_peserta','hadir_panitia','hadir_narasumber','materi','waktu_mulai','waktu_selesai','item_biaya','estimasi_biaya_item','biaya_aktual','kendala','delete_flag'],
+  proker_jadwal:       ['id','proker_id','tanggal','jam','delete_flag'],
+  proker_detail:       ['id','proker_id','tujuan','waktu_teks','estimasi_tanggal','lokasi','sasaran','pemateri','panitia','item_biaya','estimasi_biaya_item','biaya_aktual','delete_flag'],
+  proker_notif_config: ['id','proker_id','countdown_aktif','ajakan','ajakan_teks','ajakan_sub','wajib_hadir','wajib_hadir_teks','wajib_hadir_sanksi','delete_flag'],
+  anggota:             ['id','nama','kelas','angkatan','status','no_hp','catatan','delete_flag'],
   pengurus:            ['jabatan_level','jabatan','nama','kelas','foto_url','bidang_nama','deskripsi_jabatan'],
 };
+
+/* ═══════ ID GENERATOR ═══════ */
+// Buat id unik per baris berdasarkan field kunci sheet
+function makeRowId(sh, obj) {
+  switch(sh) {
+    case 'proker_dokumentasi': return (obj.proker_id||'') + '_' + (obj.tanggal_sesi||'');
+    case 'proker_jadwal':      return (obj.proker_id||'') + '_' + (obj.tanggal||'');
+    case 'anggota':            return (obj.nama||'') + '_' + (obj.angkatan||'');
+    case 'proker_detail':      return (obj.proker_id||'');
+    case 'proker_notif_config':return (obj.proker_id||'');
+    default:                   return '';
+  }
+}
 
 const PK = {
   '01':{n:'Pembelajaran Bhs. Jepang',i:'📚'},'02':{n:'Bidang Akademik',i:'🏫'},
@@ -265,11 +280,12 @@ async function init() {
     if (lockData && lockData.length > 0) {
       _localVersion = lockData[0].version || null;
     }
-    S.dok   = dok.map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
-    S.jad   = jad.map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
-    S.det   = det.map((d,i)  => ({...d, _i:i, _m:false}));
-    S.notif = notif.map((d,i)=> ({...d, _i:i, _m:false}));
-    S.ang   = ang.map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
+    // Filter baris deleted dari sheet (delete_flag=TRUE) sebelum masuk state
+    S.dok   = dok.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
+    S.jad   = jad.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
+    S.det   = det.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false}));
+    S.notif = notif.filter(d=>d.delete_flag!=='TRUE').map((d,i)=> ({...d, _i:i, _m:false}));
+    S.ang   = ang.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
     S.peng  = peng
       .filter(p => p.jabatan_level && !['Note:', ''].includes((p.jabatan_level||'').trim()))
       .map((d,i) => ({...d, _i:i, _m:false}));
@@ -1099,10 +1115,13 @@ function renderChangelog() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   UPLOAD — FULL REPLACE PER SHEET
-   Strategi: kirim SATU request "replaceAll" dengan seluruh
-   data sekaligus. GAS akan hapus semua baris lama dan insert
-   baru. Ini 1 request per sheet → cepat & atomik.
+   UPLOAD — DELTA APPEND + DEDUP
+   Strategi baru:
+   • Penghapusan  → set delete_flag=TRUE di state, baris tetap ada
+   • Edit / Tambah → append baris baru ke sheet (baris lama tetap)
+   • GAS action 'dedup' → hapus rows dengan delete_flag=TRUE
+     dan duplikat id (sisakan baris terbawah = terbaru)
+   • Silent reload setelah selesai
 ══════════════════════════════════════════════════════════ */
 function handleUpload() {
   if(!S.changes.length) { toast('Tidak ada perubahan','warning'); return; }
@@ -1116,9 +1135,9 @@ function handleUpload() {
     pengurus:      '🎌 Pengurus (pengurus)',
   };
   document.getElementById('upSummary').innerHTML =
-    `<div style="font-weight:700;margin-bottom:8px">Sheet yang akan di-replace sepenuhnya:</div>` +
+    `<div style="font-weight:700;margin-bottom:8px">Sheet yang akan diperbarui:</div>` +
     sheets.map(s => `<div style="padding:3px 0">• <strong>${label[s]||s}</strong></div>`).join('') +
-    `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--gl);color:var(--gm);font-size:.73rem">⚠️ Semua baris di sheet tersebut akan digantikan. Sheet lain tidak terpengaruh.</div>`;
+    `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--gl);color:var(--gm);font-size:.73rem">ℹ️ Hanya baris yang berubah yang dikirim. Sheet lain tidak terpengaruh.</div>`;
   openModal('uploadModal');
 }
 
@@ -1140,17 +1159,7 @@ async function fetchLockRow() {
   }).then(rows => (rows && rows.length > 0) ? rows[0] : null);
 }
 
-/** Tulis satu baris ke upload_confirm (upsert berdasarkan key version) */
-async function writeLockRow(version, status, lockedBy, lockExpires) {
-  const row = { version, status, locked_by: lockedBy, lock_expires: lockExpires };
-  return jsonp({
-    sheet:    LOCK_SHEET,
-    action:   'upsert',
-    payload:  JSON.stringify({ key: 'version', keyValue: version, row })
-  });
-}
-
-/** Tulis baris fresh — replaceAll dengan 1 baris (paling aman) */
+/** Tulis baris fresh ke upload_confirm */
 async function setLockRow(version, status, lockedBy, lockExpires) {
   const headers = ['version','status','locked_by','lock_expires'];
   const rows    = [[version, status, lockedBy || '', lockExpires || '']];
@@ -1166,108 +1175,65 @@ async function waitForLockFree(step) {
   const MAX_WAIT = 10;
   for (let i = 0; i < MAX_WAIT; i++) {
     const row = await fetchLockRow();
-    if (!row) return true; // sheet kosong = bebas
+    if (!row) return true;
     const isUploading = row.status === 'uploading';
     const isStale     = row.lock_expires && Date.now() > new Date(row.lock_expires).getTime();
     if (!isUploading || isStale) return true;
-    // Masih dikunci — tampilkan peringatan dan tunggu
     const sisa = MAX_WAIT - i - 1;
     if (step) step(`⏳ Pengguna lain sedang mengupload, menunggu… (${sisa * 5}d lagi)`);
     toast(`⏳ Pengguna lain sedang upload. Menunggu 5 detik…`, 'warning');
     await new Promise(r => setTimeout(r, 5000));
   }
-  return false; // timeout — lock tidak pernah bebas
+  return false;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MERGE HELPER
-   Setelah mendapatkan lock, fetch ulang data terbaru dari Sheets
-   lalu gabungkan dengan perubahan lokal:
-   - Data yang DIUBAH/DITAMBAH/DIHAPUS lokal (_m/_n/_d) → pakai lokal
-   - Data yang TIDAK disentuh → pakai versi terbaru dari Sheets
-   Hasilnya disimpan ke S.* sebelum upload
+   MERGE HELPER — dipakai saat deteksi konflik versi
 ================================================================ */
 async function fetchAndMerge(sheets, onStep) {
-  // Map sheet name (internal) → gas sheet name → S key
   const shMap = {
-    dokumentasi:   { gas: 'proker_dokumentasi', key: 'dok',   idField: '_i' },
-    jadwal:        { gas: 'proker_jadwal',       key: 'jad',   idField: '_i' },
-    proker_detail: { gas: 'proker_detail',       key: 'det',   idField: '_i' },
-    notif_config:  { gas: 'proker_notif_config', key: 'notif', idField: '_i' },
-    anggota:       { gas: 'anggota',             key: 'ang',   idField: '_i' },
-    pengurus:      { gas: 'pengurus',            key: 'peng',  idField: '_i' },
+    dokumentasi:   { gas: 'proker_dokumentasi', key: 'dok'   },
+    jadwal:        { gas: 'proker_jadwal',       key: 'jad'   },
+    proker_detail: { gas: 'proker_detail',       key: 'det'   },
+    notif_config:  { gas: 'proker_notif_config', key: 'notif' },
+    anggota:       { gas: 'anggota',             key: 'ang'   },
+    pengurus:      { gas: 'pengurus',            key: 'peng'  },
   };
 
   for (const sh of sheets) {
     const info = shMap[sh];
     if (!info) continue;
-
     if (onStep) onStep('Sinkronisasi data terbaru: ' + sh + '…');
 
-    // Fetch data terbaru dari Sheets (read-only endpoint)
     let remoteRows = [];
     try {
-      remoteRows = await readSh(info.gas);
+      remoteRows = (await readSh(info.gas)).filter(d => d.delete_flag !== 'TRUE');
     } catch(e) {
       console.warn('[MERGE] Gagal fetch ' + sh + ', skip merge:', e.message);
-      continue; // jika fetch gagal, pakai data lokal apa adanya
-    }
-
-    const local = S[info.key];
-
-    // Kumpulkan index lokal yang DISENTUH (modified/new/deleted)
-    // Untuk dok/jad/ang: ada _n, _m, _d
-    // Untuk det/notif/peng: ada _m saja
-    const touchedIdx = new Set(
-      local
-        .filter(r => r._m || r._n || r._d)
-        .map(r => r._i)
-    );
-
-    if (touchedIdx.size === 0) {
-      // Tidak ada yang disentuh — ambil seluruhnya dari remote
-      S[info.key] = remoteRows.map((r, i) => ({
-        ...r, _i: i, _m: false, _n: false, _d: false
-      }));
       continue;
     }
 
-    // Ada yang disentuh — merge:
-    // 1. Ambil semua remote rows yang TIDAK ada di lokal yang disentuh
-    //    (identifikasi berdasarkan urutan asli, karena tidak ada UUID)
-    //    Strategi: mapping berdasarkan posisi original (_i)
-    const remoteByOrigI = {};
-    remoteRows.forEach((r, pos) => {
-      // _i lokal awal = posisi array saat init (0, 1, 2, ...)
-      remoteByOrigI[pos] = r;
-    });
+    const local = S[info.key];
+    const touchedIdx = new Set(local.filter(r => r._m || r._n || r._d).map(r => r._i));
 
-    // 2. Bangun array hasil merge:
-    //    - Baris remote yang tidak di-touch → pakai remote (update silent)
-    //    - Baris lokal yang di-touch → pertahankan
-    //    - Baris lokal baru (_n=true) → selalu ikut (tidak ada di remote)
+    if (touchedIdx.size === 0) {
+      S[info.key] = remoteRows.map((r, i) => ({...r, _i: i, _m: false, _n: false, _d: false}));
+      continue;
+    }
+
     const newRows = [];
-
-    // Iterasi berdasarkan posisi original remote
     remoteRows.forEach((remoteR, pos) => {
       const localMatch = local.find(l => l._i === pos);
       if (!localMatch) {
-        // Baris remote yang tidak ada di lokal (mungkin ditambah oleh sesi lain)
         newRows.push({ ...remoteR, _i: pos, _m: false, _n: false, _d: false });
       } else if (touchedIdx.has(localMatch._i)) {
-        // Baris ini disentuh secara lokal → pakai data lokal
         newRows.push(localMatch);
       } else {
-        // Baris ini tidak disentuh → pakai data terbaru dari remote
         newRows.push({ ...remoteR, _i: pos, _m: false, _n: false, _d: false });
       }
     });
-
-    // Tambahkan baris baru (_n=true) yang tidak ada di remote
     local.filter(l => l._n).forEach(newRow => {
-      if (!newRows.find(r => r._i === newRow._i)) {
-        newRows.push(newRow);
-      }
+      if (!newRows.find(r => r._i === newRow._i)) newRows.push(newRow);
     });
 
     S[info.key] = newRows;
@@ -1292,9 +1258,6 @@ async function confirmUpload() {
   let lockRow = null;
   try { lockRow = await fetchLockRow(); } catch(e) { /* degraded mode */ }
 
-  const remoteVersion = lockRow ? lockRow.version : null;
-
-  // Jika ada lock aktif → tunggu sampai bebas
   const isLocked = lockRow && lockRow.status === 'uploading'
     && lockRow.lock_expires
     && Date.now() < new Date(lockRow.lock_expires).getTime();
@@ -1312,25 +1275,18 @@ async function confirmUpload() {
       toast('❌ Upload lain tidak kunjung selesai. Coba lagi nanti.', 'error');
       return;
     }
-
-    // Setelah lock bebas, baca ulang version terbaru
     try { lockRow = await fetchLockRow(); } catch(e) {}
   }
 
-  /* ── LANGKAH 2: Ambil lock (set UPLOADING) ── */
+  /* ── LANGKAH 2: Ambil lock ── */
   step.textContent = 'Mengambil giliran…';
   const newVersion  = new Date().toLocaleString('id-ID');
   const lockExpires = new Date(Date.now() + LOCK_TTL_MS).toISOString();
   try {
     await setLockRow(newVersion, 'uploading', SESSION_ID, lockExpires);
-  } catch(e) {
-    console.warn('[LOCK] Gagal set lock:', e.message);
-    // Lanjutkan meskipun lock gagal (degraded mode)
-  }
+  } catch(e) { console.warn('[LOCK] Gagal set lock:', e.message); }
 
-  /* ── LANGKAH 3: MERGE — fetch terbaru dari Sheets, gabungkan dengan lokal ── */
-  // Hanya lakukan merge jika version remote berbeda dari version lokal kita
-  // (artinya ada data baru di Sheets sejak kita buka halaman)
+  /* ── LANGKAH 3: Merge jika versi berbeda ── */
   const currentRemoteVersion = lockRow ? lockRow.version : null;
   const needsMerge = currentRemoteVersion && _localVersion
     && currentRemoteVersion !== _localVersion;
@@ -1341,22 +1297,19 @@ async function confirmUpload() {
     try {
       await fetchAndMerge(sheets, msg => { step.textContent = msg; });
       toast('🔀 Data digabungkan dengan versi terbaru', 'warning');
-    } catch(e) {
-      console.warn('[MERGE] Gagal merge:', e.message);
-      // Jika merge gagal, tetap lanjutkan upload dengan data lokal
-    }
+    } catch(e) { console.warn('[MERGE] Gagal merge:', e.message); }
   }
 
-  /* ── LANGKAH 4: Upload data ── */
+  /* ── LANGKAH 4: Kirim delta ke sheet ── */
   setS('loading', 'Mengupload…');
   let ok = 0, fail = 0;
 
   for (let si = 0; si < sheets.length; si++) {
     const sh = sheets[si];
     step.textContent = 'Mengupload ' + sh + ' (' + (si+1) + '/' + sheets.length + ')…';
-    bar.style.width  = Math.round(10 + (si / sheets.length) * 85) + '%';
+    bar.style.width  = Math.round(10 + (si / sheets.length) * 75) + '%';
     try {
-      await uploadShFull(sh, (msg) => { step.textContent = msg; });
+      await uploadShDelta(sh, (msg) => { step.textContent = msg; });
       ok++;
     } catch(e) {
       fail++;
@@ -1365,9 +1318,23 @@ async function confirmUpload() {
     }
   }
 
+  /* ── LANGKAH 5: Dedup semua sheet yang diupload ── */
+  if (!fail) {
+    for (let si = 0; si < sheets.length; si++) {
+      const sh  = sheets[si];
+      const gas = _shToGas(sh);
+      if (!gas || sh === 'pengurus') continue;
+      step.textContent = 'Membersihkan duplikat: ' + sh + '…';
+      bar.style.width  = Math.round(85 + (si / sheets.length) * 10) + '%';
+      try {
+        await jsonp({ sheet: gas, action: 'dedup' });
+      } catch(e) { console.warn('[DEDUP] ' + sh + ':', e.message); }
+    }
+  }
+
   bar.style.width = '100%';
 
-  /* ── LANGKAH 5: Lepas lock dengan version baru ── */
+  /* ── LANGKAH 6: Lepas lock ── */
   try {
     await setLockRow(newVersion, 'free', '', '');
     _localVersion = newVersion;
@@ -1399,68 +1366,81 @@ async function confirmUpload() {
   btn.disabled = false;
 }
 
-/**
- * uploadShFull — satu request untuk mengganti SELURUH isi sheet.
- * Menggunakan action=replaceAll yang dikirim ke GAS v2.
- * Payload: { headers: [...], rows: [[...],[...]] }
- */
-// Hitung chunk size adaptif agar URL tidak melebihi ~3200 encoded chars
-function _safeChunk(hdr, rows) {
-  if (!rows.length) return 5;
-  const sample = encodeURIComponent(JSON.stringify({ headers: hdr, rows: [rows[0]] })).length;
-  return Math.max(1, Math.floor(3200 / sample));
-}
-
-async function uploadShFull(sh, onStep) {
-  const gas = {
+/** Konversi nama sheet internal ke nama sheet GAS */
+function _shToGas(sh) {
+  return {
     dokumentasi:   'proker_dokumentasi',
     jadwal:        'proker_jadwal',
     proker_detail: 'proker_detail',
     notif_config:  'proker_notif_config',
     anggota:       'anggota',
     pengurus:      'pengurus',
-  }[sh];
+  }[sh] || null;
+}
+
+/**
+ * uploadShDelta — kirim hanya baris yang berubah (delta).
+ *
+ * Logika per jenis perubahan:
+ *   _d = true  → append baris dengan delete_flag='TRUE' (tandai mati di sheet)
+ *   _n = true  → append baris baru
+ *   _m = true  → append baris dengan data terbaru (baris lama di-dedup oleh GAS)
+ *
+ * GAS action 'dedup' kemudian:
+ *   1. Hapus semua baris ber-delete_flag=TRUE
+ *   2. Dari sisa baris ber-id sama, hapus semua kecuali yang paling bawah (terbaru)
+ */
+async function uploadShDelta(sh, onStep) {
+  const gas = _shToGas(sh);
   if (!gas) throw new Error('Unknown sheet: ' + sh);
+
   const hdr = SH[gas];
   const shLabel = { dokumentasi:'Dokumentasi', jadwal:'Jadwal', proker_detail:'Detail Proker', notif_config:'Notif Config', anggota:'Anggota', pengurus:'Pengurus' };
   const lbl = shLabel[sh] || sh;
 
-  // Buat rows (hanya data aktif, tanpa baris yang dihapus)
-  let srcRows;
-  if     (sh==='dokumentasi')   srcRows = S.dok.filter(d=>!d._d);
-  else if(sh==='jadwal')        srcRows = S.jad.filter(j=>!j._d);
-  else if(sh==='proker_detail') srcRows = S.det;
-  else if(sh==='notif_config')  srcRows = S.notif;
-  else if(sh==='anggota')       srcRows = S.ang.filter(a=>!a._d);
-  else if(sh==='pengurus')      srcRows = S.peng;
-  else throw new Error('Unknown sheet: ' + sh);
-
-  // PENTING: JANGAN encodeURIComponent di sini —
-  // jsonp() sudah encode semua value. Double encode merusak JSON di GAS.
-  const rows = srcRows.map(obj => hdr.map(h => obj[h] != null ? String(obj[h]) : ''));
-  const fullJson = JSON.stringify({ headers: hdr, rows });
-
-  if (encodeURIComponent(fullJson).length <= 3500) {
-    // Data kecil — kirim sekaligus
+  if (sh === 'pengurus') {
+    // Pengurus tidak pakai sistem delta — tetap replaceAll
+    const rows = S.peng.map(obj => hdr.map(h => obj[h] != null ? String(obj[h]) : ''));
+    const fullJson = JSON.stringify({ headers: hdr, rows });
     if (onStep) onStep('Upload ' + lbl + '…');
     await jsonp({ sheet: gas, action: 'replaceAll', payload: fullJson });
-  } else {
-    // Data besar — kosongkan sheet dulu, lalu insert per chunk
-    if (onStep) onStep('Membersihkan ' + lbl + '…');
-    await jsonp({ sheet: gas, action: 'replaceAll', payload: JSON.stringify({ headers: hdr, rows: [] }) });
-    if (!rows.length) return;
-    const cs = _safeChunk(hdr, rows);
-    const total = Math.ceil(rows.length / cs);
-    for (let i = 0, ci = 1; i < rows.length; i += cs, ci++) {
-      if (onStep) onStep('Upload ' + lbl + ': baris ' + (i+1) + '–' + Math.min(i+cs, rows.length) + (total>1?' (chunk '+ci+'/'+total+')':'') + '…');
-      const objRows = rows.slice(i, i+cs).map(r => {
-        const o = {}; hdr.forEach((h, j) => { o[h] = r[j] || ''; }); return o;
-      });
-      await jsonp({ sheet: gas, action: 'insert', payload: JSON.stringify({ rows: objRows }) });
-    }
+    return;
+  }
+
+  let srcArr;
+  if      (sh==='dokumentasi')   srcArr = S.dok;
+  else if (sh==='jadwal')        srcArr = S.jad;
+  else if (sh==='proker_detail') srcArr = S.det;
+  else if (sh==='notif_config')  srcArr = S.notif;
+  else if (sh==='anggota')       srcArr = S.ang;
+  else throw new Error('Unknown sheet: ' + sh);
+
+  // Hanya baris yang benar-benar berubah
+  const changed = srcArr.filter(r => r._m || r._n || r._d);
+  if (!changed.length) return;
+
+  // Bangun baris delta — inject id dan delete_flag
+  const deltaRows = changed.map(obj => {
+    const rowId = makeRowId(gas, obj);
+    return hdr.map(h => {
+      if (h === 'id')          return rowId;
+      if (h === 'delete_flag') return obj._d ? 'TRUE' : '';
+      return obj[h] != null ? String(obj[h]) : '';
+    });
+  });
+
+  if (onStep) onStep('Append delta ' + lbl + ' (' + deltaRows.length + ' baris)…');
+
+  // Chunking agar URL tidak terlalu panjang
+  const sample = encodeURIComponent(JSON.stringify({ headers: hdr, rows: [deltaRows[0]] })).length;
+  const cs = Math.max(1, Math.floor(3200 / sample));
+
+  for (let i = 0; i < deltaRows.length; i += cs) {
+    const chunk = deltaRows.slice(i, i + cs);
+    const objRows = chunk.map(r => { const o = {}; hdr.forEach((h, j) => { o[h] = r[j] || ''; }); return o; });
+    await jsonp({ sheet: gas, action: 'insert', payload: JSON.stringify({ rows: objRows }) });
   }
 }
-
 
 /* ═══════ PASTE PARSER (Excel / CSV / Google Sheets) ═══════
    Terima teks tab-separated (Excel/Sheets) atau comma-separated (CSV)
@@ -1607,11 +1587,11 @@ async function silentReload() {
       readSh('proker_notif_config'), readSh('anggota').catch(() => []), readSh('pengurus')
     ]);
     // Hanya update data yang tidak sedang diedit (_m=false, _n=false, _d=false)
-    S.dok   = dok.map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
-    S.jad   = jad.map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
-    S.det   = det.map((d,i)  => ({...d, _i:i, _m:false}));
-    S.notif = notif.map((d,i)=> ({...d, _i:i, _m:false}));
-    S.ang   = ang.map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
+    S.dok   = dok.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
+    S.jad   = jad.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
+    S.det   = det.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false}));
+    S.notif = notif.filter(d=>d.delete_flag!=='TRUE').map((d,i)=> ({...d, _i:i, _m:false}));
+    S.ang   = ang.filter(d=>d.delete_flag!=='TRUE').map((d,i)  => ({...d, _i:i, _m:false, _n:false, _d:false}));
     S.peng  = peng
       .filter(p => p.jabatan_level && !['Note:', ''].includes((p.jabatan_level||'').trim()))
       .map((d,i) => ({...d, _i:i, _m:false}));
