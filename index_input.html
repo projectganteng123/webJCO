@@ -133,6 +133,7 @@
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
         <strong style="font-size:1.05rem">📋 Dokumentasi Sesi</strong>
         <div class="tb-sp"></div>
+        <button class="btn-lap" onclick="openLaporanModal()" title="Cetak Laporan PDF / Excel / CSV">🖨️ Cetak Laporan</button>
         <button class="btn-add" onclick="openNewSesiModal()">+ Tambah Sesi</button>
       </div>
       <div class="fchips" id="filterChips"></div>
@@ -247,7 +248,8 @@
         <div class="pck-classes" id="pck-cls-peserta"></div>
         <div class="pck-footer">
           <div class="pck-manual-row">
-            <input type="text" id="pck-manual-inp-peserta" placeholder="Input manual (pisah koma)…" onkeydown="if(event.key==='Enter'){addManualPck('peserta');event.preventDefault()}"/>
+            <input type="text" id="pck-manual-inp-peserta" placeholder="Nama (pisah koma, atau Nama|Kelas)…" onkeydown="if(event.key==='Enter'){addManualPck('peserta');event.preventDefault()}"/>
+            <input type="text" id="pck-manual-cls-peserta" class="pck-manual-cls" placeholder="Kelas (opsional)"/>
             <button class="btn-hadd" onclick="addManualPck('peserta')">+ Tambah</button>
           </div>
           <span class="pck-count" id="pck-count-peserta">0 dipilih</span>
@@ -263,7 +265,8 @@
         <div class="pck-classes" id="pck-cls-panitia"></div>
         <div class="pck-footer">
           <div class="pck-manual-row">
-            <input type="text" id="pck-manual-inp-panitia" placeholder="Input manual (pisah koma)…" onkeydown="if(event.key==='Enter'){addManualPck('panitia');event.preventDefault()}"/>
+            <input type="text" id="pck-manual-inp-panitia" placeholder="Nama (pisah koma, atau Nama|Kelas)…" onkeydown="if(event.key==='Enter'){addManualPck('panitia');event.preventDefault()}"/>
+            <input type="text" id="pck-manual-cls-panitia" class="pck-manual-cls" placeholder="Kelas (opsional)"/>
             <button class="btn-hadd" onclick="addManualPck('panitia')">+ Tambah</button>
           </div>
           <span class="pck-count" id="pck-count-panitia">0 dipilih</span>
@@ -279,7 +282,8 @@
         <div class="pck-classes" id="pck-cls-narasumber"></div>
         <div class="pck-footer">
           <div class="pck-manual-row">
-            <input type="text" id="pck-manual-inp-narasumber" placeholder="Input manual (pisah koma)…" onkeydown="if(event.key==='Enter'){addManualPck('narasumber');event.preventDefault()}"/>
+            <input type="text" id="pck-manual-inp-narasumber" placeholder="Nama (pisah koma, atau Nama|Kelas)…" onkeydown="if(event.key==='Enter'){addManualPck('narasumber');event.preventDefault()}"/>
+            <input type="text" id="pck-manual-cls-narasumber" class="pck-manual-cls" placeholder="Kelas (opsional)"/>
             <button class="btn-hadd" onclick="addManualPck('narasumber')">+ Tambah</button>
           </div>
           <span class="pck-count" id="pck-count-narasumber">0 dipilih</span>
@@ -354,6 +358,7 @@
 </div>
 
 <script src="app_input.js"></script>
+<!-- <script src="laporan.js"></script> -->
 <script src="music-player.js"></script>
 </body>
 </html>

@@ -648,15 +648,20 @@ function renderDok(dok) {
         </a>`;
       }).join('')}</div></div>` : '';
 
-    /* Daftar hadir — accordion jika >1 */
-    function hadirBlok(kolom, label, ikon) {
-      const raw = d[kolom]; if(!raw) return '';
-      const names = raw.split(',').map(n=>n.trim()).filter(Boolean);
+    /* Daftar hadir — accordion jika >1, tampilkan nama + kelas */
+    function hadirBlok(kolomNama, kolomKelas, label, ikon) {
+      const raw = d[kolomNama]; if(!raw) return '';
+      const names  = raw.split(',').map(n=>n.trim()).filter(Boolean);
+      const klases = (d[kolomKelas]||'').split(',').map(k=>k.trim());
+      const rows = names.map((n,i) => {
+        const kelas = klases[i] || '';
+        return `<div class="da-row"><span class="da-nama">${n}</span>${kelas?`<span class="da-kelas">${kelas}</span>`:''}</div>`;
+      });
       const listHtml = names.length===1
-        ? `<span class="hadir-single">${names[0]}</span>`
+        ? `<span class="hadir-single">${names[0]}${klases[0]?` <span class="hadir-kelas">${klases[0]}</span>`:''}</span>`
         : `<div class="daftar-accordion" onclick="toggleAccordion(this)">
             <div class="da-header"><span>${names.length} ${label}</span><span class="da-arrow">▾</span></div>
-            <div class="da-body">${names.map(n=>`<div class="da-row">${n}</div>`).join('')}</div>
+            <div class="da-body">${rows.join('')}</div>
           </div>`;
       return `<div class="hadir-blok">
         <div class="hadir-blok-label">${ikon} ${label}</div>
@@ -664,9 +669,9 @@ function renderDok(dok) {
       </div>`;
     }
     const hadirParts = [
-      hadirBlok('hadir_peserta',   'peserta',    '👥'),
-      hadirBlok('hadir_panitia',   'panitia',    '🤝'),
-      hadirBlok('hadir_narasumber','narasumber', '🎤'),
+      hadirBlok('hadir_peserta',   'kelas_peserta',   'peserta',    '👥'),
+      hadirBlok('hadir_panitia',   'kelas_panitia',   'panitia',    '🤝'),
+      hadirBlok('hadir_narasumber','kelas_narasumber','narasumber', '🎤'),
     ].filter(Boolean);
     const hadirHtml = hadirParts.length ? `<div class="dsb-section">
       <div class="dsb-label">✅ Daftar Hadir</div>

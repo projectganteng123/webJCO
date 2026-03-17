@@ -820,9 +820,22 @@ img { max-width: 100%; display: block; }
 .da-row {
   padding:8px 14px; font-size:.87rem; color:var(--grey-dark);
   border-top:1px solid var(--grey-light);
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
 }
 .da-row:first-child { border-top:none; }
-.hadir-single { font-size:.9rem; color:var(--grey-dark); }
+.da-nama { flex:1; }
+.da-kelas {
+  font-size:.75rem; color:var(--purple-mid);
+  background:var(--purple-pale); border-radius:99px;
+  padding:1px 8px; white-space:nowrap; flex-shrink:0;
+  font-weight:500;
+}
+.hadir-single { font-size:.9rem; color:var(--grey-dark); display:flex; align-items:center; gap:6px; }
+.hadir-kelas {
+  font-size:.75rem; color:var(--purple-mid);
+  background:var(--purple-pale); border-radius:99px;
+  padding:1px 8px; font-weight:500;
+}
 
 /* ── Dok sesi header sub-info ── */
 .dsh-info { display:flex; flex-direction:column; gap:2px; }

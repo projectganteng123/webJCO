@@ -19,7 +19,7 @@ let _localVersion = null;
 const SH = {
   // id & delete_flag adalah kolom manajemen — tidak ditampilkan di UI
   // id = key unik per baris; delete_flag = 'TRUE' artinya baris mati
-  proker_dokumentasi:  ['id','proker_id','tanggal_sesi','foto_url','keterangan','hadir_peserta','hadir_panitia','hadir_narasumber','materi','waktu_mulai','waktu_selesai','item_biaya','estimasi_biaya_item','biaya_aktual','kendala','delete_flag'],
+  proker_dokumentasi:  ['id','proker_id','tanggal_sesi','foto_url','keterangan','hadir_peserta','kelas_peserta','hadir_panitia','kelas_panitia','hadir_narasumber','kelas_narasumber','materi','waktu_mulai','waktu_selesai','item_biaya','estimasi_biaya_item','biaya_aktual','kendala','delete_flag'],
   proker_jadwal:       ['id','proker_id','tanggal','jam','delete_flag'],
   proker_detail:       ['id','proker_id','tujuan','waktu_teks','estimasi_tanggal','lokasi','sasaran','pemateri','panitia','item_biaya','estimasi_biaya_item','biaya_aktual','delete_flag'],
   proker_notif_config: ['id','proker_id','countdown_aktif','ajakan','ajakan_teks','ajakan_sub','wajib_hadir','wajib_hadir_teks','wajib_hadir_sanksi','delete_flag'],
@@ -514,7 +514,7 @@ function openSesi(i) {
   document.getElementById('e_mat').value = s.materi||'';
   document.getElementById('e_kend').value = s.kendala||'';
   document.getElementById('e_foto').value = s.foto_url||'';
-  initPck('peserta',s.hadir_peserta); initPck('panitia',s.hadir_panitia); initPck('narasumber',s.hadir_narasumber);
+  initPck('peserta',s.hadir_peserta,s.kelas_peserta); initPck('panitia',s.hadir_panitia,s.kelas_panitia); initPck('narasumber',s.hadir_narasumber,s.kelas_narasumber);
   initBR(s); openModal('sesiModal');
 }
 function openNewSesiModal() {
@@ -544,9 +544,12 @@ function saveSesi() {
     materi:         document.getElementById('e_mat').value,
     kendala:        document.getElementById('e_kend').value,
     foto_url:       document.getElementById('e_foto').value,
-    hadir_peserta:  getPckVal('peserta'),
-    hadir_panitia:  getPckVal('panitia'),
+    hadir_peserta:    getPckVal('peserta'),
+    kelas_peserta:    getPckKelas('peserta'),
+    hadir_panitia:    getPckVal('panitia'),
+    kelas_panitia:    getPckKelas('panitia'),
     hadir_narasumber: getPckVal('narasumber'),
+    kelas_narasumber: getPckKelas('narasumber'),
     ...getBR()
   };
   if(i==='new') {
@@ -562,45 +565,59 @@ function saveSesi() {
   closeModal('sesiModal'); renderAll();
 }
 
-/* ═══════ PICKER KEHADIRAN (checkbox + angkatan accordion + manual) ═══════ */
-const PCK = {};
+/* ═══════ PICKER KEHADIRAN (checkbox + angkatan accordion + manual) ═══════
+   PCK menyimpan Map: nama → kelas  (kelas bisa '' jika tidak diketahui)
+   - getPckVal(key)   → "Nama1,Nama2,..."
+   - getPckKelas(key) → "Kelas1,Kelas2,..." (urutan sama dengan nama)
+═══════ */
+const PCK = {};   // key → Map<nama, kelas>
 
-function initPck(key, valStr) {
-  PCK[key] = new Set(spl(valStr));
+/* Lookup kelas dari data anggota */
+function getKelasFor(nama) {
+  const a = S.ang.find(x => !x._d && x.nama === nama);
+  return a ? (a.kelas || '') : '';
+}
+
+function initPck(key, namaStr, kelasStr) {
+  const names  = spl(namaStr);
+  const klases = spl(kelasStr);
+  const m = new Map();
+  names.forEach((n, i) => {
+    // Prioritaskan kelas dari sheet; fallback ke data anggota
+    const kls = (klases[i] && klases[i].trim()) ? klases[i].trim() : getKelasFor(n);
+    m.set(n, kls);
+  });
+  PCK[key] = m;
   renderPckTags(key);
   renderPckCheckboxes(key);
 }
 
 function renderPckTags(key) {
   const el = document.getElementById('tg-' + key); if (!el) return;
-  const names = [...PCK[key]];
-  el.innerHTML = names.map((n, i) =>
-    '<div class="htag">' + esc(n) + '<button class="htag-del" onclick="pckRemoveIdx(\'' + key + '\',' + i + ')">×</button></div>'
+  const entries = [...PCK[key].entries()];
+  el.innerHTML = entries.map(([n, kls], i) =>
+    '<div class="htag">'
+      + esc(n)
+      + (kls ? '<span class="htag-kelas">' + esc(kls) + '</span>' : '')
+      + '<button class="htag-del" onclick="pckRemoveIdx(\'' + key + '\',' + i + ')">×</button>'
+    + '</div>'
   ).join('');
 }
-// Hapus berdasarkan index dari snapshot saat render (lebih aman daripada nama)
+
 function pckRemoveIdx(key, idx) {
-  const names = [...PCK[key]];
-  if (idx < names.length) pckRemove(key, names[idx]);
+  const keys = [...PCK[key].keys()];
+  if (idx < keys.length) { PCK[key].delete(keys[idx]); renderPckTags(key); renderPckCheckboxes(key); }
 }
 
-function pckRemove(key, name) {
-  PCK[key].delete(name);
-  renderPckTags(key);
-  renderPckCheckboxes(key);
-}
-
-function pckToggle(key, name, checked) {
-  if (checked) PCK[key].add(name); else PCK[key].delete(name);
-  renderPckTags(key);
-  updatePckCount(key);
-}
-// Handler yang membaca nama dari data-attribute (menghindari masalah escape di innerHTML)
 function pckToggleEl(el) {
-  const key = el.dataset.key;
+  const key  = el.dataset.key;
   const name = el.dataset.name;
   if (!key || !name) return;
-  if (el.checked) PCK[key].add(name); else PCK[key].delete(name);
+  if (el.checked) {
+    PCK[key].set(name, getKelasFor(name));
+  } else {
+    PCK[key].delete(name);
+  }
   renderPckTags(key);
   updatePckCount(key);
 }
@@ -610,39 +627,86 @@ function updatePckCount(key) {
   if (el) el.textContent = PCK[key].size + ' dipilih';
 }
 
+/* Input manual:
+   Field nama : "Asep, Ucup, Mulyo"   (pisah koma)
+   Field kelas: "XII IPA A, , XI IPA A" (pisah koma, posisi harus sesuai nama;
+                 kosongkan entri jika orang tersebut tidak ada kelasnya)
+   Bisa juga format inline di field nama: "Asep|XII IPA A, Ucup, Mulyo|XI IPA A"
+   Keduanya bisa dikombinasikan — field kelas menimpa jika ada.
+*/
 function addManualPck(key) {
-  const inp = document.getElementById('pck-manual-inp-' + key); if (!inp) return;
-  spl(inp.value).forEach(v => { if (v) PCK[key].add(v.trim()); });
-  inp.value = '';
+  const inp  = document.getElementById('pck-manual-inp-' + key); if (!inp) return;
+  const inp2 = document.getElementById('pck-manual-cls-' + key);
+  const rawNama  = inp.value.trim();
+  if (!rawNama) return;
+
+  // Pisah nama dan kelas masing-masing per koma
+  // Koma di field kelas bisa menghasilkan string kosong '' yang berarti "tidak ada kelas"
+  const namaList  = rawNama.split(',').map(v => v.trim()).filter(Boolean);
+  const kelasRaw  = inp2 ? inp2.value.split(',').map(v => v.trim()) : [];
+  // kelasRaw boleh lebih pendek dari namaList — entri yang tidak ada = ''
+
+  namaList.forEach((entry, i) => {
+    // Deteksi format inline "Nama|Kelas" — diproses dulu
+    const pipeIdx = entry.indexOf('|');
+    let nama, kelasInline;
+    if (pipeIdx !== -1) {
+      nama        = entry.slice(0, pipeIdx).trim();
+      kelasInline = entry.slice(pipeIdx + 1).trim();
+    } else {
+      nama        = entry;
+      kelasInline = '';
+    }
+    if (!nama) return;
+
+    // Prioritas kelas: field kelas UI (posisi i) > inline > data anggota
+    let kelas = '';
+    if (kelasRaw.length > 0) {
+      // Field kelas diisi (meski sebagian kosong) — pakai posisi i
+      // Jika posisi i tidak ada, anggap kosong (bukan fallback anggota)
+      kelas = (kelasRaw[i] !== undefined ? kelasRaw[i] : '').trim();
+      // Jika entri kelas pada posisi ini kosong DAN ada kelasInline, pakai inline
+      if (!kelas && kelasInline) kelas = kelasInline;
+      // Jika masih kosong, tidak fallback ke anggota karena user sengaja mengosongkan
+    } else {
+      // Field kelas tidak diisi sama sekali → gunakan inline atau fallback anggota
+      kelas = kelasInline || getKelasFor(nama);
+    }
+
+    PCK[key].set(nama, kelas);
+  });
+
+  inp.value  = '';
+  if (inp2) inp2.value = '';
   renderPckTags(key);
   renderPckCheckboxes(key);
 }
 
-function getPckVal(key) { return [...PCK[key]].join(','); }
+function getPckVal(key)   { return [...PCK[key].keys()].join(','); }
+function getPckKelas(key) { return [...PCK[key].values()].join(','); }
 
 function renderPckCheckboxes(key) {
   const wrap = document.getElementById('pck-cls-' + key); if (!wrap) return;
-  // Kategorikan per angkatan, fallback 'Lainnya'
+  // Kategorikan per angkatan
   const byAngkatan = {};
   S.ang.filter(a => !a._d).forEach(a => {
     const kat = a.angkatan ? 'Angkatan ' + a.angkatan : 'Lainnya';
     if (!byAngkatan[kat]) byAngkatan[kat] = [];
-    byAngkatan[kat].push(a.nama);
+    byAngkatan[kat].push({ nama: a.nama, kelas: a.kelas || '' });
   });
-  // Nama yang diinput manual tapi tidak ada di daftar anggota
+  // Anggota manual (tidak ada di S.ang)
   const known = new Set(S.ang.map(a => a.nama));
-  [...PCK[key]].forEach(n => {
+  [...PCK[key].keys()].forEach(n => {
     if (!known.has(n)) {
       if (!byAngkatan['Manual']) byAngkatan['Manual'] = [];
-      if (!byAngkatan['Manual'].includes(n)) byAngkatan['Manual'].push(n);
+      if (!byAngkatan['Manual'].find(x => x.nama === n))
+        byAngkatan['Manual'].push({ nama: n, kelas: PCK[key].get(n) || '' });
     }
   });
-  // Sort angkatan: numerik terbesar dulu, Lainnya & Manual di akhir
   const sortedKeys = Object.keys(byAngkatan).sort((a, b) => {
     const na = parseInt(a.replace(/\D/g,'')), nb = parseInt(b.replace(/\D/g,''));
     if (!isNaN(na) && !isNaN(nb)) return nb - na;
-    if (!isNaN(na)) return -1;
-    if (!isNaN(nb)) return 1;
+    if (!isNaN(na)) return -1; if (!isNaN(nb)) return 1;
     return a.localeCompare(b);
   });
   if (!sortedKeys.length) {
@@ -650,17 +714,24 @@ function renderPckCheckboxes(key) {
     updatePckCount(key); return;
   }
   wrap.innerHTML = sortedKeys.map(kat => {
-    const names = byAngkatan[kat];
-    const clsId = 'pckcls-' + key + '-' + kat.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'');
-    const items = names.map((name, ni) => {
-      const checked = PCK[key].has(name) ? 'checked' : '';
-      const safeId = 'pckchk-' + key + '-' + (Math.abs(Array.from(name).reduce((h,c)=>Math.imul(31,h)+c.charCodeAt(0)|0,0))).toString(36);
-      return '<div class="pck-item"><input type="checkbox" id="' + safeId + '" ' + checked + ' data-key="' + key + '" data-name="' + esc(name) + '" onchange="pckToggleEl(this)"/><label for="' + safeId + '">' + esc(name) + '</label></div>';
+    const members = byAngkatan[kat];
+    const clsId   = 'pckcls-' + key + '-' + kat.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'');
+    const items   = members.map(({ nama, kelas }) => {
+      const checked = PCK[key].has(nama) ? 'checked' : '';
+      const safeId  = 'pckchk-' + key + '-' + (Math.abs(Array.from(nama).reduce((h,c)=>Math.imul(31,h)+c.charCodeAt(0)|0,0))).toString(36);
+      return '<div class="pck-item">'
+        + '<input type="checkbox" id="' + safeId + '" ' + checked
+        + ' data-key="' + key + '" data-name="' + esc(nama) + '" onchange="pckToggleEl(this)"/>'
+        + '<label for="' + safeId + '">'
+        + esc(nama)
+        + (kelas ? '<span class="pck-item-kelas">' + esc(kelas) + '</span>' : '')
+        + '</label>'
+        + '</div>';
     }).join('');
     return '<div class="pck-cls open" id="' + clsId + '">'
       + '<div class="pck-cls-h" onclick="tgPckCls(\'' + clsId + '\')">'
       + '<span>' + kat + '</span>'
-      + '<span style="font-size:.67rem;color:var(--gm);font-weight:400;margin-left:4px">(' + names.length + ')</span>'
+      + '<span style="font-size:.67rem;color:var(--gm);font-weight:400;margin-left:4px">(' + members.length + ')</span>'
       + '<span class="pck-cls-chev">▼</span></div>'
       + '<div class="pck-cls-body">' + items + '</div></div>';
   }).join('');
@@ -671,7 +742,7 @@ function pckSearch(key, q) {
   const wrap = document.getElementById('pck-cls-' + key); if (!wrap) return;
   const qLow = q.toLowerCase();
   wrap.querySelectorAll('.pck-item').forEach(item => {
-    const lbl = item.querySelector('label').textContent || '';
+    const lbl = item.querySelector('label')?.textContent || '';
     item.style.display = lbl.toLowerCase().includes(qLow) || !q ? '' : 'none';
   });
   wrap.querySelectorAll('.pck-cls').forEach(cls => {

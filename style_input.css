@@ -700,3 +700,103 @@ body{font-family:var(--fb);background:var(--ow);color:var(--ch);min-height:100vh
 /* Saat di atas loading overlay — naikkan z-index agar kelihatan */
 #lov:not(.hidden) ~ .music-toggle,
 body > .music-toggle { z-index: 510; }
+
+/* ── Kelas badge di dalam htag (selected chips) ── */
+.htag-kelas {
+  font-size: .6rem;
+  font-weight: 600;
+  background: rgba(107,52,175,.18);
+  color: var(--pd);
+  border-radius: 99px;
+  padding: 1px 6px;
+  margin-left: 4px;
+  letter-spacing: .02em;
+}
+
+/* ── Kelas label kecil di sebelah nama di checklist ── */
+.pck-item-kelas {
+  font-size: .65rem;
+  color: var(--gm);
+  font-weight: 400;
+  margin-left: 5px;
+  letter-spacing: .01em;
+}
+
+/* ── Input kelas di manual row ── */
+.pck-manual-cls {
+  border: 1.5px solid var(--gl);
+  border-radius: var(--rx);
+  padding: 5px 9px;
+  font-family: var(--fb);
+  font-size: .81rem;
+  width: 90px;
+  flex-shrink: 0;
+  outline: none;
+  transition: border-color var(--t);
+  background: #fff;
+  color: var(--ch);
+}
+.pck-manual-cls:focus { border-color: var(--pm); }
+.pck-manual-cls::placeholder { color: var(--gm); font-size: .75rem; }
+
+/* ════════════════════════════════
+   LAPORAN — TOMBOL & MODAL
+════════════════════════════════ */
+
+/* Tombol Cetak Laporan */
+.btn-lap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #1E3A5F, #2563EB);
+  color: #fff;
+  border: none;
+  border-radius: 99px;
+  padding: 6px 15px;
+  font-size: .76rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--fb);
+  box-shadow: 0 3px 10px rgba(37,99,235,.28);
+  transition: transform var(--t), box-shadow var(--t);
+}
+.btn-lap:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(37,99,235,.4); }
+
+/* Radio option di modal laporan */
+.lap-radio-lbl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .84rem;
+  color: var(--gd);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--rx);
+  border: 1.5px solid var(--gl);
+  transition: background var(--t), border-color var(--t);
+}
+.lap-radio-lbl:hover { background: var(--pg); border-color: var(--pl); }
+.lap-radio-lbl input[type=radio] { accent-color: var(--pm); width: 15px; height: 15px; cursor: pointer; }
+
+/* Tombol format PDF/Excel/CSV */
+.lap-fmt-btn {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: var(--rx);
+  border: 1.5px solid var(--gl);
+  background: var(--ow);
+  font-family: var(--fb);
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--gd);
+  cursor: pointer;
+  transition: all var(--t);
+  text-align: center;
+}
+.lap-fmt-btn:hover { border-color: var(--pl); color: var(--pm); background: var(--pp); }
+.lap-fmt-btn.active {
+  background: linear-gradient(135deg, var(--pd), var(--pm));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(74,30,140,.25);
+}

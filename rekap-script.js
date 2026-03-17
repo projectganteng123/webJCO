@@ -405,24 +405,29 @@ function renderRekapDok(items, dokArr) {
         </a>`;
       }).join('')}</div></div>` : '';
 
-    /* Hadir */
-    function hadirBlok(kolom, label, ikon) {
-      const raw = d[kolom]; if (!raw) return '';
-      const names = raw.split(',').map(n=>n.trim()).filter(Boolean);
+    /* Hadir — tampilkan nama + kelas */
+    function hadirBlok(kolomNama, kolomKelas, label, ikon) {
+      const raw = d[kolomNama]; if (!raw) return '';
+      const names  = raw.split(',').map(n=>n.trim()).filter(Boolean);
+      const klases = (d[kolomKelas]||'').split(',').map(k=>k.trim());
+      const rows = names.map((n,i) => {
+        const kelas = klases[i] || '';
+        return `<div class="da-row"><span class="da-nama">${n}</span>${kelas?`<span class="da-kelas">${kelas}</span>`:''}</div>`;
+      });
       const listHtml = names.length === 1
-        ? `<span class="hadir-single">${names[0]}</span>`
+        ? `<span class="hadir-single">${names[0]}${klases[0]?` <span class="hadir-kelas">${klases[0]}</span>`:''}</span>`
         : `<div class="daftar-accordion" onclick="toggleAccordion(this)">
             <div class="da-header"><span>${names.length} ${label}</span><span class="da-arrow">▾</span></div>
-            <div class="da-body">${names.map(n=>`<div class="da-row">${n}</div>`).join('')}</div>
+            <div class="da-body">${rows.join('')}</div>
           </div>`;
       return `<div class="hadir-blok">
         <div class="hadir-blok-label">${ikon} ${label}</div>${listHtml}
       </div>`;
     }
     const hadirParts = [
-      hadirBlok('hadir_peserta','peserta','👥'),
-      hadirBlok('hadir_panitia','panitia','🤝'),
-      hadirBlok('hadir_narasumber','narasumber','🎤'),
+      hadirBlok('hadir_peserta',   'kelas_peserta',   'peserta',    '👥'),
+      hadirBlok('hadir_panitia',   'kelas_panitia',   'panitia',    '🤝'),
+      hadirBlok('hadir_narasumber','kelas_narasumber','narasumber', '🎤'),
     ].filter(Boolean);
     const hadirHtml = hadirParts.length ? `<div class="dsb-section">
       <div class="dsb-label">✅ Daftar Hadir</div>
@@ -758,14 +763,19 @@ ${items.map(p => {
     const estSesi   = bRows.reduce((s,r)=>s+rupiahNum(r.estimasi_biaya_item),0);
     const dur  = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
     const hadirParts = [
-      d.hadir_peserta    ? { label: '👥 Peserta',     val: d.hadir_peserta }    : null,
-      d.hadir_panitia    ? { label: '🤝 Panitia',     val: d.hadir_panitia }    : null,
-      d.hadir_narasumber ? { label: '🎤 Narasumber',  val: d.hadir_narasumber } : null,
+      d.hadir_peserta    ? { label: '👥 Peserta',    nama: d.hadir_peserta,    kelas: d.kelas_peserta }    : null,
+      d.hadir_panitia    ? { label: '🤝 Panitia',    nama: d.hadir_panitia,    kelas: d.kelas_panitia }    : null,
+      d.hadir_narasumber ? { label: '🎤 Narasumber', nama: d.hadir_narasumber, kelas: d.kelas_narasumber } : null,
     ].filter(Boolean);
+    function formatHadirInline(nama, kelas) {
+      const ns = (nama||'').split(',').map(n=>n.trim()).filter(Boolean);
+      const ks = (kelas||'').split(',').map(k=>k.trim());
+      return ns.map((n,i)=> ks[i] ? `${n} (${ks[i]})` : n).join(', ');
+    }
     return `<div class="dok-sesi">
       <div class="dok-sesi-header">Sesi ${si+1} — ${formatTglPanjang(d.tanggal_sesi)}</div>
       ${d.waktu_mulai ? `<div class="dok-sesi-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>` : ''}
-      ${hadirParts.map(h=>`<div class="dok-sesi-meta"><strong>${h.label}:</strong> ${h.val}</div>`).join('')}
+      ${hadirParts.map(h=>`<div class="dok-sesi-meta"><strong>${h.label}:</strong> ${formatHadirInline(h.nama, h.kelas)}</div>`).join('')}
       ${d.keterangan?`<div class="dok-sesi-ket">${d.keterangan}</div>`:''}
       ${d.materi?`<div class="dok-sesi-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
       ${d.kendala?`<div class="dok-sesi-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}
@@ -961,15 +971,20 @@ ${sesiDok.length ? sesiDok.map((d,si)=>{
   const estSesiP  = bRows.reduce((s,r)=>s+rupiahNum(r.estimasi_biaya_item),0);
   const dur  = hitungDurasi(d.waktu_mulai,d.waktu_selesai);
   const hadirPartsP = [
-    d.hadir_peserta    ? { label: '👥 Peserta',    val: d.hadir_peserta }    : null,
-    d.hadir_panitia    ? { label: '🤝 Panitia',    val: d.hadir_panitia }    : null,
-    d.hadir_narasumber ? { label: '🎤 Narasumber', val: d.hadir_narasumber } : null,
+    d.hadir_peserta    ? { label: '👥 Peserta',    nama: d.hadir_peserta,    kelas: d.kelas_peserta }    : null,
+    d.hadir_panitia    ? { label: '🤝 Panitia',    nama: d.hadir_panitia,    kelas: d.kelas_panitia }    : null,
+    d.hadir_narasumber ? { label: '🎤 Narasumber', nama: d.hadir_narasumber, kelas: d.kelas_narasumber } : null,
   ].filter(Boolean);
+  function fmtHadirP(nama, kelas) {
+    const ns = (nama||'').split(',').map(n=>n.trim()).filter(Boolean);
+    const ks = (kelas||'').split(',').map(k=>k.trim());
+    return ns.map((n,i)=> ks[i] ? `${n} (${ks[i]})` : n).join(', ');
+  }
   return `<div class="dok-sesi">
     <div class="dok-hdr">Sesi ${si+1} — ${formatTglPanjang(d.tanggal_sesi)}</div>
     ${d.waktu_mulai?`<div class="dok-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>`:''}
     ${hadirPartsP.length ? hadirPartsP.map(h =>
-      `<div class="dok-meta"><strong>${h.label}:</strong> ${h.val}</div>`
+      `<div class="dok-meta"><strong>${h.label}:</strong> ${fmtHadirP(h.nama, h.kelas)}</div>`
     ).join('') : ''}
     ${d.keterangan?`<div class="dok-ket">${d.keterangan}</div>`:''}
     ${d.materi?`<div class="dok-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
@@ -1043,11 +1058,14 @@ function printLaporanSesi(idx) {
     : '–';
 
   const hadirRows = [];
-  const parseNama = (str, peran) =>
-    (str||'').split(',').map(n=>n.trim()).filter(Boolean).map(nama => ({ nama, peran }));
-  parseNama(d.hadir_peserta,    'Peserta').forEach(r => hadirRows.push(r));
-  parseNama(d.hadir_panitia,    'Panitia').forEach(r => hadirRows.push(r));
-  parseNama(d.hadir_narasumber, 'Narasumber').forEach(r => hadirRows.push(r));
+  const parseNama = (strNama, strKelas, peran) => {
+    const names  = (strNama||'').split(',').map(n=>n.trim()).filter(Boolean);
+    const klases = (strKelas||'').split(',').map(k=>k.trim());
+    return names.map((nama,i) => ({ nama, kelas: klases[i]||'', peran }));
+  };
+  parseNama(d.hadir_peserta,    d.kelas_peserta,    'Peserta').forEach(r => hadirRows.push(r));
+  parseNama(d.hadir_panitia,    d.kelas_panitia,    'Panitia').forEach(r => hadirRows.push(r));
+  parseNama(d.hadir_narasumber, d.kelas_narasumber, 'Narasumber').forEach(r => hadirRows.push(r));
 
   // Biaya — parseDokRow handles comma-separated
   const { fotos: fotosArr, biayaRows: biayaItems } = parseDokRow(d);
@@ -1358,14 +1376,16 @@ ${hadirRows.length ? `
     <tr>
       <th style="width:36px">No</th>
       <th>Nama</th>
-      <th style="width:110px">Peran</th>
-      <th style="width:110px">Tanda Tangan</th>
+      <th style="width:90px">Kelas</th>
+      <th style="width:100px">Peran</th>
+      <th style="width:100px">Tanda Tangan</th>
     </tr>
   </thead>
   <tbody>
     ${hadirRows.map((r,i) => `<tr>
       <td class="num-col">${i+1}</td>
       <td>${r.nama}</td>
+      <td>${r.kelas||'–'}</td>
       <td><span class="badge-${r.peran.toLowerCase()}">${r.peran}</span></td>
       <td style="height:24px"></td>
     </tr>`).join('')}
