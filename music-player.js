@@ -1,52 +1,46 @@
 /**
  * ============================================================
- *  JCOSASI — Music Player
- *  - Memutar 1 dari 5 lagu secara acak saat halaman dibuka
- *  - Preload 15 detik pertama agar langsung bisa diputar
- *  - Lagu berikutnya di-load saat lagu saat ini hampir selesai
- *  - Tombol mute/unmute yang tidak mengganggu tampilan
- * ============================================================
+ *  JCOSASI — Music Player (Editor Laporan)
  *
- *  CARA PAKAI:
- *  1. Letakkan file musik di folder /music/ dengan nama:
- *     music-1.mp3, music-2.mp3, ..., music-5.mp3
- *  2. Tambahkan script ini di index.html sebelum </body>:
- *     <script src="music-player.js"></script>
- *  3. Tambahkan CSS dari music-player.css ke style.css Anda
+ *  Perilaku:
+ *  - Musik mulai diputar otomatis saat halaman dibuka
+ *  - Klik 2x cepat → pause / lanjut musik
+ *  - Klik 3x cepat → lagu acak berikutnya
+ *
+ *  Zone yang merespons klik:
+ *  - Topbar (.topbar)  — kecuali: logo, teks, hamburger, btn-upload
+ *  - Loading overlay (#lov) — kecuali: token card (#lovTokenCard)
+ *
+ *  Tombol musik (sudut kanan bawah) tetap berfungsi untuk
+ *  pause/play dengan satu klik.
  * ============================================================
  */
 
 (function () {
   'use strict';
 
-  /* ── Konfigurasi ── */
-  const MUSIC_FOLDER = 'music/';          // folder musik relatif dari index.html
-  const MUSIC_FILES  = [                  // nama file musik
-    'music-1.mp3',
-    'music-2.mp3',
-    'music-3.mp3',
-    'music-4.mp3',
-    'music-5.mp3',
-  ];
-  const PRELOAD_SECONDS    = 15;          // detik awal yang di-preload sebelum play
-  const PRELOAD_NEXT_WHEN  = 30;          // mulai preload lagu berikutnya saat sisa X detik
-  const FADE_DURATION_MS   = 1500;        // durasi fade in/out dalam ms
-  const VOLUME             = 0.45;        // volume default (0–1)
-  const STORAGE_KEY        = 'jcosasi_music_muted'; // localStorage key untuk preferensi mute
+  /* ════ Konfigurasi ════ */
+  const MUSIC_FOLDER      = 'music/';
+  const MUSIC_FILES       = ['music-1.mp3','music-2.mp3','music-3.mp3','music-4.mp3','music-5.mp3'];
+  const PRELOAD_NEXT_WHEN = 30;       // mulai preload lagu berikut saat sisa N detik
+  const FADE_DURATION_MS  = 1500;     // durasi crossfade ms
+  const FADE_PAUSE_MS     = 400;      // durasi fade saat pause/resume
+  const VOLUME            = 0.45;
+  const STORAGE_KEY       = 'jcosasi_music_paused';
+  const CLICK_WINDOW_MS   = 380;      // jendela waktu multi-klik
 
-  /* ── State ── */
-  let playlist     = [];   // urutan acak indeks lagu
-  let currentIdx   = 0;    // posisi saat ini di playlist
-  let currentAudio = null; // Audio object yang sedang diputar
-  let nextAudio    = null; // Audio object yang sudah dipreload (lagu berikutnya)
-  let isMuted      = false;
+  /* ════ State ════ */
+  let playlist        = [];
+  let currentIdx      = 0;
+  let currentAudio    = null;
+  let nextAudio       = null;
+  let isPaused        = false;   // pause oleh user (bukan autoplay-block)
   let preloadNextDone = false;
   let isTransitioning = false;
 
-  /* ── Buat urutan playlist acak ── */
+  /* ════ Helpers ════ */
   function buildPlaylist() {
     const arr = MUSIC_FILES.map((_, i) => i);
-    // Fisher-Yates shuffle
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -54,100 +48,91 @@
     return arr;
   }
 
-  /* ── Buat Audio object dengan pengaturan dasar ── */
   function createAudio(src) {
-    const a = new Audio();
-    a.volume  = isMuted ? 0 : VOLUME;
+    const a  = new Audio();
+    a.volume = 0;
     a.preload = 'auto';
-    a.src     = src;
+    a.src    = src;
     return a;
   }
 
-  /* ── Fade volume in ── */
-  function fadeIn(audio, targetVol, durationMs) {
-    audio.volume = 0;
-    const steps    = 40;
-    const interval = durationMs / steps;
-    const step     = targetVol / steps;
-    let   current  = 0;
-    const timer = setInterval(() => {
-      current += step;
-      if (current >= targetVol) {
-        audio.volume = targetVol;
-        clearInterval(timer);
-      } else {
-        audio.volume = current;
-      }
-    }, interval);
-    return timer;
+  function fadeIn(audio, targetVol, ms) {
+    audio.volume  = 0;
+    const steps   = 40;
+    const step    = targetVol / steps;
+    const iv      = ms / steps;
+    let   cur     = 0;
+    const t = setInterval(() => {
+      cur += step;
+      if (cur >= targetVol) { audio.volume = targetVol; clearInterval(t); }
+      else audio.volume = cur;
+    }, iv);
+    return t;
   }
 
-  /* ── Fade volume out ── */
-  function fadeOut(audio, durationMs, cb) {
-    const startVol = audio.volume;
-    const steps    = 40;
-    const interval = durationMs / steps;
-    const step     = startVol / steps;
-    let   current  = startVol;
-    const timer = setInterval(() => {
-      current -= step;
-      if (current <= 0) {
+  function fadeOut(audio, ms, cb) {
+    const startV  = audio.volume;
+    const steps   = 40;
+    const step    = startV / steps;
+    const iv      = ms / steps;
+    let   cur     = startV;
+    const t = setInterval(() => {
+      cur -= step;
+      if (cur <= 0) {
         audio.volume = 0;
-        clearInterval(timer);
+        clearInterval(t);
         if (cb) cb();
       } else {
-        audio.volume = current;
+        audio.volume = cur;
       }
-    }, interval);
-    return timer;
+    }, iv);
+    return t;
   }
 
-  /* ── Preload lagu berikutnya ── */
+  /* ════ Preload & playback ════ */
   function preloadNext() {
     if (preloadNextDone) return;
     preloadNextDone = true;
-
     const nextFileIdx = playlist[(currentIdx + 1) % playlist.length];
     const src = MUSIC_FOLDER + MUSIC_FILES[nextFileIdx];
     nextAudio = createAudio(src);
-    // Cukup panggil load() — browser akan mulai buffer tanpa play
     nextAudio.load();
-    console.log('[MusicPlayer] Preloading next:', MUSIC_FILES[nextFileIdx]);
   }
 
-  /* ── Pindah ke lagu berikutnya dengan crossfade ── */
+  function attachTimeUpdate(audio) {
+    audio.addEventListener('timeupdate', function () {
+      if (!audio.duration || isNaN(audio.duration)) return;
+      if (audio.duration - audio.currentTime <= PRELOAD_NEXT_WHEN && !preloadNextDone)
+        preloadNext();
+    });
+  }
+
+  /* ── Pindah ke lagu berikutnya (crossfade) ── */
   function playNext() {
     if (isTransitioning) return;
-    isTransitioning = true;
-
-    // Pindah indeks
-    currentIdx = (currentIdx + 1) % playlist.length;
-    preloadNextDone = false;
+    isTransitioning  = true;
+    currentIdx       = (currentIdx + 1) % playlist.length;
+    preloadNextDone  = false;
 
     const oldAudio = currentAudio;
 
-    // Gunakan nextAudio jika sudah siap, kalau tidak buat baru
     if (nextAudio) {
       currentAudio = nextAudio;
-      nextAudio = null;
+      nextAudio    = null;
     } else {
-      const fileIdx = playlist[currentIdx];
-      currentAudio  = createAudio(MUSIC_FOLDER + MUSIC_FILES[fileIdx]);
+      currentAudio = createAudio(MUSIC_FOLDER + MUSIC_FILES[playlist[currentIdx]]);
     }
 
-    // Set volume sesuai state mute
-    currentAudio.volume = isMuted ? 0 : 0; // mulai dari 0 untuk fade in
-
+    currentAudio.volume = 0;
     currentAudio.play().then(() => {
-      if (!isMuted) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
-      attachTimeUpdateListener(currentAudio);
+      if (!isPaused) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
+      attachTimeUpdate(currentAudio);
       isTransitioning = false;
     }).catch(err => {
-      console.warn('[MusicPlayer] Gagal play next:', err);
+      console.warn('[Music] playNext error:', err);
       isTransitioning = false;
     });
 
-    // Fade out dan stop lagu lama
     if (oldAudio) {
       fadeOut(oldAudio, FADE_DURATION_MS, () => {
         oldAudio.pause();
@@ -155,135 +140,97 @@
       });
     }
 
-    // Set event ended untuk lagu ini
     currentAudio.addEventListener('ended', () => playNext(), { once: true });
-
-    // Update visualizer UI
-    updatePlayerUI();
+    updateUI();
   }
 
-  /* ── Pantau waktu untuk trigger preload & auto-next ── */
-  function attachTimeUpdateListener(audio) {
-    audio.addEventListener('timeupdate', function handler() {
-      if (!audio.duration || isNaN(audio.duration)) return;
-
-      const remaining = audio.duration - audio.currentTime;
-
-      // Preload lagu berikutnya saat sisa PRELOAD_NEXT_WHEN detik
-      if (remaining <= PRELOAD_NEXT_WHEN && !preloadNextDone) {
-        preloadNext();
-      }
-    });
+  /* ── Toggle pause / resume ── */
+  function togglePause() {
+    if (!currentAudio) return;
+    if (isPaused) {
+      // Resume
+      isPaused = false;
+      currentAudio.play().then(() => {
+        fadeIn(currentAudio, VOLUME, FADE_PAUSE_MS);
+      }).catch(() => {});
+    } else {
+      // Pause dengan fade out
+      isPaused = true;
+      fadeOut(currentAudio, FADE_PAUSE_MS, () => {
+        currentAudio.pause();
+      });
+    }
+    localStorage.setItem(STORAGE_KEY, isPaused ? '1' : '0');
+    updateUI();
   }
 
   /* ── Mulai putar lagu pertama ── */
   function startPlayback() {
-    playlist    = buildPlaylist();
-    currentIdx  = 0;
+    playlist        = buildPlaylist();
+    currentIdx      = 0;
     preloadNextDone = false;
 
-    const fileIdx = playlist[currentIdx];
-    const src     = MUSIC_FOLDER + MUSIC_FILES[fileIdx];
-
+    const src    = MUSIC_FOLDER + MUSIC_FILES[playlist[0]];
     currentAudio = createAudio(src);
 
-    // Preload PRELOAD_SECONDS detik pertama lalu play
-    currentAudio.addEventListener('canplay', function onCanPlay() {
-      currentAudio.removeEventListener('canplay', onCanPlay);
+    currentAudio.addEventListener('canplay', function onCan() {
+      currentAudio.removeEventListener('canplay', onCan);
       currentAudio.play().then(() => {
-        console.log('[MusicPlayer] Mulai:', MUSIC_FILES[fileIdx]);
-        if (!isMuted) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
-        attachTimeUpdateListener(currentAudio);
-      }).catch(err => {
-        // Autoplay diblokir browser → tunggu interaksi user pertama
-        console.info('[MusicPlayer] Autoplay diblokir, menunggu interaksi pengguna.');
+        if (!isPaused) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
+        attachTimeUpdate(currentAudio);
+      }).catch(() => {
+        // Autoplay blocked — tunggu interaksi pertama
         setupAutoplayUnlock();
       });
     }, { once: true });
 
-    // Event ketika lagu selesai
     currentAudio.addEventListener('ended', () => playNext(), { once: true });
-
-    // Mulai load
     currentAudio.load();
-    updatePlayerUI();
+    updateUI();
   }
 
-  /* ── Fallback: play saat user pertama kali interaksi ── */
   function setupAutoplayUnlock() {
     const unlock = () => {
-      if (!currentAudio) return;
+      if (!currentAudio || isPaused) return;
       currentAudio.play().then(() => {
-        if (!isMuted) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
-        attachTimeUpdateListener(currentAudio);
-        document.removeEventListener('click',     unlock);
-        document.removeEventListener('touchstart', unlock);
-        document.removeEventListener('keydown',   unlock);
-        console.log('[MusicPlayer] Autoplay unlocked oleh interaksi user.');
+        fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
+        attachTimeUpdate(currentAudio);
+        off();
       }).catch(() => {});
     };
-    document.addEventListener('click',     unlock, { once: true });
+    const off = () => {
+      document.removeEventListener('click',      unlock);
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('keydown',    unlock);
+    };
+    document.addEventListener('click',      unlock, { once: true });
     document.addEventListener('touchstart', unlock, { once: true });
-    document.addEventListener('keydown',   unlock, { once: true });
+    document.addEventListener('keydown',    unlock, { once: true });
   }
 
-  /* ── Toggle mute ── */
-  function toggleMute() {
-    isMuted = !isMuted;
-    localStorage.setItem(STORAGE_KEY, isMuted ? '1' : '0');
-
-    if (currentAudio) {
-      if (isMuted) {
-        fadeOut(currentAudio, 600);
-      } else {
-        fadeIn(currentAudio, VOLUME, 600);
-      }
-    }
-    updatePlayerUI();
-  }
-
-  /* ── Bangun UI tombol player ── */
+  /* ════ UI tombol musik ════ */
   function buildUI() {
-    // Baca preferensi mute dari localStorage
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === '1') isMuted = true;
+    // Baca preferensi pause dari sesi sebelumnya
+    if (localStorage.getItem(STORAGE_KEY) === '1') isPaused = true;
 
     const btn = document.createElement('button');
-    btn.id = 'musicToggle';
+    btn.id        = 'musicToggle';
     btn.className = 'music-toggle';
     btn.setAttribute('aria-label', 'Toggle musik');
-    btn.setAttribute('title', 'Musik on/off');
-    btn.innerHTML = getMuteIcon();
-
-    btn.addEventListener('click', toggleMute);
+    btn.setAttribute('title', 'Klik: pause/play  |  2× klik: pause/play  |  3× klik: lagu berikutnya');
+    btn.addEventListener('click', togglePause);
     document.body.appendChild(btn);
+    updateUI();
   }
 
-  /* ── Update tampilan ikon ── */
-  function updatePlayerUI() {
+  function updateUI() {
     const btn = document.getElementById('musicToggle');
     if (!btn) return;
-    btn.innerHTML = getMuteIcon();
-    // Animasi denyut hanya saat musik aktif
-    if (!isMuted) {
-      btn.classList.add('is-playing');
-    } else {
-      btn.classList.remove('is-playing');
-    }
+    btn.innerHTML = isPaused ? iconPaused() : iconPlaying();
+    btn.classList.toggle('is-playing', !isPaused);
   }
 
-  /* ── SVG ikon speaker ── */
-  function getMuteIcon() {
-    if (isMuted) {
-      // Speaker dengan X (muted)
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-        <line x1="23" y1="9" x2="17" y2="15"/>
-        <line x1="17" y1="9" x2="23" y2="15"/>
-      </svg>`;
-    }
-    // Speaker dengan gelombang suara (playing)
+  function iconPlaying() {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
@@ -291,14 +238,103 @@
       <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
     </svg>`;
   }
+  function iconPaused() {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <line x1="23" y1="9" x2="17" y2="15"/>
+      <line x1="17" y1="9" x2="23" y2="15"/>
+    </svg>`;
+  }
 
-  /* ── Entry point ── */
+  /* ════ Hint toast ════ */
+  function showHint(msg) {
+    const old = document.getElementById('musicHint');
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.id = 'musicHint';
+    el.textContent = msg;
+    el.style.cssText = [
+      'position:fixed','top:68px','left:50%',
+      'transform:translateX(-50%) translateY(-8px)',
+      'background:rgba(61,26,94,0.88)','color:#FAFAF8',
+      'font-family:var(--fb,sans-serif)','font-size:.82rem','font-weight:500',
+      'padding:7px 20px','border-radius:99px','pointer-events:none',
+      'z-index:99999','opacity:0',
+      'transition:opacity .22s ease,transform .22s ease',
+      'white-space:nowrap','box-shadow:0 4px 20px rgba(61,26,94,.28)',
+      'backdrop-filter:blur(8px)',
+    ].join(';');
+    document.body.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.opacity   = '1';
+      el.style.transform = 'translateX(-50%) translateY(0)';
+    }));
+    setTimeout(() => {
+      el.style.opacity   = '0';
+      el.style.transform = 'translateX(-50%) translateY(-8px)';
+      setTimeout(() => el.remove(), 280);
+    }, 1800);
+  }
+
+  /* ════ Multi-klik handler (shared) ════
+     2× → pause/play
+     3× → skip ke lagu berikutnya
+  ════ */
+  function makeMultiClickHandler(ignoredSelectors) {
+    let count = 0;
+    let timer = null;
+    return function (e) {
+      // Abaikan jika klik mengenai elemen yang di-ignore
+      if (ignoredSelectors.some(sel => e.target.closest(sel))) return;
+      count++;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (count === 2) {
+          togglePause();
+          showHint(isPaused ? '⏸ Musik dijeda' : '▶ Musik dilanjutkan');
+        } else if (count >= 3) {
+          playNext();
+          showHint('⏭ Lagu berikutnya');
+        }
+        count = 0;
+      }, CLICK_WINDOW_MS);
+    };
+  }
+
+  /* ════ Pasang listener ke zona klik ════ */
+  function setupClickZones() {
+    // ── Zona 1: Topbar ──
+    // Abaikan: logo wrap, teks logo, status dot, btn upload, hamburger
+    const topbar = document.querySelector('.topbar');
+    if (topbar) {
+      topbar.addEventListener('click', makeMultiClickHandler([
+        '.tb-logo', '.tb-lt', '.tb-ls', '.tb-li',   // logo & teks
+        '.tb-ham', '#btnHam',                         // hamburger
+        '.btn-upload', '#btnUpload',                  // tombol upload
+        '.tb-st', '#statusDot', '#statusTxt',         // status dot
+        '#musicToggle',                               // tombol musik itu sendiri
+      ]));
+      topbar.style.cursor = 'default'; // hint visual bahwa area ini interaktif
+    }
+
+    // ── Zona 2: Loading overlay — kecuali token card ──
+    const lov = document.getElementById('lov');
+    if (lov) {
+      lov.addEventListener('click', makeMultiClickHandler([
+        '#lovTokenCard',      // seluruh token card (input, button, dll)
+        '#musicToggle',
+      ]));
+    }
+  }
+
+  /* ════ Entry point ════ */
   function init() {
     buildUI();
     startPlayback();
+    setupClickZones();
   }
 
-  // Tunggu DOM siap
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
