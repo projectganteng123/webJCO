@@ -410,16 +410,27 @@ function buildActivityGraph(containerId, activityRows, jadwalRows, dok, prokerLa
 
   /* Build sets */
   // rencanaMap: tanggal → Set nama proker
-  const rencanaMap = new Map();
+  // rencanaDetailMap: tanggal → array objek jadwal lengkap (untuk modal)
+  const rencanaMap       = new Map();
+  const rencanaDetailMap = new Map(); // tanggal → [{proker_id, jam, catatan, penanggung_jawab}]
   (jadwalRows||[]).forEach(r => {
     if (!r.tanggal) return;
     if (!rencanaMap.has(r.tanggal)) rencanaMap.set(r.tanggal, new Set());
+    if (!rencanaDetailMap.has(r.tanggal)) rencanaDetailMap.set(r.tanggal, []);
     if (prokerLabelMap && r.proker_id) rencanaMap.get(r.tanggal).add(r.proker_id);
+    rencanaDetailMap.get(r.tanggal).push({
+      proker_id:        r.proker_id || '',
+      jam:              r.jam || '',
+      catatan:          r.catatan || '',
+      penanggung_jawab: r.penanggung_jawab || '',
+    });
   });
   const rencanaSet = new Set(rencanaMap.keys());
 
   // aktualMap & batalMap: tanggal → Set proker_id
+  // dokDetailMap: tanggal_sesi → array dok rows (untuk link dokumentasi di modal)
   const aktualMap = new Map(), batalMap = new Map();
+  const dokDetailMap = new Map(); // tanggal → [{proker_id, keterangan}]
   (activityRows||[]).forEach(r => {
     if (!r.tanggal) return;
     if (r.status === 'batal') {
@@ -433,7 +444,20 @@ function buildActivityGraph(containerId, activityRows, jadwalRows, dok, prokerLa
   (dok||[]).forEach(d => {
     if (!d.tanggal_sesi) return;
     if (!aktualMap.has(d.tanggal_sesi)) aktualMap.set(d.tanggal_sesi, new Set());
+    if (!dokDetailMap.has(d.tanggal_sesi)) dokDetailMap.set(d.tanggal_sesi, []);
     if (prokerLabelMap && d.proker_id) aktualMap.get(d.tanggal_sesi).add(d.proker_id);
+    dokDetailMap.get(d.tanggal_sesi).push({
+      proker_id:        d.proker_id        || '',
+      keterangan:       d.keterangan       || '',
+      materi:           d.materi           || '',
+      waktu_mulai:      d.waktu_mulai      || '',
+      waktu_selesai:    d.waktu_selesai    || '',
+      hadir_peserta:    d.hadir_peserta    || '',
+      hadir_panitia:    d.hadir_panitia    || '',
+      hadir_narasumber: d.hadir_narasumber || '',
+      kendala:          d.kendala          || '',
+      biaya_aktual:     d.biaya_aktual     || '',
+    });
   });
   const aktualSet = new Set(aktualMap.keys());
   const batalSet  = new Set(batalMap.keys());
@@ -539,6 +563,35 @@ function buildActivityGraph(containerId, activityRows, jadwalRows, dok, prokerLa
       cell.addEventListener('mouseenter', e=>showTooltip(e, tipFull));
       cell.addEventListener('mouseleave', hideTooltip);
       cell.addEventListener('mousemove',  moveTooltip);
+
+      // Klik cell → buka modal jadwal (hanya jika ada data: planned/actual/cancelled)
+      if (state !== 'future' && state !== 'past' && state !== 'today') {
+        cell.style.cursor = 'pointer';
+        cell.addEventListener('click', () => {
+          hideTooltip();
+          showJadwalModal({
+            key,
+            state,
+            jadwalItems:  rencanaDetailMap.get(key) || [],
+            dokItems:     dokDetailMap.get(key)     || [],
+            prokerLabelMap,
+          });
+        });
+      } else if (state === 'actual' || aktualMap.has(key)) {
+        // tanggal aktual tanpa jadwal rencana (dari dok langsung)
+        cell.style.cursor = 'pointer';
+        cell.addEventListener('click', () => {
+          hideTooltip();
+          showJadwalModal({
+            key,
+            state,
+            jadwalItems:  rencanaDetailMap.get(key) || [],
+            dokItems:     dokDetailMap.get(key)     || [],
+            prokerLabelMap,
+          });
+        });
+      }
+
       col.appendChild(cell);
     });
     graph.appendChild(col);
@@ -648,20 +701,15 @@ function renderDok(dok) {
         </a>`;
       }).join('')}</div></div>` : '';
 
-    /* Daftar hadir — accordion jika >1, tampilkan nama + kelas */
-    function hadirBlok(kolomNama, kolomKelas, label, ikon) {
-      const raw = d[kolomNama]; if(!raw) return '';
-      const names  = raw.split(',').map(n=>n.trim()).filter(Boolean);
-      const klases = (d[kolomKelas]||'').split(',').map(k=>k.trim());
-      const rows = names.map((n,i) => {
-        const kelas = klases[i] || '';
-        return `<div class="da-row"><span class="da-nama">${n}</span>${kelas?`<span class="da-kelas">${kelas}</span>`:''}</div>`;
-      });
+    /* Daftar hadir — accordion jika >1 */
+    function hadirBlok(kolom, label, ikon) {
+      const raw = d[kolom]; if(!raw) return '';
+      const names = raw.split(',').map(n=>n.trim()).filter(Boolean);
       const listHtml = names.length===1
-        ? `<span class="hadir-single">${names[0]}${klases[0]?` <span class="hadir-kelas">${klases[0]}</span>`:''}</span>`
+        ? `<span class="hadir-single">${names[0]}</span>`
         : `<div class="daftar-accordion" onclick="toggleAccordion(this)">
             <div class="da-header"><span>${names.length} ${label}</span><span class="da-arrow">▾</span></div>
-            <div class="da-body">${rows.join('')}</div>
+            <div class="da-body">${names.map(n=>`<div class="da-row">${n}</div>`).join('')}</div>
           </div>`;
       return `<div class="hadir-blok">
         <div class="hadir-blok-label">${ikon} ${label}</div>
@@ -669,9 +717,9 @@ function renderDok(dok) {
       </div>`;
     }
     const hadirParts = [
-      hadirBlok('hadir_peserta',   'kelas_peserta',   'peserta',    '👥'),
-      hadirBlok('hadir_panitia',   'kelas_panitia',   'panitia',    '🤝'),
-      hadirBlok('hadir_narasumber','kelas_narasumber','narasumber', '🎤'),
+      hadirBlok('hadir_peserta',   'peserta',    '👥'),
+      hadirBlok('hadir_panitia',   'panitia',    '🤝'),
+      hadirBlok('hadir_narasumber','narasumber', '🎤'),
     ].filter(Boolean);
     const hadirHtml = hadirParts.length ? `<div class="dsb-section">
       <div class="dsb-label">✅ Daftar Hadir</div>
@@ -1148,4 +1196,141 @@ function renderSkeleton(proker) {
         <div class="sk-line w70"></div>
       </div>
     </div>`).join('')}`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL JADWAL — muncul saat activity cell diklik
+   Menampilkan: info jadwal (jam, catatan, PJ) + link ke dok sesi
+═══════════════════════════════════════════════════════════ */
+function showJadwalModal({ key, state, jadwalItems, dokItems, prokerLabelMap }) {
+  // Hapus modal lama jika ada
+  const old = document.getElementById('jadwalModal');
+  if (old) old.remove();
+
+  const tglLabel = formatTglPanjang(key);
+  const stateLabel = {
+    actual:        '✅ Terlaksana',
+    planned:       '📅 Dijadwalkan',
+    'today-planned': '📅 Hari ini — Dijadwalkan',
+    cancelled:     '❌ Dibatalkan',
+    today:         '📆 Hari ini',
+  }[state] || state;
+
+  const stateColor = {
+    actual:          '#065F46',
+    planned:         '#1D4ED8',
+    'today-planned': '#7C3AED',
+    cancelled:       '#B91C1C',
+    today:           '#7C3AED',
+  }[state] || '#3D1A5E';
+
+  const stateBg = {
+    actual:          '#D1FAE5',
+    planned:         '#DBEAFE',
+    'today-planned': '#EDE9FE',
+    cancelled:       '#FEE2E2',
+    today:           '#EDE9FE',
+  }[state] || '#F3E8FF';
+
+  // ── Susun konten jadwal rencana ──
+  let jadwalHtml = '';
+  if (jadwalItems.length) {
+    jadwalHtml = `
+      <div class="jm-section-label">📋 Jadwal</div>
+      <div class="jm-jadwal-list">
+        ${jadwalItems.map(j => {
+          const proker = prokerLabelMap && j.proker_id ? prokerLabelMap[j.proker_id] : null;
+          const prokerStr = proker
+            ? `<span class="jm-proker-badge">${proker.icon} #${j.proker_id} ${proker.judul}</span>`
+            : (j.proker_id ? `<span class="jm-proker-badge">#${j.proker_id}</span>` : '');
+          return `
+            <div class="jm-jadwal-item">
+              ${prokerStr}
+              ${j.jam ? `<div class="jm-row"><span class="jm-icon">🕐</span><span>${j.jam} WIB</span></div>` : ''}
+              ${j.penanggung_jawab ? `<div class="jm-row"><span class="jm-icon">👤</span><span>${j.penanggung_jawab}</span></div>` : ''}
+              ${j.catatan ? `<div class="jm-row jm-catatan"><span class="jm-icon">📝</span><span>${j.catatan}</span></div>` : ''}
+            </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  // ── Susun konten dokumentasi sesi ──
+  let dokHtml = '';
+  if (dokItems.length) {
+    dokHtml = `
+      <div class="jm-section-label">📸 Dokumentasi Sesi</div>
+      <div class="jm-dok-list">
+        ${dokItems.map(dok => {
+          const proker = prokerLabelMap && dok.proker_id ? prokerLabelMap[dok.proker_id] : null;
+          const namaProker = proker
+            ? `${proker.icon} #${dok.proker_id} ${proker.judul}`
+            : `#${dok.proker_id}`;
+
+          // Hitung total hadir
+          const countHadir = (s) => s ? s.split(',').map(x=>x.trim()).filter(Boolean).length : 0;
+          const totalHadir = countHadir(dok.hadir_peserta) + countHadir(dok.hadir_panitia) + countHadir(dok.hadir_narasumber);
+
+          // Durasi
+          const dur = dok.waktu_mulai && dok.waktu_selesai ? hitungDurasi(dok.waktu_mulai, dok.waktu_selesai) : '';
+          const jamStr = dok.waktu_mulai
+            ? dok.waktu_mulai + (dok.waktu_selesai ? ' – ' + dok.waktu_selesai : '') + (dur ? ' (' + dur + ')' : '')
+            : '';
+
+          // Total biaya
+          const totalBiaya = dok.biaya_aktual
+            ? dok.biaya_aktual.split(',').reduce((s,v) => s + (parseFloat(v.replace(/[^0-9.]/g,''))||0), 0)
+            : 0;
+
+          return `
+            <div class="jm-dok-item">
+              <div class="jm-dok-name">${namaProker}</div>
+              <div class="jm-dok-summary">
+                ${jamStr        ? `<div class="jm-ds-row"><span class="jm-ds-icon">🕐</span><span>${jamStr}</span></div>` : ''}
+                ${totalHadir    ? `<div class="jm-ds-row"><span class="jm-ds-icon">👥</span><span>${totalHadir} orang hadir</span></div>` : ''}
+                ${dok.materi    ? `<div class="jm-ds-row"><span class="jm-ds-icon">📖</span><span>${dok.materi}</span></div>` : ''}
+                ${dok.keterangan? `<div class="jm-ds-row"><span class="jm-ds-icon">📝</span><span>${dok.keterangan}</span></div>` : ''}
+                ${dok.kendala   ? `<div class="jm-ds-row jm-ds-kendala"><span class="jm-ds-icon">⚠️</span><span>${dok.kendala}</span></div>` : ''}
+                ${totalBiaya    ? `<div class="jm-ds-row"><span class="jm-ds-icon">💰</span><span>${rupiah(totalBiaya)}</span></div>` : ''}
+              </div>
+              <div class="jm-dok-status">✅ Sudah terdokumentasi</div>
+            </div>`;
+        }).join('')}
+      </div>`;
+  } else if (jadwalItems.length) {
+    dokHtml = `
+      <div class="jm-section-label">📸 Dokumentasi Sesi</div>
+      <div class="jm-dok-belum">⏳ Belum terdokumentasi</div>`;
+  }
+
+  // ── Jika tidak ada jadwal maupun dok ──
+  if (!jadwalHtml && !dokHtml) {
+    jadwalHtml = `<div class="jm-empty">Tidak ada data jadwal untuk tanggal ini.</div>`;
+  }
+
+  // ── Bangun HTML modal ──
+  const modal = document.createElement('div');
+  modal.id = 'jadwalModal';
+  modal.className = 'jm-overlay';
+  modal.innerHTML = `
+    <div class="jm-box" role="dialog" aria-modal="true">
+      <div class="jm-header">
+        <div>
+          <div class="jm-tgl">${tglLabel}</div>
+          <span class="jm-status-badge" style="background:${stateBg};color:${stateColor}">${stateLabel}</span>
+        </div>
+        <button class="jm-close" onclick="document.getElementById('jadwalModal').remove()" aria-label="Tutup">✕</button>
+      </div>
+      <div class="jm-body">
+        ${jadwalHtml}
+        ${dokHtml}
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  // Klik di luar box → tutup
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  // ESC → tutup
+  const onKey = e => { if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', onKey); } };
+  document.addEventListener('keydown', onKey);
 }

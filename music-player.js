@@ -1,18 +1,23 @@
 /**
  * ============================================================
- *  JCOSASI — Music Player (Editor Laporan)
+ *  JCOSASI — Music Player
  *
- *  Perilaku:
- *  - Musik mulai diputar otomatis saat halaman dibuka
- *  - Klik 2x cepat → pause / lanjut musik
- *  - Klik 3x cepat → lagu acak berikutnya
+ *  index.html (landing page)
+ *  - Musik TIDAK diputar saat halaman pertama dibuka
+ *  - Klik PERTAMA pada navbar → mulai putar
+ *  - Double-click navbar / hover lama (>700ms) / overscroll ke atas
+ *    → tampilkan panel kontrol ⏮ ⏸/▶ ⏭
  *
- *  Zone yang merespons klik:
- *  - Topbar (.topbar)  — kecuali: logo, teks, hamburger, btn-upload
- *  - Loading overlay (#lov) — kecuali: token card (#lovTokenCard)
+ *  index_input.html (editor laporan)
+ *  - Musik LANGSUNG diputar saat loading overlay (#lov) aktif
+ *  - Double-click topbar / hover lama / overscroll → panel kontrol
  *
- *  Tombol musik (sudut kanan bawah) tetap berfungsi untuk
- *  pause/play dengan satu klik.
+ *  Panel kontrol:
+ *  - Mini-bar di bawah navbar/topbar
+ *  - Tombol: ⏮ | ⏸/▶ | ⏭
+ *  - Auto-hide setelah 4 detik tidak ada interaksi
+ *  - Klik di luar → hilang
+ *  - Tidak ada tombol speaker / mute
  * ============================================================
  */
 
@@ -22,23 +27,29 @@
   /* ════ Konfigurasi ════ */
   const MUSIC_FOLDER      = 'music/';
   const MUSIC_FILES       = ['music-1.mp3','music-2.mp3','music-3.mp3','music-4.mp3','music-5.mp3'];
-  const PRELOAD_NEXT_WHEN = 30;       // mulai preload lagu berikut saat sisa N detik
-  const FADE_DURATION_MS  = 1500;     // durasi crossfade ms
-  const FADE_PAUSE_MS     = 400;      // durasi fade saat pause/resume
+  const PRELOAD_NEXT_WHEN = 30;
+  const FADE_DURATION_MS  = 1500;
+  const FADE_PAUSE_MS     = 400;
   const VOLUME            = 0.45;
   const STORAGE_KEY       = 'jcosasi_music_paused';
-  const CLICK_WINDOW_MS   = 380;      // jendela waktu multi-klik
+  const HOVER_TRIGGER_MS  = 700;
+  const CLICK_WINDOW_MS   = 380;
+
+  /* ════ Deteksi halaman ════ */
+  const IS_INPUT = !!document.querySelector('.topbar');
+  const NAV_SEL  = IS_INPUT ? '.topbar' : '#navbar';
 
   /* ════ State ════ */
   let playlist        = [];
   let currentIdx      = 0;
   let currentAudio    = null;
   let nextAudio       = null;
-  let isPaused        = false;   // pause oleh user (bukan autoplay-block)
+  let isPaused        = false;
+  let hasStarted      = false;
   let preloadNextDone = false;
   let isTransitioning = false;
 
-  /* ════ Helpers ════ */
+  /* ════ Helpers audio ════ */
   function buildPlaylist() {
     const arr = MUSIC_FILES.map((_, i) => i);
     for (let i = arr.length - 1; i > 0; i--) {
@@ -57,11 +68,9 @@
   }
 
   function fadeIn(audio, targetVol, ms) {
-    audio.volume  = 0;
-    const steps   = 40;
-    const step    = targetVol / steps;
-    const iv      = ms / steps;
-    let   cur     = 0;
+    audio.volume = 0;
+    const steps  = 40, step = targetVol / steps, iv = ms / steps;
+    let   cur    = 0;
     const t = setInterval(() => {
       cur += step;
       if (cur >= targetVol) { audio.volume = targetVol; clearInterval(t); }
@@ -71,31 +80,21 @@
   }
 
   function fadeOut(audio, ms, cb) {
-    const startV  = audio.volume;
-    const steps   = 40;
-    const step    = startV / steps;
-    const iv      = ms / steps;
-    let   cur     = startV;
+    const startV = audio.volume;
+    const steps  = 40, step = startV / steps, iv = ms / steps;
+    let   cur    = startV;
     const t = setInterval(() => {
       cur -= step;
-      if (cur <= 0) {
-        audio.volume = 0;
-        clearInterval(t);
-        if (cb) cb();
-      } else {
-        audio.volume = cur;
-      }
+      if (cur <= 0) { audio.volume = 0; clearInterval(t); if (cb) cb(); }
+      else audio.volume = cur;
     }, iv);
     return t;
   }
 
-  /* ════ Preload & playback ════ */
   function preloadNext() {
     if (preloadNextDone) return;
     preloadNextDone = true;
-    const nextFileIdx = playlist[(currentIdx + 1) % playlist.length];
-    const src = MUSIC_FOLDER + MUSIC_FILES[nextFileIdx];
-    nextAudio = createAudio(src);
+    nextAudio = createAudio(MUSIC_FOLDER + MUSIC_FILES[playlist[(currentIdx + 1) % playlist.length]]);
     nextAudio.load();
   }
 
@@ -107,232 +106,274 @@
     });
   }
 
-  /* ── Pindah ke lagu berikutnya (crossfade) ── */
-  function playNext() {
-    if (isTransitioning) return;
-    isTransitioning  = true;
-    currentIdx       = (currentIdx + 1) % playlist.length;
-    preloadNextDone  = false;
-
-    const oldAudio = currentAudio;
-
-    if (nextAudio) {
-      currentAudio = nextAudio;
-      nextAudio    = null;
-    } else {
-      currentAudio = createAudio(MUSIC_FOLDER + MUSIC_FILES[playlist[currentIdx]]);
-    }
-
-    currentAudio.volume = 0;
-    currentAudio.play().then(() => {
-      if (!isPaused) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
-      attachTimeUpdate(currentAudio);
-      isTransitioning = false;
-    }).catch(err => {
-      console.warn('[Music] playNext error:', err);
-      isTransitioning = false;
-    });
-
-    if (oldAudio) {
-      fadeOut(oldAudio, FADE_DURATION_MS, () => {
-        oldAudio.pause();
-        oldAudio.src = '';
-      });
-    }
-
-    currentAudio.addEventListener('ended', () => playNext(), { once: true });
-    updateUI();
-  }
-
-  /* ── Toggle pause / resume ── */
-  function togglePause() {
-    if (!currentAudio) return;
-    if (isPaused) {
-      // Resume
-      isPaused = false;
-      currentAudio.play().then(() => {
-        fadeIn(currentAudio, VOLUME, FADE_PAUSE_MS);
-      }).catch(() => {});
-    } else {
-      // Pause dengan fade out
-      isPaused = true;
-      fadeOut(currentAudio, FADE_PAUSE_MS, () => {
-        currentAudio.pause();
-      });
-    }
-    localStorage.setItem(STORAGE_KEY, isPaused ? '1' : '0');
-    updateUI();
-  }
-
-  /* ── Mulai putar lagu pertama ── */
+  /* ════ Playback ════ */
   function startPlayback() {
-    playlist        = buildPlaylist();
-    currentIdx      = 0;
-    preloadNextDone = false;
+    if (hasStarted) return;
+    hasStarted = true;
+    playlist   = buildPlaylist();
+    currentIdx = 0;
 
-    const src    = MUSIC_FOLDER + MUSIC_FILES[playlist[0]];
-    currentAudio = createAudio(src);
-
+    currentAudio = createAudio(MUSIC_FOLDER + MUSIC_FILES[playlist[0]]);
     currentAudio.addEventListener('canplay', function onCan() {
       currentAudio.removeEventListener('canplay', onCan);
-      currentAudio.play().then(() => {
-        if (!isPaused) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
-        attachTimeUpdate(currentAudio);
-      }).catch(() => {
-        // Autoplay blocked — tunggu interaksi pertama
-        setupAutoplayUnlock();
-      });
+      currentAudio.play()
+        .then(() => { if (!isPaused) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS); attachTimeUpdate(currentAudio); })
+        .catch(() => setupAutoplayUnlock());
     }, { once: true });
-
     currentAudio.addEventListener('ended', () => playNext(), { once: true });
     currentAudio.load();
-    updateUI();
+    updatePanel();
   }
 
   function setupAutoplayUnlock() {
     const unlock = () => {
       if (!currentAudio || isPaused) return;
-      currentAudio.play().then(() => {
-        fadeIn(currentAudio, VOLUME, FADE_DURATION_MS);
-        attachTimeUpdate(currentAudio);
-        off();
-      }).catch(() => {});
+      currentAudio.play()
+        .then(() => { fadeIn(currentAudio, VOLUME, FADE_DURATION_MS); attachTimeUpdate(currentAudio); off(); })
+        .catch(() => {});
     };
     const off = () => {
       document.removeEventListener('click',      unlock);
       document.removeEventListener('touchstart', unlock);
-      document.removeEventListener('keydown',    unlock);
     };
     document.addEventListener('click',      unlock, { once: true });
     document.addEventListener('touchstart', unlock, { once: true });
-    document.addEventListener('keydown',    unlock, { once: true });
   }
 
-  /* ════ UI tombol musik ════ */
-  function buildUI() {
-    // Baca preferensi pause dari sesi sebelumnya
+  function playNext() {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    currentIdx      = (currentIdx + 1) % playlist.length;
+    preloadNextDone = false;
+
+    const old    = currentAudio;
+    currentAudio = nextAudio || createAudio(MUSIC_FOLDER + MUSIC_FILES[playlist[currentIdx]]);
+    nextAudio    = null;
+    currentAudio.volume = 0;
+
+    currentAudio.play()
+      .then(() => { if (!isPaused) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS); attachTimeUpdate(currentAudio); isTransitioning = false; })
+      .catch(() => { isTransitioning = false; });
+
+    if (old) fadeOut(old, FADE_DURATION_MS, () => { old.pause(); old.src = ''; });
+    currentAudio.addEventListener('ended', () => playNext(), { once: true });
+    updatePanel();
+  }
+
+  function playPrev() {
+    if (!currentAudio) return;
+    // > 3 detik → restart; ≤ 3 detik → lagu sebelumnya
+    if (currentAudio.currentTime > 3) {
+      currentAudio.currentTime = 0;
+      if (isPaused) { isPaused = false; }
+      fadeIn(currentAudio, VOLUME, FADE_PAUSE_MS);
+      updatePanel();
+      return;
+    }
+    if (isTransitioning) return;
+    isTransitioning = true;
+    currentIdx      = (currentIdx - 1 + playlist.length) % playlist.length;
+    preloadNextDone = false;
+
+    const old    = currentAudio;
+    currentAudio = createAudio(MUSIC_FOLDER + MUSIC_FILES[playlist[currentIdx]]);
+    nextAudio    = null;
+    currentAudio.volume = 0;
+
+    currentAudio.play()
+      .then(() => { if (!isPaused) fadeIn(currentAudio, VOLUME, FADE_DURATION_MS); attachTimeUpdate(currentAudio); isTransitioning = false; })
+      .catch(() => { isTransitioning = false; });
+
+    if (old) fadeOut(old, FADE_DURATION_MS, () => { old.pause(); old.src = ''; });
+    currentAudio.addEventListener('ended', () => playNext(), { once: true });
+    updatePanel();
+  }
+
+  function togglePause() {
+    if (!currentAudio) { startPlayback(); return; }
+    if (isPaused) {
+      isPaused = false;
+      currentAudio.play().then(() => fadeIn(currentAudio, VOLUME, FADE_PAUSE_MS)).catch(() => {});
+    } else {
+      isPaused = true;
+      fadeOut(currentAudio, FADE_PAUSE_MS, () => currentAudio.pause());
+    }
+    localStorage.setItem(STORAGE_KEY, isPaused ? '1' : '0');
+    updatePanel();
+  }
+
+  /* ════ Panel kontrol ════ */
+  let panelHideTimer = null;
+
+  function buildPanel() {
+    if (document.getElementById('musicPanel')) return;
+
+    const panel = document.createElement('div');
+    panel.id        = 'musicPanel';
+    panel.className = 'music-panel';
+    panel.setAttribute('role', 'toolbar');
+    panel.setAttribute('aria-label', 'Kontrol musik');
+    panel.innerHTML = `
+      <button class="mp-btn" id="mpPrev" title="Sebelumnya / Ulang">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="19 20 9 12 19 4 19 20"/>
+          <line x1="5" y1="19" x2="5" y2="5"/>
+        </svg>
+      </button>
+      <button class="mp-btn mp-main" id="mpPlayPause" title="Pause / Play">
+        <svg id="mpIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></svg>
+      </button>
+      <button class="mp-btn" id="mpNext" title="Berikutnya">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 4 15 12 5 20 5 4"/>
+          <line x1="19" y1="4" x2="19" y2="20"/>
+        </svg>
+      </button>`;
+
+    document.body.appendChild(panel);
+
+    const stopProp = e => e.stopPropagation();
+    panel.addEventListener('click', stopProp);
+
+    document.getElementById('mpPrev').addEventListener('click', () => {
+      if (!hasStarted) startPlayback(); else playPrev();
+      resetPanelHide();
+    });
+    document.getElementById('mpPlayPause').addEventListener('click', () => {
+      if (!hasStarted) startPlayback(); else togglePause();
+      resetPanelHide();
+    });
+    document.getElementById('mpNext').addEventListener('click', () => {
+      if (!hasStarted) startPlayback(); else playNext();
+      resetPanelHide();
+    });
+
+    // Klik di luar panel → hilang
+    document.addEventListener('click', function handler(e) {
+      const p = document.getElementById('musicPanel');
+      if (p && !p.contains(e.target)) hidePanel();
+    });
+
+    updatePanel();
+  }
+
+  function showPanel() {
+    buildPanel();
+    const panel = document.getElementById('musicPanel');
+    if (!panel) return;
+
+    // Pastikan tidak sedang dalam state hiding
+    panel.classList.remove('hiding');
+    // Trigger reflow agar transisi dari hiding ke visible berjalan
+    void panel.offsetWidth;
+    panel.classList.add('visible');
+    updatePanel();
+    resetPanelHide();
+  }
+
+  function hidePanel() {
+    clearTimeout(panelHideTimer);
+    const panel = document.getElementById('musicPanel');
+    if (!panel || !panel.classList.contains('visible')) return;
+
+    // Animasi fade ke atas, lalu hapus visible setelah transisi selesai
+    panel.classList.add('hiding');
+    panel.classList.remove('visible');
+    setTimeout(() => {
+      if (panel) panel.classList.remove('hiding');
+    }, 250);
+  }
+
+  function resetPanelHide() {
+    clearTimeout(panelHideTimer);
+    panelHideTimer = setTimeout(hidePanel, 4000);
+  }
+
+  function updatePanel() {
+    const icon = document.getElementById('mpIcon');
+    if (!icon) return;
+    if (isPaused || !hasStarted) {
+      icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    } else {
+      icon.innerHTML = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+    }
+  }
+
+  /* ════ Trigger panel ════ */
+  function setupPanelTriggers() {
+    const nav = document.querySelector(NAV_SEL);
+    if (!nav) return;
+
+    const IGNORED = IS_INPUT
+      ? ['.tb-logo','.tb-lt','.tb-ls','.tb-li','.tb-ham','#btnHam',
+         '.btn-upload','#btnUpload','.tb-st','#statusDot','#statusTxt',
+         '#musicPanel','.mp-btn']
+      : ['.nav-logo','#navLogoWrap','.nav-links','.nav-links a',
+         '.hamburger','#hamburger','#mobileMenu','#musicPanel','.mp-btn'];
+
+    /* ── Double-click navbar → panel ── */
+    let clickCount = 0, clickTimer = null;
+    nav.addEventListener('click', function (e) {
+      if (IGNORED.some(sel => e.target.closest(sel))) return;
+      clickCount++;
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => {
+        if (clickCount === 1 && !IS_INPUT && !hasStarted) {
+          // index.html: klik pertama → mulai putar saja
+          startPlayback();
+        } else if (clickCount >= 2) {
+          showPanel();
+        }
+        clickCount = 0;
+      }, CLICK_WINDOW_MS);
+    });
+
+    /* ── Hover lama pada navbar → panel ── */
+    let hoverTimer = null;
+    nav.addEventListener('mouseenter', () => {
+      hoverTimer = setTimeout(() => showPanel(), HOVER_TRIGGER_MS);
+    });
+    nav.addEventListener('mouseleave', () => clearTimeout(hoverTimer));
+
+    /* ── Overscroll: tarik ke bawah saat sudah di posisi atas → panel ── */
+    let touchStartY = 0;
+    window.addEventListener('touchstart', e => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', e => {
+      if (window.scrollY > 10) return;
+      const dy = e.touches[0].clientY - touchStartY;
+      if (dy > 60) {
+        showPanel();
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+  }
+
+  /* ════ Autoplay saat loading overlay (index_input.html) ════ */
+  function setupInputAutoplay() {
+    if (!IS_INPUT) return;
     if (localStorage.getItem(STORAGE_KEY) === '1') isPaused = true;
 
-    const btn = document.createElement('button');
-    btn.id        = 'musicToggle';
-    btn.className = 'music-toggle';
-    btn.setAttribute('aria-label', 'Toggle musik');
-    btn.setAttribute('title', 'Klik: pause/play  |  2× klik: pause/play  |  3× klik: lagu berikutnya');
-    btn.addEventListener('click', togglePause);
-    document.body.appendChild(btn);
-    updateUI();
-  }
+    // Coba langsung
+    startPlayback();
 
-  function updateUI() {
-    const btn = document.getElementById('musicToggle');
-    if (!btn) return;
-    btn.innerHTML = isPaused ? iconPaused() : iconPlaying();
-    btn.classList.toggle('is-playing', !isPaused);
-  }
-
-  function iconPlaying() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-    </svg>`;
-  }
-  function iconPaused() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <line x1="23" y1="9" x2="17" y2="15"/>
-      <line x1="17" y1="9" x2="23" y2="15"/>
-    </svg>`;
-  }
-
-  /* ════ Hint toast ════ */
-  function showHint(msg) {
-    const old = document.getElementById('musicHint');
-    if (old) old.remove();
-    const el = document.createElement('div');
-    el.id = 'musicHint';
-    el.textContent = msg;
-    el.style.cssText = [
-      'position:fixed','top:68px','left:50%',
-      'transform:translateX(-50%) translateY(-8px)',
-      'background:rgba(61,26,94,0.88)','color:#FAFAF8',
-      'font-family:var(--fb,sans-serif)','font-size:.82rem','font-weight:500',
-      'padding:7px 20px','border-radius:99px','pointer-events:none',
-      'z-index:99999','opacity:0',
-      'transition:opacity .22s ease,transform .22s ease',
-      'white-space:nowrap','box-shadow:0 4px 20px rgba(61,26,94,.28)',
-      'backdrop-filter:blur(8px)',
-    ].join(';');
-    document.body.appendChild(el);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.style.opacity   = '1';
-      el.style.transform = 'translateX(-50%) translateY(0)';
-    }));
-    setTimeout(() => {
-      el.style.opacity   = '0';
-      el.style.transform = 'translateX(-50%) translateY(-8px)';
-      setTimeout(() => el.remove(), 280);
-    }, 1800);
-  }
-
-  /* ════ Multi-klik handler (shared) ════
-     2× → pause/play
-     3× → skip ke lagu berikutnya
-  ════ */
-  function makeMultiClickHandler(ignoredSelectors) {
-    let count = 0;
-    let timer = null;
-    return function (e) {
-      // Abaikan jika klik mengenai elemen yang di-ignore
-      if (ignoredSelectors.some(sel => e.target.closest(sel))) return;
-      count++;
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (count === 2) {
-          togglePause();
-          showHint(isPaused ? '⏸ Musik dijeda' : '▶ Musik dilanjutkan');
-        } else if (count >= 3) {
-          playNext();
-          showHint('⏭ Lagu berikutnya');
-        }
-        count = 0;
-      }, CLICK_WINDOW_MS);
-    };
-  }
-
-  /* ════ Pasang listener ke zona klik ════ */
-  function setupClickZones() {
-    // ── Zona 1: Topbar ──
-    // Abaikan: logo wrap, teks logo, status dot, btn upload, hamburger
-    const topbar = document.querySelector('.topbar');
-    if (topbar) {
-      topbar.addEventListener('click', makeMultiClickHandler([
-        '.tb-logo', '.tb-lt', '.tb-ls', '.tb-li',   // logo & teks
-        '.tb-ham', '#btnHam',                         // hamburger
-        '.btn-upload', '#btnUpload',                  // tombol upload
-        '.tb-st', '#statusDot', '#statusTxt',         // status dot
-        '#musicToggle',                               // tombol musik itu sendiri
-      ]));
-      topbar.style.cursor = 'default'; // hint visual bahwa area ini interaktif
-    }
-
-    // ── Zona 2: Loading overlay — kecuali token card ──
+    // Fallback jika autoplay diblokir: coba saat interaksi pertama di overlay
     const lov = document.getElementById('lov');
     if (lov) {
-      lov.addEventListener('click', makeMultiClickHandler([
-        '#lovTokenCard',      // seluruh token card (input, button, dll)
-        '#musicToggle',
-      ]));
+      lov.addEventListener('click', () => {
+        if (!hasStarted) startPlayback();
+      }, { once: true });
     }
   }
 
   /* ════ Entry point ════ */
   function init() {
-    buildUI();
-    startPlayback();
-    setupClickZones();
+    if (IS_INPUT) {
+      setupInputAutoplay();
+    }
+    setupPanelTriggers();
   }
 
   if (document.readyState === 'loading') {

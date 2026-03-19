@@ -3,7 +3,7 @@
 const API_READ = 'https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec';
 const SH = {
   proker_dokumentasi:  ['proker_id','tanggal_sesi','foto_url','keterangan','hadir_peserta','hadir_panitia','hadir_narasumber','materi','waktu_mulai','waktu_selesai','item_biaya','estimasi_biaya_item','biaya_aktual','kendala'],
-  proker_jadwal:       ['proker_id','tanggal','jam'],
+  proker_jadwal:       ['proker_id','tanggal','jam','catatan','penanggung_jawab'],
   proker_detail:       ['proker_id','tujuan','waktu_teks','estimasi_tanggal','lokasi','sasaran','pemateri','panitia','item_biaya','estimasi_biaya_item','biaya_aktual'],
   proker_notif_config: ['proker_id','countdown_aktif','ajakan','ajakan_teks','ajakan_sub','wajib_hadir','wajib_hadir_teks','wajib_hadir_sanksi'],
   anggota:             ['nama','kelas','angkatan','status','no_hp','catatan'],
