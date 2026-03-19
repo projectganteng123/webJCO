@@ -205,8 +205,75 @@
   /* ════ Panel kontrol ════ */
   let panelHideTimer = null;
 
+  /* ════ Inject CSS panel langsung ke <head> ════ */
+  function injectCSS() {
+    if (document.getElementById('musicPanelStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'musicPanelStyle';
+    style.textContent = `
+      .music-panel {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%) translateY(-12px);
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(61,26,94,0.92);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 99px;
+        padding: 6px 10px;
+        box-shadow: 0 8px 40px rgba(61,26,94,.45), 0 2px 8px rgba(0,0,0,.2);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .26s cubic-bezier(.4,0,.2,1),
+                    transform .26s cubic-bezier(.4,0,.2,1);
+      }
+      .music-panel.visible {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transform: translateX(-50%) translateY(0) !important;
+      }
+      .music-panel.hiding {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transform: translateX(-50%) translateY(-12px) !important;
+        transition: opacity .20s cubic-bezier(.4,0,.2,1),
+                    transform .20s cubic-bezier(.4,0,.2,1);
+      }
+      .mp-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px;
+        border: none; border-radius: 50%;
+        background: transparent;
+        color: rgba(255,255,255,.85);
+        cursor: pointer;
+        transition: background .18s ease, transform .15s ease;
+        flex-shrink: 0;
+      }
+      .mp-btn svg { width: 16px; height: 16px; pointer-events: none; }
+      .mp-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+      .mp-btn:active { transform: scale(0.9); }
+      .mp-btn.mp-main {
+        width: 42px; height: 42px;
+        background: rgba(255,255,255,.12);
+      }
+      .mp-btn.mp-main svg { width: 18px; height: 18px; }
+      .mp-btn.mp-main:hover { background: rgba(255,255,255,.25); }
+      @media (max-width: 480px) {
+        .music-panel { padding: 5px 8px; gap: 2px; }
+        .mp-btn { width: 32px; height: 32px; }
+        .mp-btn.mp-main { width: 38px; height: 38px; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function buildPanel() {
     if (document.getElementById('musicPanel')) return;
+    injectCSS();
 
     const panel = document.createElement('div');
     panel.id        = 'musicPanel';
@@ -262,10 +329,16 @@
     const panel = document.getElementById('musicPanel');
     if (!panel) return;
 
-    // Pastikan tidak sedang dalam state hiding
+    // Posisikan tepat di bawah navbar / topbar
+    const nav = document.querySelector(NAV_SEL);
+    if (nav) {
+      const rect = nav.getBoundingClientRect();
+      panel.style.top = (rect.bottom + 8) + 'px';
+    }
+
+    // Pastikan tidak sedang dalam state hiding, lalu trigger transisi
     panel.classList.remove('hiding');
-    // Trigger reflow agar transisi dari hiding ke visible berjalan
-    void panel.offsetWidth;
+    void panel.offsetWidth; // reflow
     panel.classList.add('visible');
     updatePanel();
     resetPanelHide();
@@ -304,22 +377,23 @@
     const nav = document.querySelector(NAV_SEL);
     if (!nav) return;
 
-    const IGNORED = IS_INPUT
-      ? ['.tb-logo','.tb-lt','.tb-ls','.tb-li','.tb-ham','#btnHam',
-         '.btn-upload','#btnUpload','.tb-st','#statusDot','#statusTxt',
-         '#musicPanel','.mp-btn']
-      : ['.nav-logo','#navLogoWrap','.nav-links','.nav-links a',
-         '.hamburger','#hamburger','#mobileMenu','#musicPanel','.mp-btn'];
+    // Elemen yang WAJIB diabaikan karena punya fungsi sendiri
+    const HARD_IGNORED = IS_INPUT
+      ? ['#btnHam','.tb-ham','.btn-upload','#btnUpload','#musicPanel','.mp-btn']
+      : ['#hamburger','.hamburger','#musicPanel','.mp-btn'];
 
-    /* ── Double-click navbar → panel ── */
+    /* ── Double-click di mana saja dalam navbar/topbar → panel ── */
     let clickCount = 0, clickTimer = null;
-    nav.addEventListener('click', function (e) {
-      if (IGNORED.some(sel => e.target.closest(sel))) return;
+    document.addEventListener('click', function (e) {
+      // Klik harus berada di dalam nav/topbar
+      if (!nav.contains(e.target)) return;
+      // Abaikan hanya elemen yang punya fungsi kritis
+      if (HARD_IGNORED.some(sel => e.target.closest(sel))) return;
+
       clickCount++;
       clearTimeout(clickTimer);
       clickTimer = setTimeout(() => {
         if (clickCount === 1 && !IS_INPUT && !hasStarted) {
-          // index.html: klik pertama → mulai putar saja
           startPlayback();
         } else if (clickCount >= 2) {
           showPanel();
@@ -328,27 +402,7 @@
       }, CLICK_WINDOW_MS);
     });
 
-    /* ── Hover lama pada navbar → panel ── */
-    let hoverTimer = null;
-    nav.addEventListener('mouseenter', () => {
-      hoverTimer = setTimeout(() => showPanel(), HOVER_TRIGGER_MS);
-    });
-    nav.addEventListener('mouseleave', () => clearTimeout(hoverTimer));
 
-    /* ── Overscroll: tarik ke bawah saat sudah di posisi atas → panel ── */
-    let touchStartY = 0;
-    window.addEventListener('touchstart', e => {
-      touchStartY = e.touches[0].clientY;
-    }, { passive: true });
-
-    window.addEventListener('touchmove', e => {
-      if (window.scrollY > 10) return;
-      const dy = e.touches[0].clientY - touchStartY;
-      if (dy > 60) {
-        showPanel();
-        touchStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
   }
 
   /* ════ Autoplay saat loading overlay (index_input.html) ════ */
