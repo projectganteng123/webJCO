@@ -88,6 +88,9 @@
     <div class="sb-i" onclick="showPage('notif');closeSidebar()" id="nav-notif"><span class="sb-ic">🔔</span><span>Notif Config</span><span class="sb-b" id="badge-notif">0</span></div>
     <div class="sb-i" onclick="showPage('anggota');closeSidebar()" id="nav-anggota"><span class="sb-ic">👥</span><span>Anggota</span><span class="sb-b" id="badge-anggota">0</span></div>
     <div class="sb-i" onclick="showPage('pengurus');closeSidebar()" id="nav-pengurus"><span class="sb-ic">🎌</span><span>Pengurus</span><span class="sb-b" id="badge-pengurus">0</span></div>
+    <div class="sb-d"></div>
+    <div class="sb-s">Publik</div>
+    <div class="sb-i" onclick="showPage('pengumuman');closeSidebar()" id="nav-pengumuman"><span class="sb-ic">📣</span><span>Pengumuman</span><span class="sb-b" id="badge-pengumuman">0</span></div>
   </aside>
 
   <main class="main">
@@ -146,6 +149,7 @@
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
         <strong style="font-size:1.05rem">📅 Jadwal Proker</strong>
         <div class="tb-sp"></div>
+        <button class="btn-lap" onclick="printSemuaJadwal()" title="Cetak laporan semua jadwal proker">🖨️ Cetak Laporan</button>
         <button class="btn-add" onclick="openNewJadwalModal()">+ Tambah Jadwal</button>
       </div>
       <div class="pb-banner" id="jadwalBanner">✏️ <strong id="jadwalBannerN">0</strong> perubahan jadwal belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
@@ -156,6 +160,8 @@
     <div class="ps" id="page-detail">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
         <strong style="font-size:1.05rem">📌 Detail Program Kerja</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-lap" onclick="printSemuaDetail()" title="Cetak laporan semua detail proker">🖨️ Cetak Laporan</button>
       </div>
       <div class="pb-banner" id="detailBanner">✏️ <strong id="detailBannerN">0</strong> perubahan detail belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
       <div id="detailContent"></div>
@@ -214,6 +220,28 @@
       <div id="changelogContent">
         <div class="empty"><div class="ei">✅</div><div class="et">Tidak ada perubahan</div><div class="ed">Semua tersinkron</div></div>
       </div>
+    </div>
+
+    <!-- PENGUMUMAN -->
+    <div class="ps" id="page-pengumuman">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">📣 Pengumuman</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-add" onclick="openNewPgmModal()">+ Tambah</button>
+      </div>
+      <div class="pb-banner" id="pgmBanner">✏️ <strong id="pgmBannerN">0</strong> perubahan belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div id="pgmContent"></div>
+    </div>
+
+    <!-- PENGUMUMAN -->
+    <div class="ps" id="page-pengumuman">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">📣 Pengumuman</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-add" onclick="openNewPgmModal()">+ Tambah</button>
+      </div>
+      <div class="pb-banner" id="pgmBanner">✏️ <strong id="pgmBannerN">0</strong> perubahan belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div id="pgmContent"></div>
     </div>
 
   </main>
@@ -307,7 +335,7 @@
 
 <!-- MODAL JADWAL -->
 <div class="mov" id="jadwalModal">
-  <div class="modal" style="max-width:380px">
+  <div class="modal" style="max-width:400px">
     <div class="m-h"><span>📅</span><span class="m-t" id="jadMT">Jadwal</span><button class="m-x" onclick="closeModal('jadwalModal')">✕</button></div>
     <input type="hidden" id="ej_idx"/>
     <div class="fg"><div class="fl">Program Kerja</div><select class="fsel" id="ej_pid"></select></div>
@@ -315,6 +343,8 @@
       <div class="fg"><div class="fl">Tanggal</div><input type="date" class="fi" id="ej_tgl"/></div>
       <div class="fg"><div class="fl">Jam</div><input type="time" class="fi" id="ej_jam"/></div>
     </div>
+    <div class="fg"><div class="fl">Penanggung Jawab</div><input type="text" class="fi" id="ej_pj" placeholder="Nama penanggung jawab..."/></div>
+    <div class="fg"><div class="fl">Catatan</div><input type="text" class="fi" id="ej_catatan" placeholder="Catatan (opsional)..."/></div>
     <div class="m-f"><button class="btn-cancel" onclick="closeModal('jadwalModal')">Batal</button><button class="btn-save" onclick="saveJadwal()">💾 Simpan</button></div>
   </div>
 </div>
@@ -360,5 +390,159 @@
 <script src="app_input.js"></script>
 <script src="laporan.js"></script>
 <script src="music-player.js"></script>
+<!-- UPLOAD LOADING OVERLAY -->
+<div class="ulov" id="ulov">
+  <div class="ulov-sakura" id="ulovSakura"></div>
+  <div class="ulov-bg"></div>
+  <div class="ulov-grid"></div>
+  <div class="ulov-content">
+    <div class="ulov-logo">
+      <img src="logo-jcosasi.png" alt="JCOSASI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+      <span class="ulov-logo-fallback" style="display:none">🎌</span>
+    </div>
+    <div class="ulov-title">JCOSASI</div>
+    <div class="ulov-subtitle">Menyimpan perubahan…</div>
+    <div class="ulov-bar-wrap"><div class="ulov-bar"></div></div>
+    <div class="ulov-step" id="ulovStep">Mempersiapkan upload…</div>
+    <div class="ulov-warn">⚠️ Jangan tutup atau refresh halaman ini</div>
+  </div>
+</div>
+
+<!-- MODAL PENGUMUMAN -->
+<div class="mov" id="pgmModal">
+  <div class="modal" style="max-width:560px">
+    <div class="m-h"><span>📣</span><span class="m-t" id="pgmModalTitle">Tambah Pengumuman</span><button class="m-x" onclick="closeModal('pgmModal')">✕</button></div>
+    <input type="hidden" id="pgm_idx"/>
+
+    <div class="g2">
+      <div class="fg" style="grid-column:1/-1"><div class="fl">Judul <span style="color:var(--rd)">*</span></div><input type="text" class="fi" id="pgm_judul" placeholder="Judul pengumuman..."/></div>
+    </div>
+    <div class="fg"><div class="fl">Deskripsi</div><textarea class="fta" rows="3" id="pgm_deskripsi" placeholder="Deskripsi singkat pengumuman..."></textarea></div>
+    <div class="fg"><div class="fl">URL Poster / Flyer</div><input type="text" class="fi" id="pgm_poster_url" placeholder="https://drive.google.com/... atau URL gambar lainnya"/><div class="fhint">Mendukung Google Drive, Canva, imgbb, dll.</div></div>
+
+    <div class="g2">
+      <div class="fg"><div class="fl">Tanggal Publish</div><input type="date" class="fi" id="pgm_tanggal_publish"/><div class="fhint">Pengumuman mulai tampil</div></div>
+      <div class="fg"><div class="fl">Tanggal Turun</div><input type="date" class="fi" id="pgm_tanggal_turun"/><div class="fhint">Pengumuman disembunyikan</div></div>
+    </div>
+
+    <div class="g2">
+      <div class="fg"><div class="fl">Waktu Kegiatan</div><input type="text" class="fi" id="pgm_waktu_kegiatan" placeholder="cth: Sabtu, 14:00 WIB"/></div>
+      <div class="fg"><div class="fl">Lokasi</div><input type="text" class="fi" id="pgm_lokasi_kegiatan" placeholder="cth: Ruang Teori Lt.2"/></div>
+    </div>
+
+    <div class="g2">
+      <div class="fg"><div class="fl">Target Audiens</div><input type="text" class="fi" id="pgm_target_audiens" placeholder="cth: Semua anggota, Kelas XII"/></div>
+      <div class="fg"><div class="fl">Tag / Kategori</div><input type="text" class="fi" id="pgm_tag" placeholder="cth: Acara, Info, Lomba"/></div>
+    </div>
+
+    <div class="g2">
+      <div class="fg"><div class="fl">Prioritas</div>
+        <select class="fsel" id="pgm_prioritas">
+          <option value="normal">✅ Normal</option>
+          <option value="penting">⚠️ Penting</option>
+          <option value="urgent">🚨 Urgent</option>
+        </select>
+      </div>
+      <div class="fg"><div class="fl">Efek Poster</div>
+        <select class="fsel" id="pgm_efek_poster">
+          <option value="none">— Tanpa Efek —</option>
+          <option value="sakura">🌸 Sakura</option>
+          <option value="backlight">✨ Backlight</option>
+          <option value="bioskop">🎬 Bioskop</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fg"><div class="fl">Persiapan</div><textarea class="fta" rows="3" id="pgm_persiapan" placeholder="Hal-hal yang perlu disiapkan peserta..."></textarea></div>
+    <div class="fg"><div class="fl">Cara Mendaftar</div><textarea class="fta" rows="3" id="pgm_cara_daftar" placeholder="Langkah-langkah pendaftaran..."></textarea></div>
+    <div class="fg"><div class="fl">Link Pendaftaran / Eksternal</div><input type="text" class="fi" id="pgm_link_pendaftaran" placeholder="https://..."/></div>
+
+    <div class="fg"><div class="fl">Narahubung — Nama</div><input type="text" class="fi" id="pgm_narahubung_nama" placeholder="Nama narahubung"/></div>
+    <div class="fg"><div class="fl">Narahubung — Kontak</div><input type="text" class="fi" id="pgm_narahubung_kontak" placeholder="No HP / WA / Instagram"/></div>
+
+    <div class="fg">
+      <div class="fl">Dokumen / Lampiran</div>
+      <div class="fhint" style="margin-bottom:6px">Format: Judul dokumen dipisah titik koma (;), URL juga dipisah titik koma</div>
+      <input type="text" class="fi" id="pgm_dokumen_judul" placeholder="Surat Undangan; Formulir Pendaftaran" style="margin-bottom:6px"/>
+      <input type="text" class="fi" id="pgm_dokumen_url" placeholder="https://drive.google.com/...; https://..."/>
+    </div>
+
+    <div class="fg"><div class="fl">Status Aktif</div>
+      <select class="fsel" id="pgm_aktif">
+        <option value="TRUE">✅ Aktif</option>
+        <option value="FALSE">⛔ Nonaktif</option>
+      </select>
+    </div>
+
+    <div class="m-f">
+      <button class="btn-cancel" onclick="closeModal('pgmModal')">Batal</button>
+      <button class="btn-save" onclick="savePgm()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PENGUMUMAN -->
+<div class="mov" id="pgmModal">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+    <div class="m-h"><span>📣</span><span class="m-t" id="pgmModalTitle">Tambah Pengumuman</span><button class="m-x" onclick="closeModal('pgmModal')">✕</button></div>
+    <input type="hidden" id="pgm_idx"/>
+    <div class="fg"><div class="fl">Judul <span style="color:var(--rd)">*</span></div><input type="text" class="fi" id="pgm_judul" placeholder="Judul pengumuman..."/></div>
+    <div class="fg"><div class="fl">Deskripsi</div><textarea class="fta" rows="3" id="pgm_deskripsi" placeholder="Deskripsi singkat..."></textarea></div>
+    <div class="fg"><div class="fl">URL Poster / Flyer</div><input type="text" class="fi" id="pgm_poster_url" placeholder="https://drive.google.com/... atau URL lainnya"/><div class="fhint">Google Drive, Canva, imgbb, dll.</div></div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Tanggal Publish</div><input type="date" class="fi" id="pgm_tanggal_publish"/></div>
+      <div class="fg"><div class="fl">Tanggal Turun</div><input type="date" class="fi" id="pgm_tanggal_turun"/></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Waktu Kegiatan</div><input type="text" class="fi" id="pgm_waktu_kegiatan" placeholder="cth: Sabtu, 14:00 WIB"/></div>
+      <div class="fg"><div class="fl">Lokasi</div><input type="text" class="fi" id="pgm_lokasi_kegiatan" placeholder="cth: Ruang Teori Lt.2"/></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Target Audiens</div><input type="text" class="fi" id="pgm_target_audiens" placeholder="cth: Semua anggota"/></div>
+      <div class="fg"><div class="fl">Tag / Kategori</div><input type="text" class="fi" id="pgm_tag" placeholder="cth: Acara, Info, Lomba"/></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Prioritas</div>
+        <select class="fsel" id="pgm_prioritas">
+          <option value="normal">✅ Normal</option>
+          <option value="penting">⚠️ Penting</option>
+          <option value="urgent">🚨 Urgent</option>
+        </select>
+      </div>
+      <div class="fg"><div class="fl">Efek Poster</div>
+        <select class="fsel" id="pgm_efek_poster">
+          <option value="none">— Tanpa Efek —</option>
+          <option value="sakura">🌸 Sakura</option>
+          <option value="backlight">✨ Backlight</option>
+          <option value="bioskop">🎬 Bioskop</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><div class="fl">Persiapan</div><textarea class="fta" rows="3" id="pgm_persiapan" placeholder="Hal yang perlu disiapkan..."></textarea></div>
+    <div class="fg"><div class="fl">Cara Mendaftar</div><textarea class="fta" rows="3" id="pgm_cara_daftar" placeholder="Langkah pendaftaran..."></textarea></div>
+    <div class="fg"><div class="fl">Link Pendaftaran / Eksternal</div><input type="text" class="fi" id="pgm_link_pendaftaran" placeholder="https://..."/></div>
+    <div class="g2">
+      <div class="fg"><div class="fl">Narahubung — Nama</div><input type="text" class="fi" id="pgm_narahubung_nama" placeholder="Nama narahubung"/></div>
+      <div class="fg"><div class="fl">Narahubung — Kontak</div><input type="text" class="fi" id="pgm_narahubung_kontak" placeholder="No HP / WA"/></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Dokumen Lampiran</div>
+      <div class="fhint" style="margin-bottom:6px">Pisahkan beberapa dokumen dengan titik koma ( ; )</div>
+      <input type="text" class="fi" id="pgm_dokumen_judul" placeholder="Judul dok 1; Judul dok 2" style="margin-bottom:6px"/>
+      <input type="text" class="fi" id="pgm_dokumen_url"   placeholder="https://... ; https://..."/>
+    </div>
+    <div class="fg"><div class="fl">Status</div>
+      <select class="fsel" id="pgm_aktif">
+        <option value="TRUE">✅ Aktif (tampil di publik)</option>
+        <option value="FALSE">⛔ Nonaktif (tersembunyi)</option>
+      </select>
+    </div>
+    <div class="m-f">
+      <button class="btn-cancel" onclick="closeModal('pgmModal')">Batal</button>
+      <button class="btn-save" onclick="savePgm()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

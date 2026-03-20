@@ -405,29 +405,24 @@ function renderRekapDok(items, dokArr) {
         </a>`;
       }).join('')}</div></div>` : '';
 
-    /* Hadir — tampilkan nama + kelas */
-    function hadirBlok(kolomNama, kolomKelas, label, ikon) {
-      const raw = d[kolomNama]; if (!raw) return '';
-      const names  = raw.split(',').map(n=>n.trim()).filter(Boolean);
-      const klases = (d[kolomKelas]||'').split(',').map(k=>k.trim());
-      const rows = names.map((n,i) => {
-        const kelas = klases[i] || '';
-        return `<div class="da-row"><span class="da-nama">${n}</span>${kelas?`<span class="da-kelas">${kelas}</span>`:''}</div>`;
-      });
+    /* Hadir */
+    function hadirBlok(kolom, label, ikon) {
+      const raw = d[kolom]; if (!raw) return '';
+      const names = raw.split(',').map(n=>n.trim()).filter(Boolean);
       const listHtml = names.length === 1
-        ? `<span class="hadir-single">${names[0]}${klases[0]?` <span class="hadir-kelas">${klases[0]}</span>`:''}</span>`
+        ? `<span class="hadir-single">${names[0]}</span>`
         : `<div class="daftar-accordion" onclick="toggleAccordion(this)">
             <div class="da-header"><span>${names.length} ${label}</span><span class="da-arrow">▾</span></div>
-            <div class="da-body">${rows.join('')}</div>
+            <div class="da-body">${names.map(n=>`<div class="da-row">${n}</div>`).join('')}</div>
           </div>`;
       return `<div class="hadir-blok">
         <div class="hadir-blok-label">${ikon} ${label}</div>${listHtml}
       </div>`;
     }
     const hadirParts = [
-      hadirBlok('hadir_peserta',   'kelas_peserta',   'peserta',    '👥'),
-      hadirBlok('hadir_panitia',   'kelas_panitia',   'panitia',    '🤝'),
-      hadirBlok('hadir_narasumber','kelas_narasumber','narasumber', '🎤'),
+      hadirBlok('hadir_peserta','peserta','👥'),
+      hadirBlok('hadir_panitia','panitia','🤝'),
+      hadirBlok('hadir_narasumber','narasumber','🎤'),
     ].filter(Boolean);
     const hadirHtml = hadirParts.length ? `<div class="dsb-section">
       <div class="dsb-label">✅ Daftar Hadir</div>
@@ -623,6 +618,7 @@ function printLaporanRekap() {
   .proker-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 10px; font-size: 9.5pt; color: #444; }
   .proker-meta span::before { content: '• '; color: #9B59D4; }
   .tujuan { font-size: 10pt; color: #333; margin-bottom: 10px; background: #fafafa; padding: 8px 10px; border-radius: 4px; }
+  .deskripsi-kegiatan { font-size: 9.5pt; color: #444; margin-bottom: 10px; background: #f0f7ff; border-left: 3px solid #3B82F6; padding: 8px 10px; border-radius: 4px; line-height: 1.6; }
   table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 12px; }
   th { background: #3D1A5E; color: #fff; padding: 6px 8px; text-align: left; font-weight: 600; }
   td { padding: 5px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
@@ -724,6 +720,7 @@ ${items.map(p => {
   return `
   <h3 class="proker-title">${p.icon} #${p.num} — ${p.judul.replace(/&amp;/g,'&')} <span style="font-size:9pt;font-weight:400;color:#777">(${p.tag})</span></h3>
   <div class="tujuan">${det.tujuan || p.desc?.replace(/<[^>]*>/g,'') || '–'}</div>
+  ${det.deskripsi_kegiatan ? `<div class="deskripsi-kegiatan">${det.deskripsi_kegiatan}</div>` : ''}
   ${metaParts.length ? `<div class="proker-meta">${metaParts.map(m=>`<span>${m}</span>`).join('')}</div>` : ''}
   <div style="font-size:9pt;color:#555;margin-bottom:14px">
     Jadwal direncanakan: <strong>${jadwals.length}</strong> sesi &nbsp;|&nbsp;
@@ -763,19 +760,14 @@ ${items.map(p => {
     const estSesi   = bRows.reduce((s,r)=>s+rupiahNum(r.estimasi_biaya_item),0);
     const dur  = hitungDurasi(d.waktu_mulai, d.waktu_selesai);
     const hadirParts = [
-      d.hadir_peserta    ? { label: '👥 Peserta',    nama: d.hadir_peserta,    kelas: d.kelas_peserta }    : null,
-      d.hadir_panitia    ? { label: '🤝 Panitia',    nama: d.hadir_panitia,    kelas: d.kelas_panitia }    : null,
-      d.hadir_narasumber ? { label: '🎤 Narasumber', nama: d.hadir_narasumber, kelas: d.kelas_narasumber } : null,
+      d.hadir_peserta    ? { label: '👥 Peserta',     val: d.hadir_peserta }    : null,
+      d.hadir_panitia    ? { label: '🤝 Panitia',     val: d.hadir_panitia }    : null,
+      d.hadir_narasumber ? { label: '🎤 Narasumber',  val: d.hadir_narasumber } : null,
     ].filter(Boolean);
-    function formatHadirInline(nama, kelas) {
-      const ns = (nama||'').split(',').map(n=>n.trim()).filter(Boolean);
-      const ks = (kelas||'').split(',').map(k=>k.trim());
-      return ns.map((n,i)=> ks[i] ? `${n} (${ks[i]})` : n).join(', ');
-    }
     return `<div class="dok-sesi">
       <div class="dok-sesi-header">Sesi ${si+1} — ${formatTglPanjang(d.tanggal_sesi)}</div>
       ${d.waktu_mulai ? `<div class="dok-sesi-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>` : ''}
-      ${hadirParts.map(h=>`<div class="dok-sesi-meta"><strong>${h.label}:</strong> ${formatHadirInline(h.nama, h.kelas)}</div>`).join('')}
+      ${hadirParts.map(h=>`<div class="dok-sesi-meta"><strong>${h.label}:</strong> ${h.val}</div>`).join('')}
       ${d.keterangan?`<div class="dok-sesi-ket">${d.keterangan}</div>`:''}
       ${d.materi?`<div class="dok-sesi-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
       ${d.kendala?`<div class="dok-sesi-ket"><strong>Kendala:</strong> ${d.kendala}</div>`:''}
@@ -898,6 +890,7 @@ function printLaporanProker(proker, sheetsData) {
   .meta-grid { display:flex; flex-wrap:wrap; gap:6px 20px; margin-bottom:12px; font-size:9.5pt; color:#444; }
   .meta-grid span::before { content:'• '; color:#9B59D4; }
   .tujuan { background:#f8f5ff; border-left:3px solid #9B59D4; padding:10px 12px; font-size:10pt; border-radius:4px; margin-bottom:14px; }
+  .deskripsi-kegiatan { background:#f0f7ff; border-left:3px solid #3B82F6; padding:10px 12px; font-size:9.5pt; border-radius:4px; margin-bottom:14px; line-height:1.6; color:#1e3a5f; }
   .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
   .stat { background:#f5eeff; border-radius:8px; padding:10px 16px; text-align:center; min-width:80px; }
   .stat-num { display:block; font-size:14pt; font-weight:900; color:#3D1A5E; }
@@ -944,8 +937,9 @@ function printLaporanProker(proker, sheetsData) {
   <div class="tgl">Dicetak: ${tglCetak}</div>
 </div>
 
-<h2>📋 Deskripsi Kegiatan</h2>
+<h2>🎯 Tujuan &amp; Manfaat</h2>
 <div class="tujuan">${det.tujuan||'–'}</div>
+${det.deskripsi_kegiatan ? `<h2 style="margin-top:10px">📋 Deskripsi Kegiatan</h2><div class="tujuan">${det.deskripsi_kegiatan}</div>` : ''}
 ${metaParts.length?`<div class="meta-grid">${metaParts.map(m=>`<span>${m}</span>`).join('')}</div>`:''}
 
 <div style="font-size:9pt;color:#555;margin-bottom:14px">
@@ -971,20 +965,15 @@ ${sesiDok.length ? sesiDok.map((d,si)=>{
   const estSesiP  = bRows.reduce((s,r)=>s+rupiahNum(r.estimasi_biaya_item),0);
   const dur  = hitungDurasi(d.waktu_mulai,d.waktu_selesai);
   const hadirPartsP = [
-    d.hadir_peserta    ? { label: '👥 Peserta',    nama: d.hadir_peserta,    kelas: d.kelas_peserta }    : null,
-    d.hadir_panitia    ? { label: '🤝 Panitia',    nama: d.hadir_panitia,    kelas: d.kelas_panitia }    : null,
-    d.hadir_narasumber ? { label: '🎤 Narasumber', nama: d.hadir_narasumber, kelas: d.kelas_narasumber } : null,
+    d.hadir_peserta    ? { label: '👥 Peserta',    val: d.hadir_peserta }    : null,
+    d.hadir_panitia    ? { label: '🤝 Panitia',    val: d.hadir_panitia }    : null,
+    d.hadir_narasumber ? { label: '🎤 Narasumber', val: d.hadir_narasumber } : null,
   ].filter(Boolean);
-  function fmtHadirP(nama, kelas) {
-    const ns = (nama||'').split(',').map(n=>n.trim()).filter(Boolean);
-    const ks = (kelas||'').split(',').map(k=>k.trim());
-    return ns.map((n,i)=> ks[i] ? `${n} (${ks[i]})` : n).join(', ');
-  }
   return `<div class="dok-sesi">
     <div class="dok-hdr">Sesi ${si+1} — ${formatTglPanjang(d.tanggal_sesi)}</div>
     ${d.waktu_mulai?`<div class="dok-meta">⏰ ${d.waktu_mulai}${d.waktu_selesai?' – '+d.waktu_selesai:''}${dur?' ('+dur+')':''}</div>`:''}
     ${hadirPartsP.length ? hadirPartsP.map(h =>
-      `<div class="dok-meta"><strong>${h.label}:</strong> ${fmtHadirP(h.nama, h.kelas)}</div>`
+      `<div class="dok-meta"><strong>${h.label}:</strong> ${h.val}</div>`
     ).join('') : ''}
     ${d.keterangan?`<div class="dok-ket">${d.keterangan}</div>`:''}
     ${d.materi?`<div class="dok-ket"><strong>Materi:</strong> ${d.materi}</div>`:''}
@@ -1058,14 +1047,11 @@ function printLaporanSesi(idx) {
     : '–';
 
   const hadirRows = [];
-  const parseNama = (strNama, strKelas, peran) => {
-    const names  = (strNama||'').split(',').map(n=>n.trim()).filter(Boolean);
-    const klases = (strKelas||'').split(',').map(k=>k.trim());
-    return names.map((nama,i) => ({ nama, kelas: klases[i]||'', peran }));
-  };
-  parseNama(d.hadir_peserta,    d.kelas_peserta,    'Peserta').forEach(r => hadirRows.push(r));
-  parseNama(d.hadir_panitia,    d.kelas_panitia,    'Panitia').forEach(r => hadirRows.push(r));
-  parseNama(d.hadir_narasumber, d.kelas_narasumber, 'Narasumber').forEach(r => hadirRows.push(r));
+  const parseNama = (str, peran) =>
+    (str||'').split(',').map(n=>n.trim()).filter(Boolean).map(nama => ({ nama, peran }));
+  parseNama(d.hadir_peserta,    'Peserta').forEach(r => hadirRows.push(r));
+  parseNama(d.hadir_panitia,    'Panitia').forEach(r => hadirRows.push(r));
+  parseNama(d.hadir_narasumber, 'Narasumber').forEach(r => hadirRows.push(r));
 
   // Biaya — parseDokRow handles comma-separated
   const { fotos: fotosArr, biayaRows: biayaItems } = parseDokRow(d);
@@ -1376,16 +1362,14 @@ ${hadirRows.length ? `
     <tr>
       <th style="width:36px">No</th>
       <th>Nama</th>
-      <th style="width:90px">Kelas</th>
-      <th style="width:100px">Peran</th>
-      <th style="width:100px">Tanda Tangan</th>
+      <th style="width:110px">Peran</th>
+      <th style="width:110px">Tanda Tangan</th>
     </tr>
   </thead>
   <tbody>
     ${hadirRows.map((r,i) => `<tr>
       <td class="num-col">${i+1}</td>
       <td>${r.nama}</td>
-      <td>${r.kelas||'–'}</td>
       <td><span class="badge-${r.peran.toLowerCase()}">${r.peran}</span></td>
       <td style="height:24px"></td>
     </tr>`).join('')}

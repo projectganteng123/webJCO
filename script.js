@@ -192,14 +192,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Selalu fetch di background — jika cache sudah ada, update silent setelah tiba
     const sheets = ['proker_detail','proker_notif','proker_notif_config',
-                    'proker_activity','proker_jadwal','proker_dokumentasi'];
+                    'proker_activity','proker_jadwal','proker_dokumentasi',
+                    'pengumuman'];
     try {
       const results = await Promise.allSettled(
         sheets.map(sh => _jcosasiJSONP(api + '?sheet=' + sh))
       );
       const safe = r => r.status === 'fulfilled' && r.value && r.value.status === 'ok' ? r.value.data : [];
-      const [detArr,notArr,cfgArr,actArr,jadArr,dokArr] = results.map(safe);
-      const allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr };
+      const [detArr,notArr,cfgArr,actArr,jadArr,dokArr,pgmArr] = results.map(safe);
+      const allData = { detArr, notArr, cfgArr, actArr, jadArr, dokArr, pgmArr };
       if (Object.values(allData).some(a => a.length > 0)) {
         sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: allData }));
         // Terapkan badge dari data terbaru (silent — tidak ada reload)
@@ -462,6 +463,7 @@ function renderPengurusSkeleton() {
     <div class="skeleton-line sk-medium"></div>
     <div class="skeleton-line sk-long"></div>`;
 
+  const $=id=>document.getElementById(id);
   $('orgKetua')      && ($('orgKetua').innerHTML      = skeletonCard);
   $('orgWakil')      && ($('orgWakil').innerHTML      = skeletonCard);
   $('orgSekretaris') && ($('orgSekretaris').innerHTML = skeletonCard);
@@ -492,7 +494,7 @@ function sheetsToStruktur(rows) {
       kelas:   row.kelas   || '–',
       photo:   row.foto_url || row.photo || '',
       icon:    row.icon    || '👤',
-      desc:    row.deskripsi_jabatan || row.desc || '',
+      desc:    row.desc    || '',
     };
 
     if (levelMap[level]) {
@@ -542,6 +544,7 @@ async function loadPengurusFromSheets() {
  * source: 'sheets' | 'fallback'
  */
 function renderPengurus(struktur, bidang, source) {
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   const P   = CONTENT.pengurus;
 
   // Update catatan — sembunyikan jika dari Sheets berhasil

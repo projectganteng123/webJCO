@@ -72,7 +72,8 @@ kontak: {
       { label: "Timeline",       href: "#timeline" },
       { label: "Pengurus",       href: "#pengurus" },
       { label: "Kontak",         href: "#kontak"   },
-      { label: "📊 Dashboard",   href: "proker.html?page=rekap" }
+      { label: "📊 Dashboard",   href: "proker.html?page=rekap" },
+      { label: "📣 Pengumuman",  href: "pengumuman.html" }
     ],
   },
 

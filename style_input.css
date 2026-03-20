@@ -800,3 +800,94 @@ body > .music-toggle { z-index: 510; }
   border-color: transparent;
   box-shadow: 0 3px 10px rgba(74,30,140,.25);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   UPLOAD LOADING OVERLAY
+   Sakura naik diagonal dari bawah — tertiup angin dari kiri bawah ke kanan atas
+═══════════════════════════════════════════════════════════ */
+
+/* sakuraRise menggunakan JS animation (rAF) — tidak perlu keyframe CSS */
+
+.ulov {
+  position: fixed; inset: 0; z-index: 9000;
+  background: #3D1A5E;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .4s ease, visibility .4s ease;
+  font-family: 'Playfair Display', 'Noto Serif JP', 'DM Sans', serif;
+}
+.ulov.show {
+  opacity: 1; visibility: visible; pointer-events: all;
+}
+
+/* Background layers — sama dengan .lov */
+.ulov-bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 70% 50%, rgba(140,70,210,.25) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 10% 80%, rgba(192,57,43,.15) 0%, transparent 60%),
+    linear-gradient(135deg, #2a1040 0%, #3D1A5E 50%, #1e0e30 100%);
+}
+.ulov-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.ulov-sakura {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2;
+}
+
+/* Konten */
+.ulov-content {
+  position: relative; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  animation: lovFadeIn .5s ease both;
+}
+.ulov-logo {
+  width: clamp(80px, 20vmin, 140px);
+  height: clamp(80px, 20vmin, 140px);
+  display: flex; align-items: center; justify-content: center;
+}
+.ulov-logo img {
+  width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(0 8px 28px rgba(0,0,0,.4));
+}
+.ulov-logo-fallback { font-size: clamp(2.5rem, 8vmin, 5rem); }
+.ulov-title {
+  font-family: 'Playfair Display', 'Noto Serif JP', serif;
+  font-weight: 900;
+  font-size: clamp(1.4rem, 4vw, 2.4rem);
+  color: #fff; letter-spacing: -.02em; text-align: center; line-height: 1.05;
+}
+.ulov-subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(.7rem, 1.8vw, .85rem);
+  color: rgba(255,255,255,.65);
+  letter-spacing: .14em; text-align: center;
+  text-transform: uppercase; margin-top: -4px;
+}
+.ulov-bar-wrap {
+  width: clamp(120px, 35vw, 200px); height: 2px;
+  background: rgba(255,255,255,.12);
+  border-radius: 99px; overflow: hidden;
+}
+.ulov-bar {
+  height: 100%; border-radius: 99px;
+  background: #C0392B;
+  animation: lovBar 1.6s ease-in-out infinite;
+}
+.ulov-step {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem; color: rgba(255,255,255,.55);
+  letter-spacing: .1em; text-align: center;
+  text-transform: uppercase; max-width: 280px; line-height: 1.5;
+}
+.ulov-warn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .68rem; color: rgba(255,200,100,.7);
+  letter-spacing: .06em; text-align: center;
+  margin-top: 4px;
+}
