@@ -49,12 +49,7 @@ body{font-family:var(--fb);background:var(--ow);color:var(--ch);min-height:100vh
 }
 /* Semua konten dalam .ph harus di atas sakura */
 .ph-bg, .ph-t, .ph-jp, .ph-stats { position: relative; z-index: 1; }
-@keyframes phSakuraFall {
-  0%   { transform: translateY(0)         rotate(0deg);             opacity: 0; }
-  6%   { opacity: .85; }
-  90%  { opacity: .4; }
-  100% { transform: translateY(var(--fd)) rotate(480deg) translateX(var(--dx)); opacity: 0; }
-}
+/* phSakuraFall — digantikan oleh rAF physics di app_input.js */
 .ph-bg{font-size:.68rem;font-weight:700;letter-spacing:.08em;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:3px 12px;display:inline-block;margin-bottom:9px;position:relative}
 .ph-t{font-size:clamp(1.25rem,3vw,1.8rem);font-weight:900;line-height:1.2;position:relative}
 .ph-t em{font-style:normal;opacity:.75;font-weight:600}
@@ -806,7 +801,26 @@ body > .music-toggle { z-index: 510; }
    Sakura naik diagonal dari bawah — tertiup angin dari kiri bawah ke kanan atas
 ═══════════════════════════════════════════════════════════ */
 
-/* sakuraRise menggunakan JS animation (rAF) — tidak perlu keyframe CSS */
+/* Keyframe: naik diagonal kiri-bawah → kanan-atas, berputar natural */
+@keyframes sakuraRise {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% { opacity: 1; }
+  40% {
+    transform: translate(calc(var(--dx) * 0.4), calc(var(--dy) * 0.4)) rotate(var(--r1));
+    opacity: .85;
+  }
+  75% {
+    transform: translate(calc(var(--dx) * 0.75), calc(var(--dy) * 0.75)) rotate(var(--r2));
+    opacity: .5;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(var(--r3));
+    opacity: 0;
+  }
+}
 
 .ulov {
   position: fixed; inset: 0; z-index: 9000;
@@ -891,3 +905,178 @@ body > .music-toggle { z-index: 510; }
   letter-spacing: .06em; text-align: center;
   margin-top: 4px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PENCAPAIAN
+═══════════════════════════════════════════════════════════ */
+
+/* Row pencapaian per anggota */
+.cap-list     { display:flex; flex-direction:column; gap:6px; }
+.cap-row {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px;
+  background:var(--ow); border:1px solid var(--gl);
+  border-radius:var(--rx); font-size:.82rem;
+}
+.cap-row.newrow { background:#F0FFF4; border-color:#86EFAC; }
+.cap-row.mod    { background:#FFFBEB; border-color:#FDE68A; }
+.cap-emblem     { font-size:1.3rem; flex-shrink:0; width:28px; text-align:center; }
+.cap-info       { flex:1; display:flex; flex-direction:column; gap:1px; min-width:0; }
+.cap-pencapaian { font-weight:600; color:var(--ch); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cap-ket        { font-size:.72rem; color:var(--gm); }
+.cap-poin       { font-size:.75rem; font-weight:700; color:var(--pm); background:var(--pp); border-radius:99px; padding:2px 8px; flex-shrink:0; }
+.cap-waktu      { font-size:.7rem; color:var(--gm); flex-shrink:0; white-space:nowrap; }
+
+/* Emblem grid di modal */
+.cap-emblem-grid {
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;
+}
+.cap-emblem-btn {
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:6px 8px; border:1.5px solid var(--gl);
+  border-radius:var(--rx); background:var(--ow);
+  cursor:pointer; font-family:var(--fb); transition:all var(--t);
+  min-width:52px;
+}
+.cap-emblem-btn span { font-size:1.3rem; }
+.cap-emblem-btn small { font-size:.58rem; color:var(--gm); text-align:center; line-height:1.2; max-width:52px; }
+.cap-emblem-btn:hover  { border-color:var(--pm); background:var(--pp); }
+.cap-emblem-btn.selected { border-color:var(--pm); background:var(--pp); box-shadow:0 0 0 2px rgba(107,52,175,.25); }
+
+/* Checklist anggota */
+.cap-ang-list {
+  max-height:220px; overflow-y:auto;
+  border:1.5px solid var(--gl); border-radius:var(--rx);
+  padding:4px;
+}
+.cap-ang-item {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 8px; border-radius:6px; cursor:pointer;
+  transition:background var(--t);
+}
+.cap-ang-item:hover { background:var(--pp); }
+.cap-ang-check { flex-shrink:0; accent-color:var(--pm); width:15px; height:15px; cursor:pointer; }
+.cap-ang-name  { font-size:.84rem; font-weight:600; color:var(--ch); flex:1; }
+.cap-ang-meta  { font-size:.7rem; color:var(--gm); white-space:nowrap; }
+
+/* ── Mode switch ── */
+.cap-mode-row {
+  display:flex; gap:6px; margin-bottom:14px;
+}
+.cap-mode-btn {
+  flex:1; padding:7px 12px; border:1.5px solid var(--gl);
+  border-radius:var(--rx); background:var(--ow);
+  font-family:var(--fb); font-size:.78rem; font-weight:600;
+  color:var(--gd); cursor:pointer; transition:all var(--t);
+}
+.cap-mode-btn.active {
+  background:var(--pp); border-color:var(--pm); color:var(--pm);
+}
+
+/* ── Tag nama manual ── */
+.cap-manual-list { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.cap-manual-tag {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--pp); color:var(--pm);
+  border:1px solid rgba(107,52,175,.25); border-radius:99px;
+  padding:2px 8px; font-size:.76rem; font-weight:600;
+}
+.cap-manual-tag button {
+  background:none; border:none; cursor:pointer;
+  color:var(--pm); font-size:.9rem; line-height:1; padding:0 2px;
+}
+
+/* ── Individual rows ── */
+.cap-indiv-rows { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+.cap-indiv-row {
+  border:1.5px solid var(--gl); border-radius:var(--rx); overflow:hidden;
+}
+.cap-ir-header {
+  display:flex; align-items:center; gap:7px;
+  padding:7px 12px; background:linear-gradient(90deg,var(--pp),var(--ow));
+  border-bottom:1px solid var(--gl);
+}
+.cap-ir-name { font-weight:700; font-size:.85rem; color:var(--ch); flex:1; }
+.cap-ir-ang  { font-size:.72rem; color:var(--gm); }
+.cap-ir-body { padding:10px 12px; display:flex; flex-direction:column; gap:0; }
+.cap-ir-emblem-row {
+  display:flex; align-items:center; gap:6px; margin-bottom:0;
+}
+.cap-emblem-sm {
+  min-width:32px; padding:3px 4px;
+}
+.cap-emblem-sm span { font-size:1rem; }
+.cap-emblem-sm small { display:none; }
+
+/* ── Dropdown autocomplete individual ── */
+.cap-indiv-dropdown {
+  position:absolute; left:0; right:0; top:100%;
+  background:#fff; border:1.5px solid var(--pm);
+  border-top:none; border-radius:0 0 var(--rx) var(--rx);
+  box-shadow:0 8px 24px rgba(61,26,94,.15);
+  z-index:200; max-height:200px; overflow-y:auto;
+}
+.cap-dd-item {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 12px; cursor:pointer; gap:8px;
+  transition:background var(--t);
+}
+.cap-dd-item:hover { background:var(--pp); }
+.cap-dd-name { font-size:.84rem; font-weight:600; color:var(--ch); }
+.cap-dd-meta { font-size:.72rem; color:var(--gm); white-space:nowrap; }
+
+/* ── Panduan Penilaian ── */
+.cap-guide-wrap {
+  border: 1.5px solid var(--gl);
+  border-radius: var(--rx);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.cap-guide-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 14px; background: linear-gradient(90deg, var(--pp), var(--ow));
+  border: none; cursor: pointer; font-family: var(--fb);
+  font-size: .82rem; font-weight: 700; color: var(--pm);
+  transition: background var(--t);
+}
+.cap-guide-toggle:hover { background: var(--pp); }
+.cap-guide-chevron { font-size: .75rem; transition: transform .2s; }
+.cap-guide-body {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--gl);
+  background: #fdfcff;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* Kategori */
+.cg-category { }
+.cg-cat-header {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 3px;
+}
+.cg-cat-emblem { font-size: 1rem; flex-shrink: 0; }
+.cg-cat-title  { font-size: .8rem; font-weight: 700; color: var(--ch); }
+.cg-cat-ket    { font-size: .72rem; color: var(--gm); margin-bottom: 5px; font-style: italic; padding-left: 24px; }
+
+/* Tabel panduan */
+.cg-table {
+  width: 100%; border-collapse: collapse;
+  font-size: .76rem; margin-left: 2px;
+}
+.cg-table thead th {
+  background: var(--pm); color: #fff;
+  padding: 4px 8px; text-align: left;
+  font-size: .7rem; font-weight: 600;
+}
+.cg-table tbody td {
+  padding: 4px 8px; border-bottom: 1px solid var(--gl);
+  vertical-align: top;
+}
+.cg-table tbody tr:last-child td { border-bottom: none; }
+.cg-table tbody tr:nth-child(even) td { background: #f5f3ff; }
+.cg-poin {
+  text-align: center; font-weight: 700; color: var(--ok);
+  white-space: nowrap; width: 52px;
+}
+.cg-poin-custom { color: var(--gm); font-weight: 400; font-style: italic; }
+.cg-catatan { color: var(--gm); font-style: italic; }

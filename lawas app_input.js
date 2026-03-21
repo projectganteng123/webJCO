@@ -1131,7 +1131,7 @@ function renderPeng() {
         <div class="peng-pill">${p.jabatan_level||''}</div>
         <div class="peng-nm">${p.nama||'–'}</div>
         <div class="peng-kl">Kelas ${p.kelas||'–'}</div>
-        <div style="font-size:.68rem;color:var(--gm);line-height:1.4;margin-bottom:8px">${p.deskripsi_jabatan||p.jabatan||''}</div>
+        <div style="font-size:.68rem;color:var(--gm);line-height:1.4;margin-bottom:8px">${p.desc||p.jabatan||''}</div>
         ${p._m?'<span class="chg chg-m" style="margin-bottom:6px;display:inline-block">Diubah</span>':''}
         <button class="btn-esm" onclick="openPengModal(${p._i})">✏️ Edit</button>
       </div>
@@ -1147,7 +1147,7 @@ function openPengModal(i) {
   document.getElementById('ep_nama').value = p.nama||'';
   document.getElementById('ep_kelas').value = p.kelas||'';
   document.getElementById('ep_foto').value = p['link photo']||p.foto_url||p.photo||'';
-  document.getElementById('ep_desc').value = p.deskripsi_jabatan||'';
+  document.getElementById('ep_desc').value = p.deskripsi_jabatan||p.desc||'';
   openModal('pengurusModal');
 }
 function savePengurus() {
@@ -1850,6 +1850,7 @@ function initPhSakura() {
   const ph = document.querySelector('.ph');
   if (!ph) return;
 
+  // Buat marker sekali saja
   if (!ph.querySelector('.ph-sakura-wrap')) {
     const marker = document.createElement('div');
     marker.className = 'ph-sakura-wrap';
@@ -1857,68 +1858,38 @@ function initPhSakura() {
   }
 
   function spawnPhPetal() {
+    // Skip spawn jika halaman rekap tidak aktif, tapi JANGAN stop interval
     if (!document.querySelector('#page-rekap.active')) return;
-    const phW = ph.offsetWidth  || 300;
-    const phH = ph.offsetHeight || 160;
-    const sz  = 4 + Math.random() * 7;
-
-    let x = Math.random() * (phW + 20) - 10;
-    let y = -sz;
-    let angle = Math.random() * 360;
-
-    const dur      = 2500 + Math.random() * 2500;
-    const xDrift   = (Math.random() > .5 ? 1 : -1) * (10 + Math.random() * 18);
-    const vyMin    = 30 + Math.random() * 15;
-    const vyMax    = 90 + Math.random() * 40;
-    const totalSpin= (360 + Math.random() * 180) * (Math.random() > .5 ? 1 : -1);
-    const alpha    = .25 + Math.random() * .4;
-    const radius   = Math.random() > .5 ? '50% 0 50% 0' : '0 50% 0 50%';
-
-    const startTs = performance.now();
-    let   lastTs  = startTs;
-
     const el = document.createElement('div');
+    const sz = 4 + Math.random() * 7;
+    const phH = ph.offsetHeight || 160;
+    const fallDist = phH + sz * 2;
+    const dur = 2.5 + Math.random() * 3;
+    const driftX = (Math.random() - .5) * 60;
     el.style.cssText = [
       'position:absolute',
-      'width:'  + sz + 'px',
+      'width:' + sz + 'px',
       'height:' + sz + 'px',
-      'background:rgba(255,180,210,' + alpha + ')',
-      'border-radius:' + radius,
+      'background:rgba(255,180,210,' + (.25 + Math.random() * .4) + ')',
+      'border-radius:50% 0 50% 0',
+      'left:' + Math.random() * 100 + '%',
+      'top:-' + (sz + 2) + 'px',
       'pointer-events:none',
       'z-index:0',
-      'will-change:transform,opacity',
-      'left:0', 'top:0',
+      '--fd:' + fallDist + 'px',
+      '--dx:' + driftX + 'px',
+      'animation:phSakuraFall ' + dur + 's linear forwards',
     ].join(';');
     ph.appendChild(el);
-
-    function frame(ts) {
-      const elapsed = ts - startTs;
-      const dt = Math.min((ts - lastTs) / 1000, .05);
-      lastTs = ts;
-      if (elapsed > dur || y > phH + sz + 10 || !document.body.contains(el)) {
-        el.remove(); return;
-      }
-      const p = Math.min(elapsed / dur, 1);
-      const vx   = xDrift * Math.cos(p * Math.PI * 2) * (Math.PI * 2 / (dur / 1000));
-      const ease = p * p * (3 - 2 * p);
-      const vy   = vyMin + (vyMax - vyMin) * ease
-                 - 12 * Math.abs(Math.sin(p * Math.PI * 2));
-      x += vx * dt;
-      y += Math.max(5, vy) * dt;
-      const curSpin = (totalSpin / (dur / 1000)) * (0.7 + 0.3 * Math.abs(Math.cos(p * Math.PI)));
-      angle += curSpin * dt;
-      let opacity;
-      if      (elapsed < 200) opacity = elapsed / 200;
-      else if (p > 0.8)       opacity = Math.max(0, (1 - p) / 0.2);
-      else                    opacity = 1;
-      el.style.opacity   = opacity;
-      el.style.transform = 'translate(' + (x - sz/2) + 'px,' + (y - sz/2) + 'px) rotate(' + angle + 'deg)';
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
+    el.addEventListener('animationend', () => el.remove());
   }
 
+  // Spawn burst awal agar langsung terlihat
   for (let i = 0; i < 10; i++) setTimeout(spawnPhPetal, i * 100);
+
+  // Mulai interval SEKALI saja seumur halaman.
+  // Tidak pernah di-clear — hanya di-skip saat halaman tidak aktif,
+  // sehingga sakura langsung muncul kembali saat user kembali ke Overview.
   if (!_phSakuraIv) {
     _phSakuraIv = setInterval(spawnPhPetal, 500);
   }
@@ -1928,112 +1899,39 @@ function initPhSakura() {
   const container = document.getElementById('lovSakura');
   if (!container) return;
 
+  // Keyframe identik landing page (inject sekali)
+  if (!document.getElementById('lov-sakura-style')) {
+    const ss = document.createElement('style');
+    ss.id = 'lov-sakura-style';
+    ss.textContent = '@keyframes sakuraFall{0%{transform:translateY(0) rotate(0deg);opacity:1}50%{transform:translateY(40vh) rotate(180deg) translateX(20px);opacity:.7}100%{transform:translateY(100vh) rotate(360deg) translateX(-20px);opacity:0}}';
+    document.head.appendChild(ss);
+  }
+
   function spawnPetal() {
     const lov = document.getElementById('lov');
     if (!lov || lov.classList.contains('hidden')) return;
-
-    const W   = window.innerWidth;
-    const H   = window.innerHeight;
-    const sz  = 4 + Math.random() * 6;
-
-    // Posisi awal: acak di atas, sedikit di luar batas kiri/kanan
-    let x = Math.random() * (W + 40) - 20;
-    let y = -(sz);
-
-    // Ikuti pola keyframe asli:
-    // kelopak jatuh sambil geser ke satu arah (mis kanan), lalu berbalik (kiri)
-    // Perubahan arah terjadi smooth — menggunakan sin SATU siklus penuh selama hidup kelopak
-    // sin(0→π) = 0→0 lewat puncak → geser kanan lalu balik ke tengah
-    // sin(π→2π) = 0→0 lewat lembah → geser kiri lalu balik ke tengah
-    // Arah geser: acak kanan-dulu atau kiri-dulu
-
-    const dur       = 4500 + Math.random() * 3500; // ms total hidup kelopak
-    const xDrift    = (Math.random() > .5 ? 1 : -1) // arah pertama: kanan atau kiri
-                      * (14 + Math.random() * 20);  // px geser maks di tengah perjalanan
-    // Kecepatan Y: ease-in (makin cepat) tapi dengan sedikit perlambatan di tengah
-    // untuk mensimulasikan hambatan udara saat berputar
-    const vyMin     = 40 + Math.random() * 20;  // px/s paling lambat (awal & tengah)
-    const vyMax     = 130 + Math.random() * 60; // px/s paling cepat (akhir)
-
-    // Rotasi: satu putaran penuh selama hidup (seperti keyframe 0°→360°)
-    let   angle     = Math.random() * 360;
-    const totalSpin = (360 + Math.random() * 180) * (Math.random() > .5 ? 1 : -1);
-
-    const alpha  = .2 + Math.random() * .35;
-    const radius = Math.random() > .5 ? '50% 0 50% 0' : '0 50% 0 50%';
-
-    const startTs   = performance.now();
-    let   lastTs    = startTs;
-
-    const el = document.createElement('div');
-    el.style.cssText = [
-      'position:absolute',
-      'width:'  + sz + 'px',
-      'height:' + sz + 'px',
-      'background:rgba(255,180,210,' + alpha + ')',
-      'border-radius:' + radius,
-      'pointer-events:none',
-      'z-index:1',
-      'will-change:transform,opacity',
-      'left:0', 'top:0',
-    ].join(';');
-    container.appendChild(el);
-
-    function frame(ts) {
-      const elapsed = ts - startTs;
-      const dt      = Math.min((ts - lastTs) / 1000, .05);
-      lastTs = ts;
-
-      if (lov.classList.contains('hidden') || elapsed > dur || y > H + sz + 10) {
-        el.remove(); return;
-      }
-
-      // progress 0→1 selama hidup kelopak
-      const p  = Math.min(elapsed / dur, 1);
-
-      // X: sin(p × 2π) → satu siklus penuh: 0 → geser satu arah → kembali → geser arah lain → kembali
-      // Hasilnya: geser kanan (atau kiri) dulu, lalu berbalik arah, smooth tanpa mendadak
-      const xOffset = xDrift * Math.sin(p * Math.PI * 2);
-      // Kecepatan horizontal = turunan xOffset terhadap waktu
-      const vx = xDrift * Math.cos(p * Math.PI * 2) * (Math.PI * 2 / (dur / 1000));
-
-      // Y: ease-in-out dengan lembah di tengah (sedikit melambat saat berayun maksimal)
-      // pakai gabungan ease-in kuadrat + modulasi kecil dari sin X
-      const ease    = p * p * (3 - 2 * p);           // smoothstep 0→1
-      const vy      = vyMin + (vyMax - vyMin) * ease  // makin cepat seiring waktu
-                    - 18 * Math.abs(Math.sin(p * Math.PI * 2)); // sedikit melambat saat ayun maks
-
-      x += vx * dt;
-      y += Math.max(8, vy) * dt;
-
-      // Rotasi: proporsional terhadap progress — persis seperti keyframe 0°→totalSpin
-      // turunan = kecepatan konstan tapi dimodulasi sedikit agar tidak kaku
-      const curSpin = (totalSpin / (dur / 1000)) * (0.7 + 0.3 * Math.abs(Math.cos(p * Math.PI)));
-      angle += curSpin * dt;
-
-      // Opacity: fade in 400ms, penuh, fade out di 20% terakhir
-      let opacity;
-      if      (elapsed < 400)          opacity = elapsed / 400;
-      else if (p > 0.8)                opacity = Math.max(0, (1 - p) / 0.2);
-      else                             opacity = 1;
-
-      el.style.opacity   = opacity;
-      el.style.transform = 'translate(' + (x - sz/2) + 'px,' + (y - sz/2) + 'px) rotate(' + angle + 'deg)';
-
-      requestAnimationFrame(frame);
-    }
-
-    requestAnimationFrame(frame);
+    const p = document.createElement('div');
+    const sz = 4 + Math.random() * 6;
+    p.style.cssText = 'position:absolute;width:' + sz + 'px;height:' + sz + 'px;'
+      + 'background:rgba(255,180,210,' + (.2 + Math.random() * .3) + ');'
+      + 'border-radius:50% 0 50% 0;'
+      + 'left:' + Math.random() * 100 + '%;top:-10px;'
+      + 'pointer-events:none;z-index:1;'
+      + 'animation:sakuraFall ' + (4 + Math.random() * 5) + 's linear forwards;';
+    container.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
   }
 
+  // Interval identik landing page: 1000ms — tapi spawn awal diperbanyak
   const iv = setInterval(() => {
     if (document.getElementById('lov').classList.contains('hidden')) {
       clearInterval(iv); return;
     }
     spawnPetal();
-  }, 700);
+  }, 1000);
 
-  for (let i = 0; i < 10; i++) setTimeout(spawnPetal, i * 180);
+  // Spawn awal agar langsung terlihat saat halaman terbuka
+  for (let i = 0; i < 8; i++) setTimeout(spawnPetal, i * 200);
 })();
 
 

@@ -91,6 +91,7 @@
     <div class="sb-d"></div>
     <div class="sb-s">Publik</div>
     <div class="sb-i" onclick="showPage('pengumuman');closeSidebar()" id="nav-pengumuman"><span class="sb-ic">📣</span><span>Pengumuman</span><span class="sb-b" id="badge-pengumuman">0</span></div>
+    <div class="sb-i" onclick="showPage('pencapaian');closeSidebar()" id="nav-pencapaian"><span class="sb-ic">🏆</span><span>Pencapaian</span><span class="sb-b" id="badge-pencapaian">0</span></div>
   </aside>
 
   <main class="main">
@@ -188,6 +189,7 @@
         <div class="tb-sp"></div>
         <button class="btn-add" onclick="addAnggotaRow()">+ Tambah Anggota</button>
         <button class="btn-ar" style="margin-left:4px" title="Paste dari Excel/Sheets: Nama | Kelas | Angkatan | Status | No HP | Catatan" onclick="openPasteAnggota()">📋 Paste Tabel</button>
+        <button class="btn-lap" onclick="printLaporanAnggota()" title="Cetak laporan kehadiran semua anggota">🖨️ Cetak Laporan</button>
       </div>
       <div class="pb-banner" id="anggotaBanner">✏️ <strong id="anggotaBannerN">0</strong> perubahan anggota belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
       <div class="panel"><div class="pb" style="padding:0"><div class="tbl-wrap">
@@ -220,6 +222,17 @@
       <div id="changelogContent">
         <div class="empty"><div class="ei">✅</div><div class="et">Tidak ada perubahan</div><div class="ed">Semua tersinkron</div></div>
       </div>
+    </div>
+
+    <!-- PENCAPAIAN -->
+    <div class="ps" id="page-pencapaian">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px">
+        <strong style="font-size:1.05rem">🏆 Pencapaian Anggota</strong>
+        <div class="tb-sp"></div>
+        <button class="btn-add" onclick="openCapModal()">+ Tambah</button>
+      </div>
+      <div class="pb-banner" id="capBanner">✏️ <strong id="capBannerN">0</strong> perubahan belum diupload &nbsp;<button class="btn-save" style="padding:4px 12px;font-size:.73rem" onclick="handleUpload()">Upload</button></div>
+      <div id="capContent"></div>
     </div>
 
     <!-- PENGUMUMAN -->
@@ -405,6 +418,105 @@
     <div class="ulov-bar-wrap"><div class="ulov-bar"></div></div>
     <div class="ulov-step" id="ulovStep">Mempersiapkan upload…</div>
     <div class="ulov-warn">⚠️ Jangan tutup atau refresh halaman ini</div>
+  </div>
+</div>
+
+<!-- MODAL PENCAPAIAN -->
+<div class="mov" id="capModal">
+  <div class="modal" style="max-width:640px;max-height:93vh;overflow-y:auto">
+    <div class="m-h">
+      <span>🏆</span>
+      <span class="m-t">Tambah Pencapaian</span>
+      <button class="m-x" onclick="closeModal('capModal')">✕</button>
+    </div>
+
+    <!-- MODE SWITCH -->
+    <!-- PANDUAN PENILAIAN — accordion lipat -->
+    <div class="cap-guide-wrap" id="capGuideWrap">
+      <button class="cap-guide-toggle" id="capGuideToggle" onclick="toggleCapGuide()" type="button">
+        <span>📖 Panduan Penilaian</span>
+        <span class="cap-guide-chevron" id="capGuideChevron">▾</span>
+      </button>
+      <div class="cap-guide-body" id="capGuideBody" style="display:none"></div>
+    </div>
+
+    <div class="cap-mode-row">
+      <button class="cap-mode-btn active" id="capModeBatch" onclick="switchCapMode('batch')">📋 Batch — pencapaian sama</button>
+      <button class="cap-mode-btn" id="capModeIndiv" onclick="switchCapMode('individual')">✏️ Individual — tiap orang beda</button>
+    </div>
+
+    <!-- ══ MODE BATCH ══ -->
+    <div id="capBatchForm">
+      <!-- Pencapaian & Emblem -->
+      <div class="fg"><div class="fl">Nama Pencapaian</div>
+        <input type="text" class="fi" id="cap_pencapaian" placeholder="cth: Juara 1 Lomba Nihongo…"/>
+      </div>
+      <div class="fg"><div class="fl">Emblem</div>
+        <input type="hidden" id="cap_emblem_val"/>
+        <div class="cap-emblem-grid" id="capEmblemGrid">
+          <button type="button" class="cap-emblem-btn selected" data-icon="" onclick="selectEmblem(this,'cap_emblem_val','capEmblemGrid')">
+            <span style="font-size:1rem;line-height:1.6">—</span><small>Tanpa</small>
+          </button>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg"><div class="fl">Poin</div>
+          <input type="number" class="fi" id="cap_poin" placeholder="cth: 10" min="0"/>
+        </div>
+        <div class="fg"><div class="fl">Tanggal</div>
+          <input type="date" class="fi" id="cap_waktu"/>
+        </div>
+      </div>
+      <div class="fg"><div class="fl">Keterangan</div>
+        <textarea class="fta" rows="2" id="cap_keterangan" placeholder="Keterangan tambahan…"></textarea>
+      </div>
+
+      <!-- Penerima -->
+      <div class="fg">
+        <div class="fl" style="margin-bottom:6px">Penerima <span style="color:var(--gm);font-weight:400;text-transform:none">— pilih dari daftar atau ketik manual</span></div>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input type="text" class="fi" id="capSearchInput" placeholder="🔍 Cari nama anggota…" oninput="renderCapAnggotaList(this.value)" style="flex:1"/>
+          <button type="button" class="btn-ar" onclick="toggleSelectAllCap()" style="white-space:nowrap;flex-shrink:0">Pilih Semua</button>
+        </div>
+        <div id="capAnggotaList" class="cap-ang-list"></div>
+        <!-- Input manual -->
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+          <input type="text" class="fi" id="capManualInput" placeholder="Atau ketik nama manual lalu Enter…" style="flex:1"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addCapManual();}"/>
+          <button type="button" class="btn-ar" onclick="addCapManual()" style="white-space:nowrap;flex-shrink:0">+ Tambah</button>
+        </div>
+        <div id="capManualList" class="cap-manual-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ MODE INDIVIDUAL ══ -->
+    <div id="capIndivForm" style="display:none">
+      <div style="position:relative;margin-bottom:8px">
+        <input type="text" class="fi" id="capIndivSearchInput"
+          placeholder="🔍 Ketik nama anggota dari daftar…"
+          oninput="showCapIndivDropdown(this.value)"
+          onkeydown="if(event.key==='Escape')hideCapIndivDropdown()"
+          autocomplete="off"/>
+        <div id="capIndivDropdown" class="cap-indiv-dropdown" style="display:none"></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input type="text" class="fi" id="capIndivManual" placeholder="Atau ketik nama manual lalu Enter…" style="flex:1"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addCapIndivManual();}"/>
+        <button type="button" class="btn-ar" onclick="addCapIndivManual()" style="flex-shrink:0;white-space:nowrap">+ Manual</button>
+      </div>
+      <!-- Tabel individual rows -->
+      <div id="capIndivRows" class="cap-indiv-rows"></div>
+      <div class="fhint" style="margin-top:4px">Setiap baris bisa diisi pencapaian, emblem, poin, dan keterangan yang berbeda.</div>
+      <!-- Tanggal global -->
+      <div class="fg" style="margin-top:10px"><div class="fl">Tanggal (berlaku untuk semua)</div>
+        <input type="date" class="fi" id="cap_waktu_indiv"/>
+      </div>
+    </div>
+
+    <div class="m-f">
+      <button class="btn-cancel" onclick="closeModal('capModal')">Batal</button>
+      <button class="btn-save" onclick="saveCap()">💾 Simpan</button>
+    </div>
   </div>
 </div>
 

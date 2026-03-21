@@ -864,23 +864,6 @@ section { padding: 100px 0; }
   position: relative;
 }
 
-/* Watermark logo di tengah org-chart */
-.org-chart::after {
-  content: '';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(600px, 85%);
-  height: min(600px, 85%);
-  background-image: url('./logo-jcosasi.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.12;
-  pointer-events: none;
-  z-index: 0;
-}
-
 /* Vertical connector line */
 .org-v-line {
   width: 2px; height: 40px;
@@ -927,28 +910,11 @@ section { padding: 100px 0; }
   transition: all var(--trans);
   position: relative;
   overflow: hidden;
-  z-index: 1;
 }
 .org-card::before {
   content: ''; position: absolute;
   top: 0; left: 0; right: 0; height: 4px;
   background: linear-gradient(90deg, var(--purple-deep), var(--purple-light));
-}
-/* Watermark logo di dalam setiap card */
-.org-card::after {
-  content: '';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80%;
-  height: 80%;
-  background-image: url('./logo-jcosasi.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.07;
-  pointer-events: none;
-  z-index: 0;
 }
 .org-card:hover {
   transform: translateY(-4px);
@@ -967,9 +933,6 @@ section { padding: 100px 0; }
 .org-card-ketua::before {
   background: linear-gradient(90deg, var(--red-jp), rgba(255,255,255,.3));
 }
-.org-card-ketua::after {
-  opacity: 0.10;
-}
 .org-card-ketua:hover {
   box-shadow: 0 16px 56px rgba(61,26,94,.45);
   border-color: transparent;
@@ -981,7 +944,6 @@ section { padding: 100px 0; }
   border-top: 4px solid var(--purple-mid);
 }
 .org-card-inti::before { display: none; }
-.org-card-inti::after  { opacity: 0.06; }
 
 /* Bidang */
 .org-card-bidang {
@@ -989,7 +951,6 @@ section { padding: 100px 0; }
   border-top: 4px solid var(--red-jp);
 }
 .org-card-bidang::before { display: none; }
-.org-card-bidang::after { opacity: 0.06; }
 
 /* Photo area */
 .org-photo {
@@ -1001,9 +962,13 @@ section { padding: 100px 0; }
   border: 3px solid rgba(255,255,255,.3);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  position: relative; z-index: 2;
 }
 .org-card-inti   .org-photo,
+.org-card-bidang .org-photo {
+  background: var(--purple-pale);
+  border-color: var(--purple-light);
+  width: 60px; height: 60px;
+}
 .org-card-bidang .org-photo {
   background: var(--purple-pale);
   border-color: var(--purple-light);
@@ -1036,9 +1001,8 @@ section { padding: 100px 0; }
   font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
   font-weight: 600; margin-bottom: 6px;
   color: rgba(255,255,255,.6);
-  position: relative; z-index: 2;
 }
-.org-card-inti   .org-jabatan { color: var(--purple-mid); }
+.org-card-inti   .org-jabatan { color: var(--purple-mid); margin-bottom: 3px; }
 .org-card-bidang .org-jabatan { color: var(--red-jp); }
 
 .org-nama {
@@ -1046,7 +1010,6 @@ section { padding: 100px 0; }
   font-size: 1rem; font-weight: 700;
   color: var(--white); margin-bottom: 6px;
   line-height: 1.2;
-  position: relative; z-index: 2;
 }
 .org-card-inti   .org-nama { color: var(--purple-deep); font-size: .95rem; }
 .org-card-bidang .org-nama { color: var(--purple-deep); font-size: .9rem; }
@@ -1056,8 +1019,7 @@ section { padding: 100px 0; }
 }
 .org-kelas {
   font-size: .78rem; color: rgba(255,255,255,.5);
-  margin-bottom: 10px;
-  position: relative; z-index: 2;
+  margin-top: 8px; margin-bottom: 8px;
 }
 .org-card-inti   .org-kelas { color: var(--grey-mid); }
 .org-card-bidang .org-kelas { color: var(--grey-mid); }
@@ -1068,7 +1030,6 @@ section { padding: 100px 0; }
   color: rgba(255,255,255,.65);
   border-top: 1px solid rgba(255,255,255,.12);
   padding-top: 10px; margin-top: 4px;
-  position: relative; z-index: 2;
 }
 .org-card-inti   .org-desc { color: var(--grey-mid); border-color: var(--grey-light); }
 .org-card-bidang .org-desc { color: var(--grey-mid); border-color: var(--grey-light); }
@@ -1310,7 +1271,6 @@ footer {
   .tl-content h4 { font-size: .92rem; }
   .tl-content p  { font-size: .82rem; }
   .org-chart { gap: 14px; }
-  .org-chart::after { width: min(420px, 88%); height: min(420px, 88%); opacity: 0.10; }
   .org-level  { flex-direction: column; align-items: center; gap: 12px; }
   .org-v-line { height: 20px; }
   .org-card-ketua,

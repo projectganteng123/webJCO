@@ -46,6 +46,9 @@ function buildOrgCard(data) {
     <div class="org-desc">${data.desc}</div>`;
 }
 
+/* Card inti — gunakan buildOrgCard standar */
+function buildOrgCardInti(data) { return buildOrgCard(data); }
+
 /* ── Shared cache helpers (dipakai juga oleh proker-script.js via key sama) ── */
 function _jcosasiCacheKey(api) {
   try { return 'jcosasi_v1_' + btoa(api).slice(0, 20).replace(/[^a-z0-9]/gi,''); }
@@ -435,16 +438,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── SAKURA ── */
   const ss=document.createElement('style');
-  ss.textContent=`@keyframes sakuraFall{0%{transform:translateY(0) rotate(0deg);opacity:1}50%{transform:translateY(40vh) rotate(180deg) translateX(20px);opacity:.7}100%{transform:translateY(100vh) rotate(360deg) translateX(-20px);opacity:0}}
-  .nav-links a.active{color:var(--purple-mid)}.nav-links a.active::after{transform:scaleX(1)}#navbar.scrolled .nav-links a.active{color:var(--white)}`;
+  ss.textContent=`.nav-links a.active{color:var(--purple-mid)}.nav-links a.active::after{transform:scaleX(1)}#navbar.scrolled .nav-links a.active{color:var(--white)}`;
   document.head.appendChild(ss);
-  setInterval(()=>{
-    const hero=$('hero');if(!hero)return;
-    const p=document.createElement('div');
-    const sz=4+Math.random()*6;
-    p.style.cssText=`position:absolute;width:${sz}px;height:${sz}px;background:rgba(255,180,210,${.2+Math.random()*.3});border-radius:50% 0 50% 0;left:${Math.random()*100}%;top:-10px;pointer-events:none;z-index:1;animation:sakuraFall ${4+Math.random()*5}s linear forwards;`;
-    hero.appendChild(p);p.addEventListener('animationend',()=>p.remove());
-  },1000);
+
+  (function(){
+    function spawnHeroPetal(){
+      const hero=document.getElementById('hero');if(!hero)return;
+      const W=hero.offsetWidth||window.innerWidth,H=hero.offsetHeight||window.innerHeight;
+      const sz=4+Math.random()*6;
+      let x=Math.random()*(W+20)-10,y=-sz,angle=Math.random()*360;
+      const dur=4500+Math.random()*3500;
+      const xDrift=(Math.random()>.5?1:-1)*(14+Math.random()*20);
+      const vyMin=40+Math.random()*20,vyMax=130+Math.random()*60;
+      const totalSpin=(360+Math.random()*180)*(Math.random()>.5?1:-1);
+      const alpha=.2+Math.random()*.35;
+      const radius=Math.random()>.5?'50% 0 50% 0':'0 50% 0 50%';
+      const startTs=performance.now();let lastTs=startTs;
+      const el=document.createElement('div');
+      el.style.cssText='position:absolute;width:'+sz+'px;height:'+sz+'px;background:rgba(255,180,210,'+alpha+');border-radius:'+radius+';pointer-events:none;z-index:1;will-change:transform,opacity;left:0;top:0';
+      hero.appendChild(el);
+      function frame(ts){
+        const elapsed=ts-startTs,dt=Math.min((ts-lastTs)/1000,.05);lastTs=ts;
+        if(elapsed>dur||y>H+sz+10||!document.body.contains(el)){el.remove();return;}
+        const p=Math.min(elapsed/dur,1);
+        const vx=xDrift*Math.cos(p*Math.PI*2)*(Math.PI*2/(dur/1000));
+        const ease=p*p*(3-2*p);
+        const vy=vyMin+(vyMax-vyMin)*ease-18*Math.abs(Math.sin(p*Math.PI*2));
+        x+=vx*dt;y+=Math.max(8,vy)*dt;
+        const curSpin=(totalSpin/(dur/1000))*(0.7+0.3*Math.abs(Math.cos(p*Math.PI)));
+        angle+=curSpin*dt;
+        const opacity=elapsed<400?elapsed/400:p>0.8?Math.max(0,(1-p)/0.2):1;
+        el.style.opacity=opacity;
+        el.style.transform='translate('+(x-sz/2)+'px,'+(y-sz/2)+'px) rotate('+angle+'deg)';
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+    for(let i=0;i<8;i++)setTimeout(spawnHeroPetal,i*200);
+    setInterval(spawnHeroPetal,1000);
+  })();
 });
 
 /* ═══════════════════════════════════════════════════════════
@@ -465,9 +497,12 @@ function renderPengurusSkeleton() {
 
   const $=id=>document.getElementById(id);
   $('orgKetua')      && ($('orgKetua').innerHTML      = skeletonCard);
-  $('orgWakil')      && ($('orgWakil').innerHTML      = skeletonCard);
-  $('orgSekretaris') && ($('orgSekretaris').innerHTML = skeletonCard);
-  $('orgBendahara')  && ($('orgBendahara').innerHTML  = skeletonCard);
+  const intiSkEl = document.getElementById('orgInti');
+  if (intiSkEl) {
+    intiSkEl.innerHTML = [1,2,3].map((_, i) =>
+      `<div class="org-card org-card-inti fade-up delay-${i+1}">${skeletonCard}</div>`
+    ).join('');
+  }
   const bidang = $('orgBidang');
   if (bidang) {
     bidang.innerHTML = ['','delay-1','delay-2','delay-3'].map(d =>
@@ -481,10 +516,8 @@ function renderPengurusSkeleton() {
  */
 function sheetsToStruktur(rows) {
   const struktur = {};
+  const inti     = [];  // Level 2 — semua selain ketua & bidang
   const bidang   = [];
-
-  // Map jabatan_level → key di content.js
-  const levelMap = { ketua: 'ketua', wakil: 'wakil', sekretaris: 'sekretaris', bendahara: 'bendahara' };
 
   rows.forEach(row => {
     const level = (row.jabatan_level || '').toLowerCase().trim();
@@ -494,17 +527,20 @@ function sheetsToStruktur(rows) {
       kelas:   row.kelas   || '–',
       photo:   row.foto_url || row.photo || '',
       icon:    row.icon    || '👤',
-      desc:    row.desc    || '',
+      desc:    row.deskripsi_jabatan || row.desc || '',
     };
 
-    if (levelMap[level]) {
-      struktur[levelMap[level]] = data;
+    if (level === 'ketua') {
+      struktur.ketua = data;
     } else if (level === 'bidang') {
       bidang.push(data);
+    } else if (level) {
+      // Semua level lain (wakil, sekretaris, bendahara, dll) → inti
+      inti.push(data);
     }
   });
 
-  return { struktur, bidang };
+  return { struktur, inti, bidang };
 }
 
 /**
@@ -519,7 +555,7 @@ async function loadPengurusFromSheets() {
   // Jika URL belum diisi → langsung pakai fallback
   if (!api || api.includes('PASTE_URL')) {
     console.warn('[JCOSASI] API URL belum diisi di content.js → pakai data fallback');
-    renderPengurus(P.struktur, P.bidang, 'fallback');
+    renderPengurus(P.struktur, null, P.bidang, 'fallback');
     return;
   }
 
@@ -530,12 +566,12 @@ async function loadPengurusFromSheets() {
       throw new Error('Data kosong atau status error');
     }
 
-    const { struktur, bidang } = sheetsToStruktur(data.data);
-    renderPengurus(struktur, bidang, 'sheets');
+    const { struktur, inti, bidang } = sheetsToStruktur(data.data);
+    renderPengurus(struktur, inti, bidang, 'sheets');
 
   } catch (err) {
     console.error('[JCOSASI] Gagal fetch dari Sheets:', err.message);
-    renderPengurus(P.struktur, P.bidang, 'fallback');
+    renderPengurus(P.struktur, null, P.bidang, 'fallback');
   }
 }
 
@@ -543,7 +579,7 @@ async function loadPengurusFromSheets() {
  * Render org chart dengan data yang sudah siap
  * source: 'sheets' | 'fallback'
  */
-function renderPengurus(struktur, bidang, source) {
+function renderPengurus(struktur, inti, bidang, source) {
   const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
   const P   = CONTENT.pengurus;
 
@@ -561,10 +597,18 @@ function renderPengurus(struktur, bidang, source) {
   // Render kartu — fallback jika jabatan tidak ada di data Sheets
   const getFallback = (key) => P.struktur[key] || { jabatan: key, nama: '–', kelas: '–', photo: '', icon: '👤', desc: '' };
 
-  set('orgKetua',      buildOrgCard(struktur.ketua      || getFallback('ketua')));
-  set('orgWakil',      buildOrgCard(struktur.wakil      || getFallback('wakil')));
-  set('orgSekretaris', buildOrgCard(struktur.sekretaris || getFallback('sekretaris')));
-  set('orgBendahara',  buildOrgCard(struktur.bendahara  || getFallback('bendahara')));
+  set('orgKetua', buildOrgCard(struktur.ketua || getFallback('ketua')));
+
+  // Level 2 Inti — dinamis, bisa 1–5 orang
+  const intiData = (inti && inti.length > 0) ? inti
+    : ['wakil','sekretaris','bendahara'].map(k => struktur[k] || getFallback(k));
+  const intiEl = document.getElementById('orgInti');
+  if (intiEl) {
+    const delays = ['delay-1','delay-2','delay-3','delay-4','delay-5'];
+    intiEl.innerHTML = intiData.slice(0, 5).map((d, i) =>
+      `<div class="org-card org-card-inti fade-up ${delays[i] || ''}">${buildOrgCardInti(d)}</div>`
+    ).join('');
+  }
 
   const bidangData = (bidang && bidang.length > 0) ? bidang : P.bidang;
   set('orgBidang', bidangData.map((b, i) => {
