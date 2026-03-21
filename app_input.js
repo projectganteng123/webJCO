@@ -2,8 +2,8 @@
 // API_READ  → deployment read-only (gas_readonly.js) — untuk load data awal
 // API_WRITE → deployment gas_v7.js  — untuk semua operasi write
 // WRITE_TOKEN → harus sama persis dengan WRITE_TOKEN di gas_v7.js
-const API_READ   = 'https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec';
-const API_WRITE  = 'https://script.google.com/macros/s/AKfycbzuzMPxoEuCDOW6LwixAWGNbadC9cpzkDYpru8R2sr-Ia4fCrZuTW85xvcXeqppxjAL/exec';
+const API_READ   = 'https://script.google.com/macros/s/AKfycby4syb7I0ygt_TuYPo3A3O-mQHNn8O0JLudGIWHzxS-AFa63EIZPaNL0QEOq5bkPo6AAQ/exec';
+const API_WRITE  = 'https://script.google.com/macros/s/AKfycbw9dQmCy9JaiDWby3xG5L71UvZCfcJp9LsroKBmUWte94cv472tW9k1_8u1lQuq82DQ/exec';
 let WRITE_TOKEN = null; // diisi user saat loading screen
 const API = API_WRITE; // alias untuk kompatibilitas
 

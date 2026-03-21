@@ -72,8 +72,7 @@ kontak: {
       { label: "Timeline",       href: "#timeline" },
       { label: "Pengurus",       href: "#pengurus" },
       { label: "Kontak",         href: "#kontak"   },
-      { label: "📊 Dashboard",   href: "proker.html?page=rekap" },
-      { label: "📣 Pengumuman",  href: "pengumuman.html" }
+      { label: "📊 Dashboard",   href: "proker.html?page=rekap" }
     ],
   },
 
@@ -372,7 +371,7 @@ kontak: {
    * URL write + token hanya boleh ada di app.js (editor internal).
    */
   api: {
-    url: "https://script.google.com/macros/s/AKfycbzwOgklEWZn6ts5--DnFpM9eqoWsUtlQ_Nux-LhmkVQ1viH0NGAG2vXcO3sLqjLVl5E/exec",
+    url: "https://script.google.com/macros/s/AKfycby4syb7I0ygt_TuYPo3A3O-mQHNn8O0JLudGIWHzxS-AFa63EIZPaNL0QEOq5bkPo6AAQ/exec",
   },
 
   /* ── PENGURUS ─────────────────────────────────────── */
