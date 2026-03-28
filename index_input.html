@@ -76,7 +76,6 @@
 <div class="app">
   <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
   <aside class="sidebar" id="sidebar">
-    <div class="sb-close-row"><button class="sb-close-btn" onclick="closeSidebar()">✕ Tutup</button></div>
     <div class="sb-s">Dashboard</div>
     <div class="sb-i active" onclick="showPage('rekap');closeSidebar()" id="nav-rekap"><span class="sb-ic">📊</span><span>Overview</span></div>
     <div class="sb-i" onclick="showPage('changelog');closeSidebar()" id="nav-changelog"><span class="sb-ic">📝</span><span>Log Perubahan</span><span class="sb-b" id="badge-changelog">0</span></div>
@@ -99,11 +98,10 @@
     <!-- OVERVIEW -->
     <div class="ps active" id="page-rekap">
       <div class="ph">
-        <!-- dekorasi background layers -->
         <div class="ph-dots"></div>
         <div class="ph-circle-1"></div>
         <div class="ph-circle-2"></div>
-        <!-- konten -->
+        <div class="ph-sakura-wrap"></div>
         <div class="ph-bg">📊 Dashboard Laporan JCOSASI</div>
         <div class="ph-t">Editor Laporan <em>2026–2027</em></div>
         <div class="ph-jp">レポート編集システム — Data Manager</div>
@@ -266,6 +264,13 @@
 </div>
 
 <div class="act-tooltip" id="actTip"></div>
+
+<!-- ACT DAY PANEL -->
+<div class="adp-overlay" id="actDayOverlay" onclick="closeActDayPanel()"></div>
+<div class="adp" id="actDayPanel">
+  <div class="adp-handle"></div>
+  <div class="adp-inner" id="actDayBody"></div>
+</div>
 <div class="tw" id="tw"></div>
 
 <!-- ══════════════ MODALS ══════════════ -->
@@ -378,7 +383,22 @@
       <div class="fg"><div class="fl">Tanggal</div><input type="date" class="fi" id="ej_tgl"/></div>
       <div class="fg"><div class="fl">Jam</div><input type="time" class="fi" id="ej_jam"/></div>
     </div>
-    <div class="fg"><div class="fl">Penanggung Jawab</div><input type="text" class="fi" id="ej_pj" placeholder="Nama penanggung jawab..."/></div>
+    <!-- PENANGGUNG JAWAB — picker seperti kehadiran peserta -->
+    <div class="fg">
+      <div class="fl">Penanggung Jawab</div>
+      <div class="htags" id="tg-pj"></div>
+      <div class="pck-wrap">
+        <div class="pck-search"><span class="pck-search-ic">🔍</span><input type="text" placeholder="Cari nama anggota…" oninput="pckSearch('pj',this.value)"/></div>
+        <div class="pck-classes" id="pck-cls-pj"></div>
+        <div class="pck-footer">
+          <div class="pck-manual-row">
+            <input type="text" id="pck-manual-inp-pj" placeholder="Atau ketik nama manual…" onkeydown="if(event.key==='Enter'){addManualPck('pj');event.preventDefault()}"/>
+            <button class="btn-hadd" onclick="addManualPck('pj')">+ Tambah</button>
+          </div>
+          <span class="pck-count" id="pck-count-pj">0 dipilih</span>
+        </div>
+      </div>
+    </div>
     <div class="fg"><div class="fl">Catatan</div><input type="text" class="fi" id="ej_catatan" placeholder="Catatan (opsional)..."/></div>
     <div class="m-f"><button class="btn-cancel" onclick="closeModal('jadwalModal')">Batal</button><button class="btn-save" onclick="saveJadwal()">💾 Simpan</button></div>
   </div>
