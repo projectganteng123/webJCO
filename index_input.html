@@ -99,6 +99,11 @@
     <!-- OVERVIEW -->
     <div class="ps active" id="page-rekap">
       <div class="ph">
+        <!-- dekorasi background layers -->
+        <div class="ph-dots"></div>
+        <div class="ph-circle-1"></div>
+        <div class="ph-circle-2"></div>
+        <!-- konten -->
         <div class="ph-bg">📊 Dashboard Laporan JCOSASI</div>
         <div class="ph-t">Editor Laporan <em>2026–2027</em></div>
         <div class="ph-jp">レポート編集システム — Data Manager</div>
@@ -338,9 +343,26 @@
     </div>
     <div class="fg"><div class="fl">Kendala</div><textarea class="fta" id="e_kend" style="min-height:54px" placeholder="Kendala yang dihadapi…"></textarea></div>
     <div class="fg">
-      <div class="fl">URL Foto <span class="flb">Google Drive</span></div>
-      <input type="text" class="fi" id="e_foto" placeholder="https://drive.google.com/… (pisah koma)"/>
-      <div class="fhint">Pisahkan beberapa link dengan koma</div>
+      <div class="fl">Foto Dokumentasi</div>
+      <div class="foto-input-wrap">
+        <!-- Input URL -->
+        <input type="text" class="fi" id="e_foto" placeholder="Link foto (pisah koma untuk banyak foto)…"/>
+        <!-- 3 tombol -->
+        <div class="foto-btn-row">
+          <button type="button" class="btn-ar foto-btn"
+            onclick="addFotoLink('e_foto')"
+            title="Tambah link bebas">🔗 Link</button>
+          <button type="button" class="btn-ar foto-btn"
+            onclick="addFotoGdrive('e_foto')"
+            title="Masukkan link Google Drive (dikonversi otomatis)">📁 G‑Drive</button>
+          <button type="button" class="btn-ar foto-btn foto-btn-upload"
+            onclick="uploadFotoFile('e_foto')"
+            title="Upload file dari perangkat ke Google Drive">☁️ Upload</button>
+        </div>
+        <!-- Preview foto yang sudah dimasukkan -->
+        <div id="e_foto_preview" class="foto-preview"></div>
+      </div>
+      <div class="fhint">Pisahkan beberapa link dengan koma. Klik ☁️ Upload untuk upload file langsung ke Google Drive.</div>
     </div>
     <div class="m-f"><button class="btn-cancel" onclick="closeModal('sesiModal')">Batal</button><button class="btn-save" onclick="saveSesi()">💾 Simpan</button></div>
   </div>

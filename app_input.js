@@ -544,7 +544,10 @@ function openSesiFromPend(pid, tgl, jam) {
   document.getElementById('e_mul').value = jam;
   showPage('dokumentasi'); openModal('sesiModal');
 }
-function saveSesi() {
+async function saveSesi() {
+  // Resolve UID foto yang pending dari Google Form sebelum simpan
+  await resolveFotoUids('e_foto');
+
   const i  = document.getElementById('e_idx').value;
   const nd = {
     proker_id:      document.getElementById('e_pid').value,
@@ -1850,11 +1853,8 @@ function initPhSakura() {
   const ph = document.querySelector('.ph');
   if (!ph) return;
 
-  if (!ph.querySelector('.ph-sakura-wrap')) {
-    const marker = document.createElement('div');
-    marker.className = 'ph-sakura-wrap';
-    ph.insertBefore(marker, ph.firstChild);
-  }
+  // Gunakan .ph-sakura-wrap yang sudah ada di HTML
+  const wrap = ph.querySelector('.ph-sakura-wrap') || ph;
 
   function spawnPhPetal() {
     if (!document.querySelector('#page-rekap.active')) return;
@@ -1887,9 +1887,11 @@ function initPhSakura() {
       'pointer-events:none',
       'z-index:0',
       'will-change:transform,opacity',
+      'transform:translateZ(0)',
+      'backface-visibility:hidden',
       'left:0', 'top:0',
     ].join(';');
-    ph.appendChild(el);
+    wrap.appendChild(el);
 
     function frame(ts) {
       const elapsed = ts - startTs;
@@ -3961,3 +3963,179 @@ function saveEditCap(i) {
   renderCap(); updateBadges();
   toast('✅ Pencapaian diperbarui', 'success');
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FOTO DOKUMENTASI — 3 mode input
+   Upload: buka Google Form di popup → deteksi popup.closed
+           → UID disimpan di sessionStorage → resolve saat saveSesi
+═══════════════════════════════════════════════════════════ */
+
+const FORM_UPLOAD_BASE  = 'https://docs.google.com/forms/d/e/1FAIpQLSejpViQvqOIUojjQxG9KpkUBFwKEcNREVt4wKN5UoGqOlcd8w/viewform';
+const FORM_ENTRY_UID    = 'entry.1781150924';
+const FOTO_SESSION_KEY  = 'jcosasi_foto_uids'; // sessionStorage key
+
+/* Ambil daftar UID yang pending dari sessionStorage */
+function _getFotoUids() {
+  try { return JSON.parse(sessionStorage.getItem(FOTO_SESSION_KEY) || '[]'); }
+  catch(_) { return []; }
+}
+function _saveFotoUids(uids) {
+  try { sessionStorage.setItem(FOTO_SESSION_KEY, JSON.stringify(uids)); }
+  catch(_) {}
+}
+function _addFotoUid(uid, label) {
+  const uids = _getFotoUids();
+  uids.push({ uid, label, ts: Date.now() });
+  _saveFotoUids(uids);
+}
+function _removeFotoUid(uid) {
+  _saveFotoUids(_getFotoUids().filter(u => u.uid !== uid));
+}
+
+function _appendFotoUrl(fieldId, url) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  el.value = el.value.trim() ? el.value.trim() + ',' + url : url;
+  renderFotoPreview(fieldId);
+}
+
+function addFotoLink(fieldId) {
+  const url = prompt('Masukkan URL foto:');
+  if (url && url.trim()) _appendFotoUrl(fieldId, url.trim());
+}
+
+function addFotoGdrive(fieldId) {
+  const raw = prompt('Masukkan link Google Drive:');
+  if (!raw || !raw.trim()) return;
+  const m = raw.trim().match(/\/d\/([a-zA-Z0-9_-]+)/);
+  _appendFotoUrl(fieldId, m
+    ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w800'
+    : raw.trim());
+}
+
+/* Buka Google Form di popup, pantau sampai popup ditutup */
+function uploadFotoFile(fieldId) {
+  const uid   = 'uid_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  const fname = 'proker_dokumentasi_' + (S.today||new Date().toISOString().slice(0,10)) + '_' + Date.now();
+  const url   = FORM_UPLOAD_BASE + '?' + FORM_ENTRY_UID + '=' + encodeURIComponent(uid);
+
+  const popup = window.open(url, 'jcosasi_upload', 'width=720,height=640,scrollbars=yes');
+  if (!popup) {
+    toast('⚠️ Pop-up diblokir — izinkan pop-up untuk situs ini', 'error');
+    return;
+  }
+
+  // Simpan UID ke sessionStorage saat popup dibuka
+  _addFotoUid(uid, fname);
+
+  // Tampilkan status di bawah input
+  _showFotoUploadStatus(fieldId, uid, popup);
+}
+
+function _showFotoUploadStatus(fieldId, uid, popup) {
+  // Cari atau buat container status
+  let statusEl = document.getElementById('foto_status_' + fieldId);
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.id = 'foto_status_' + fieldId;
+    statusEl.className = 'foto-upload-status';
+    const preview = document.getElementById(fieldId + '_preview');
+    if (preview) preview.parentNode.insertBefore(statusEl, preview);
+  }
+
+  statusEl.innerHTML = `<span class="fus-dot fus-waiting"></span>
+    <span class="fus-msg">Form dibuka — upload file lalu klik Submit di form…</span>`;
+
+  // Pantau popup.closed setiap 1 detik
+  const check = setInterval(() => {
+    if (!popup || popup.closed) {
+      clearInterval(check);
+      // Popup ditutup — tandai sebagai "terkirim, menunggu konfirmasi"
+      statusEl.innerHTML = `<span class="fus-dot fus-sent"></span>
+        <span class="fus-msg">✅ Form terkirim — URL akan diambil saat klik Simpan</span>
+        <button class="fus-cancel" onclick="_cancelFotoUid('${uid}','${fieldId}')">×</button>`;
+    }
+  }, 1000);
+
+  // Timeout 10 menit — hapus status jika terlalu lama
+  setTimeout(() => {
+    clearInterval(check);
+    if (!popup || popup.closed) return; // sudah selesai
+    statusEl.innerHTML = `<span class="fus-dot fus-error"></span>
+      <span class="fus-msg">Form belum disubmit — tutup popup setelah selesai upload</span>`;
+  }, 10 * 60 * 1000);
+}
+
+function _cancelFotoUid(uid, fieldId) {
+  _removeFotoUid(uid);
+  const el = document.getElementById('foto_status_' + fieldId);
+  if (el) el.remove();
+}
+
+/* Dipanggil dari saveSesi — resolve semua UID pending ke URL sebelum simpan */
+async function resolveFotoUids(fieldId) {
+  const uids = _getFotoUids();
+  if (!uids.length) return; // tidak ada upload pending
+
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+
+  toast('⏳ Mengambil URL foto dari Drive…', 'info');
+
+  for (const item of uids) {
+    try {
+      // Tanya GAS: cari URL berdasarkan upload_id di sheet responses Form
+      const result = await jsonp({
+        action:   'resolveFormUpload',
+        uploadId: item.uid,
+      });
+
+      if (result && result.status === 'ok' && result.url) {
+        const urls = result.url.split(',').filter(Boolean);
+        urls.forEach(u => _appendFotoUrl(fieldId, u.trim()));
+        _removeFotoUid(item.uid);
+        const statusEl = document.getElementById('foto_status_' + fieldId);
+        if (statusEl) statusEl.remove();
+      } else {
+        toast('⚠️ Foto dengan UID ' + item.uid + ' belum ditemukan di sheet', 'warning');
+      }
+    } catch(err) {
+      console.warn('[resolveFotoUids]', err);
+    }
+  }
+}
+
+function renderFotoPreview(fieldId) {
+  const el      = document.getElementById(fieldId);
+  const preview = document.getElementById(fieldId + '_preview');
+  if (!el || !preview) return;
+  const urls = el.value.split(',').map(s=>s.trim()).filter(Boolean);
+  if (!urls.length) { preview.innerHTML = ''; return; }
+  preview.innerHTML = urls.map((url,i) => {
+    const m     = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    const thumb = (url.includes('thumbnail')||!m) ? url
+      : 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w200';
+    return `<div class="foto-thumb">
+      <img src="${thumb}" alt="foto ${i+1}"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="foto-thumb-err" style="display:none">🖼️</div>
+      <button type="button" class="foto-thumb-del"
+        onclick="removeFotoByIndex('${fieldId}',${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function removeFotoByIndex(fieldId, idx) {
+  const el = document.getElementById(fieldId); if (!el) return;
+  const urls = el.value.split(',').map(s=>s.trim()).filter(Boolean);
+  urls.splice(idx, 1);
+  el.value = urls.join(',');
+  renderFotoPreview(fieldId);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const m = document.getElementById('sesiModal');
+  if (m) new MutationObserver(() => {
+    if (m.classList.contains('open')) setTimeout(()=>renderFotoPreview('e_foto'), 100);
+  }).observe(m, { attributes:true, attributeFilter:['class'] });
+});
